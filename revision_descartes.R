@@ -22,7 +22,7 @@ library(sapmuebase)
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
 
-PATH_FILES <- "F:/misdoc/sap/revision descartes/data"
+PATH_FILES <- "F:/misdoc/sap/revision_descartes/data"
 trips_file <- "IEODESMAREAMARCO.TXT" 
 hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO_prueba.TXT"
@@ -363,6 +363,147 @@ trips_check_final_date_in_id_marea_GC <- function(){
 }
 # ------------------------------------------------------------------------------
 
+# ------------------------------------------------------------------------------
+#' Sow boxplot graphic with speed to check the speed by ESTRATRO_RIM.
+#' 
+#' @export
+view_outliers_speed <-function(){
+  
+  library(ggplot2)  
+  library(ggiraph)
+  
+  hauls_speed <- OAB_hauls %>%
+    select(ID_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
+    filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
+  
+  hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
+  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ != "CABALLA", "str"] <- "PAREJA_CN.RESTO"
+  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ == "CABALLA", "str"] <- "PAREJA_CN.CABALLA"
+  
+  p <- ggplot(hauls_speed, aes(str, VELOCIDAD))+
+    geom_boxplot_interactive()+
+    theme(axis.text.x = element_text(angle = 90, hjust = 1))
+  
+  ggiraph(code = print(p))  
+}
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#' Check if a variable exists in a dataframe
+#' @return TRUE if the variable exists. Otherwise return an error.
+#' @param variable: variable to check.
+#' @param df: dataframe to check
+#' @export
+variable_exists_in_df <- function (variable, df){
+  
+  # get all the variables of df with the variable name = variable
+  var_in_df <- colnames(df)[colnames(df) %in% variable]
+  
+  if (length(var_in_df) > 1) {
+    stop(paste("Hey hard worker! check the ", variable, 
+               "variable. Looks like there are multiple columns with the same variable name.
+               Using consistents dataframes we will get a better world. Really :) ", 
+               variable, "."))
+  } else if (length(var_in_df) == 0) {
+    stop(paste(variable, " does not exists in this dataframe."))
+  } else return (TRUE)
+  
+}
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#' Check if various variables exists in a dataframe
+#' @param variables: vector with variables to check.
+#' @param df: dataframe to check
+#' @return TRUE if all the variables exists. Otherwise return a list with errors.
+#' @export
+variables_in_df <- function(variables, df){
+  
+  variables <- as.list(variables)
+  
+  result <- lapply(
+    variables, 
+    function(x){
+      result <- tryCatch(
+        variable_exists_in_df(x, df),
+        error = function(e){ #here, instead of stop the with the error of variable_exists_in_df, save it in result variable
+          return(e) }
+      )
+    })
+  
+  return(result)
+  
+}
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#' Check if a variable or variables of a dataframe contain empty values
+#' @param variables: vector with variables to check.
+#' @param df: dataframe to check
+#' @return A list with a dataframe of every variable with empty values. Every
+#' dataframe contains erroneus rows
+#' @export
+check_empty_values_in_variables <- function (df, variables){
+  
+  try(variables_in_df(df, variables))
+  
+  variables <- as.list(variables)
+  
+  errors <- lapply(variables, function(x){
+    error <- (df[df[[x]]=="",])
+    addTypeOfError(error, "ERROR: Variable ", x, " vacía" )
+  })
+  
+  errors <- Filter(function(x) nrow(x) > 0, errors)
+  return (errors)
+  
+}
+# ------------------------------------------------------------------------------
+
+# ------------------------------------------------------------------------------
+#' Collect all the errors returned by check_empty_values_in_variables of the four discards
+#' datasets.
+#' Some variables are ignored (allowed emptying): OBSERVACIONES from OAB_hauls and
+#' OAB_trips; COD_DESCAR, RAZON_DESCAR, PESO_SUB_MUE_TOT from OAB_catches and 
+#' PESO_MUE_RET, NOMBRE_INGLES from OAB_lengths.
+#' @details Require a dataframe returned by importOABFiles() function
+#' @param df: dataframe returned by importOABFiles() function. By default is called
+#' 'discards_samples'
+#' @return A dataframe with the ID_MAREA and variable with values missing
+#' @export
+check_empty_fields_in_variables <- function(df = discards_samples){
+  
+  vars <- lapply(df,
+                 function(x){
+                   variables <- colnames(x)
+                 })
+  
+  # remove not mandatory variables:
+  vars[["hauls"]]<- vars[["hauls"]][!vars[["hauls"]] %in% "OBSERVACIONES"]
+  vars[["trips"]] <- vars[["trips"]][!vars[["trips"]] %in% "OBSERVACIONES"]
+  vars[["catches"]] <- vars[["catches"]][!vars[["catches"]] %in% c("COD_DESCAR", "RAZON_DESCAR","PESO_SUB_MUE_TOT")]
+  vars[["lengths"]] <- vars[["lengths"]][!vars[["lengths"]] %in% c("PESO_MUE_RET", "NOMBRE_INGLES")]
+  
+  # check the empty values in every dataframe of discard_samples
+  errors <- lapply(
+    seq_along(df), #instead of use discard_samples, use seq_along(discard_samples)
+    function(i){
+      n <- names(df)[[i]] #this is the name of the list
+      vars[[n]]
+      err <- check_empty_values_in_variables(df[[i]],vars[[n]])
+      # check_empty_values return a list with one dataframe by variable, so:
+      err <- do.call(rbind, err)
+      # only return ID_MAREA and TIPO_ERROR:
+      err <- err %>% 
+        select(ID_MAREA, TIPO_ERROR) %>%
+        unique()
+    }
+  )
+  
+  erros <- do.call(rbind, errors)
+  
+}
+# ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
 # #### IMPORT DISCARDS FILES ###################################################
@@ -392,6 +533,12 @@ OAB_lengths <- discards_samples$lengths
 
 
 
+# ALLTOGETHER
+ERRORS$all_empty_fields_in_variable <- check_empty_fields_in_variables()
+  # ppp <- check_empty_variables()
+  # ppp_number <- as.data.frame(table(ppp$TIPO_ERROR))
+
+
 # TRIPS
 ERRORS$trips_field_year <- check_field_year(OAB_trips)
 
@@ -403,7 +550,6 @@ ERRORS$trips_year_in_final_date <- check_year_in_date(OAB_trips, "FECHA_FIN", YE
 ERRORS$trips_check_final_date_in_id_marea_GC <- trips_check_final_date_in_id_marea_GC()
 
 ERRORS$trips_check_initial_date_before_final_date <- trips_check_initial_date_before_final_date
-  
 
 
 # HAULS
@@ -418,6 +564,19 @@ OAB_hauls$FECHA_VIR <- dby_to_dmy_date_format(OAB_hauls$FECHA_VIR)
 ERRORS$hauls_year_in_hauling_date <- check_year_in_date(OAB_hauls, "FECHA_VIR", YEAR_DISCARD)
 
 ERRORS$hauls_check_sooting_date_before_hauling_date <- hauls_check_sooting_date_before_hauling_date()
+
+# CHECK SPEED:
+
+
+
+
+view_outliers_speed()
+
+# PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
+# library(shiny)
+# runApp("speed", display.mode = "showcase")
+
+
 
 # CATCHES
 ERRORS$catches_field_year <- check_field_year(OAB_catches)
