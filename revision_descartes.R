@@ -23,13 +23,13 @@ library(sapmuebase)
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
 
-PATH_FILES <- "F:/misdoc/sap/revision_descartes/data"
+PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/2018_01"
 trips_file <- "IEODESMAREAMARCO.TXT" 
 hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
-lengths_file <- "IEODESTALLASMARCO.TXT"
+# lengths_file <- "IEODESTALLASMARCO.TXT"
 
-YEAR_DISCARD <- "2017"
+YEAR_DISCARD <- "2018"
 
 
 # ------------------------------------------------------------------------------
@@ -78,13 +78,15 @@ addTypeOfError <- function(df, ...){
 #' @return df with errors
 #' @export
 check_field_year <- function(df) {
+  
   errors <- df %>%
     select(YEAR, ID_MAREA) %>%
     filter(YEAR != YEAR_DISCARD) %>%
     unique()%>%
-    addTypeOfError("ERROR: El campo YEAR no coincide con el año a comprobar:",YEAR_DISCARD)
+    addTypeOfError("ERROR: El campo YEAR no coincide con el año a comprobar: ",YEAR_DISCARD)
   
   return(errors)
+  
 }
 # ------------------------------------------------------------------------------
 
@@ -215,12 +217,12 @@ compare_day_month_year_date <- function(x, day, month, year){
     x <- as.POSIXlt(x, format="%d/%m/%Y") # Date-times known to be invalid will be returned as NA.
 
     #check if the date has the correct format
-    if( is.na( x ) ) stop( "Error in date format. Be sure the format is day/month/year", call. = F)
+    if( is.na( x ) ) stop( paste0("Error in date format. Be sure the format is day/month/year: ", x), call. = F)
       
     #check if day, month and year match with x
-    if ((!missing(day) && (x[["mday"]] != day)) || 
-        (!missing(month) && (x[["mon"]]+1 != month)) ||
-        (!missing(year) && (x[["year"]]+1900 != year))) {
+    if ((!missing(day) && (x$mday != day)) || 
+        (!missing(month) && (x$mon+1 != month)) ||
+        (!missing(year) && (x$year+1900 != year))) {
       return(FALSE) 
     }
     
@@ -297,6 +299,7 @@ check_date_with_id_marea <- function(df, field){
   }
   
 }
+
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
@@ -320,12 +323,30 @@ trips_check_initial_date_before_final_date <- function(){
 }
 # ------------------------------------------------------------------------------
 
+trips_check_mandatory_variables <- function () {
+  
+  err <- lapply(OAB_trips, function(x){
+    e <- which(check_empty_field(x) == T)
+  })
+  
+  
+}
+
+
 # ------------------------------------------------------------------------------
 #' Check shooting date previous to hauling date
 #' Use the OAB_hauls df
 #' @return df with errors
 #' @export
-hauls_check_sooting_date_before_hauling_date <- function(){
+hauls_check_hauling_date_before_shooting_date <- function(){
+  
+  # it is imperative check if any of this fields are empty: FECHA_LAR, FECHA_VIR
+  # HORA_LAR and HORA_VIR:
+  
+  
+  
+  OAB_hauls <- OAB_hauls %>%
+    filter(MUESTREADO=="S")
   
   start_date <- dby_to_dmy_date_format(OAB_hauls$FECHA_LAR)
   start <- paste(start_date, OAB_hauls$HORA_LAR)
@@ -335,10 +356,12 @@ hauls_check_sooting_date_before_hauling_date <- function(){
   end <- paste(end_date, OAB_hauls$HORA_VIR)
   end <- as.POSIXlt(end, format="%d/%m/%Y %H:%M")
   
+  start_end <- start - end
 
-  errors <- OAB_hauls[(start - end) > 0,c("ID_MAREA", "LANCE", "FECHA_LAR", "FECHA_VIR")]
+  #errors <- OAB_hauls[(start - end) > 0, c("ID_MAREA", "COD_LANCE", "FECHA_LAR", "FECHA_VIR")]
+  errors <- OAB_hauls[(start - end) > 0 | is.na(start - end), c("ID_MAREA", "COD_LANCE", "FECHA_LAR", "HORA_LAR", "FECHA_VIR", "HORA_VIR")]
   
-  errors <- addTypeOfError(errors, "ERROR: La fecha de largada es anterior a la fecha de virado.")
+  errors <- addTypeOfError(errors, "ERROR: La fecha y hora de virada es anterior o igual a la fecha y hora de largada.")
   
   if (nrow(errors)==0){
     return(NULL)
@@ -357,11 +380,14 @@ hauls_check_sooting_date_before_hauling_date <- function(){
 trips_check_final_date_in_id_marea_GC <- function(){
   errors <- OAB_trips %>%
     filter(ESTRATO_RIM=="BACA_GC" | ESTRATO_RIM == "CERCO_GC")%>%
-    check_date_with_id_marea("FECHA_FIN") %>%
-    select(ID_MAREA, FECHA_FIN)%>%
-    addTypeOfError("ERROR: el ID_MAREA no se corresponde con el campo FECHA_FIN")
+    check_date_with_id_marea("FECHA_FIN")
   
-  return(errors)
+  if (!is.null(errors)) {
+    errors <- errors %>%
+      select(ID_MAREA, FECHA_FIN)
+    
+    return(errors)
+  }
 }
 # ------------------------------------------------------------------------------
 
@@ -384,7 +410,7 @@ is_outlier <- function(x) {
 get_speed_outliers <- function(){
   
   hauls_speed <- OAB_hauls %>%
-    select(ID_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
+    select(ID_MAREA, COD_LANCE, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
     filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
   
   hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
@@ -531,6 +557,20 @@ check_empty_values_in_variables <- function (df, variables){
 # ------------------------------------------------------------------------------
 
 # ------------------------------------------------------------------------------
+#' Check if a data of a dataframe is empty (is NA or "")
+#' @param field Field to check
+#' @return TRUE if the field is empty. FALSE if doesn't.
+check_empty_field <- function(field){
+  if(field =="" | is.na(field)) {
+    return(TRUE)
+  } else {
+    return(FALSE)
+  }
+}
+# ------------------------------------------------------------------------------
+
+
+# ------------------------------------------------------------------------------
 #' Collect all the errors returned by check_empty_values_in_variables of the four discards
 #' datasets.
 #' Some variables are ignored (allowed emptying): OBSERVACIONES from OAB_hauls and
@@ -538,7 +578,7 @@ check_empty_values_in_variables <- function (df, variables){
 #' PESO_MUE_RET, NOMBRE_INGLES from OAB_lengths.
 #' @details Require a dataframe returned by importOABFiles() function
 #' @param df: dataframe returned by importOABFiles() function. By default is called
-#' 'discards_samples'
+#' 'discards_samples'???????
 #' @return A dataframe with the ID_MAREA and variable with values missing
 #' @export
 check_empty_fields_in_variables <- function(df = discards_samples){
@@ -676,12 +716,12 @@ checkCoherenceEstratoRimOrigin <- function(df){
   
   try(variables_in_df(c("ESTRATO_RIM", "COD_ORIGEN"), df))
   
-  BASE_FIELDS <- c("ID_MAREA", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
+  BASE_FIELDS <- c("ID_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
   
-  errors <- df %>%
+  errors <- OAB_hauls %>%
     select(one_of(BASE_FIELDS)) %>%
     unique() %>%
-    anti_join(y=estratorim_origen, by=c("ESTRATO_RIM", "COD_ORIGEN")) %>%
+    anti_join(y=estratorim_origen_OAB, by=c("ESTRATO_RIM", "COD_ORIGEN")) %>%
     addTypeOfError("ERROR: no concuerda el estrato_rim con el origen")
   
   return(errors)
@@ -698,12 +738,12 @@ checkCoherenceEstratoRimGear <- function(df){
   
   try(variables_in_df(c("ESTRATO_RIM", "COD_ARTE"), df))
   
-  BASE_FIELDS <- c("ID_MAREA", "ESTRATO_RIM", "COD_ARTE", "ARTE")
+  BASE_FIELDS <- c("ID_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ARTE", "ARTE")
   
   errors <- df %>%
     select(one_of(BASE_FIELDS)) %>%
     unique() %>%
-    anti_join(y=estratorim_arte, by=c("ESTRATO_RIM", "COD_ARTE")) %>%
+    anti_join(y=estratorim_arte_OAB, by=c("ESTRATO_RIM", "COD_ARTE")) %>%
     addTypeOfError("ERROR: no concuerda el estrato_rim con el arte")
   
   return(errors)
@@ -743,9 +783,9 @@ formatErrorsList <- function(errors_list = ERRORS){
   return(errors)
 }
 
-#' Check sampled hauls without catches weight ---------------------------------------
+#' Check sampled hauls without catches weight ----------------------------------
 #' 
-#'  @return dataframe with ID_MAREA with errors .
+#'  @return dataframe with ID_MAREA with errors.
 #'  
 hauls_hauls_sampled_with_catch_weights <- function(){
   
@@ -816,6 +856,9 @@ catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch <- function(){
 #' @return dataframe with errors.
 catches_less_discard_weight_than_sampled_discard_weight <- function(){
   
+  OAB_catches[["PESO_DESCAR"]] <- round(OAB_catches[["PESO_DESCAR"]], 2)
+  OAB_catches[["PESO_MUE_DESCAR"]] <- round(OAB_catches[["PESO_MUE_DESCAR"]], 2)
+  
   err <- OAB_catches %>%
     select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_DESCAR, PESO_MUE_DESCAR) %>%
     filter(PESO_DESCAR < PESO_MUE_DESCAR) %>%
@@ -825,19 +868,74 @@ catches_less_discard_weight_than_sampled_discard_weight <- function(){
   
 }
 
+#' Check hauls duration
+#' 
+#' The duration of the hauls are compared with the information of the file
+#' "duracion_mareas.txt"
+#' 
+#' @return dataframe with errors
+hauls_hauls_duration <- function(){
+  
+  trip_hauls <- read.csv("duracion_mareas.txt", sep=";")
+  
+  
+  OAB_hauls[["FECHA_HORA_LAR"]] <- paste(OAB_hauls[["FECHA_LAR"]], OAB_hauls[["HORA_LAR"]])
+  OAB_hauls[["FECHA_HORA_VIR"]] <- paste(OAB_hauls[["FECHA_VIR"]], OAB_hauls[["HORA_VIR"]]) 
+  
+  # change the column "FECHA_LAR" to a date format
+  # to avoid some problems with Spanish_Spain.1252 (or if you are using another
+  # locale), change locale to Spanish_United States.1252:
+  lct <- Sys.getlocale("LC_TIME")
+  Sys.setlocale("LC_TIME","Spanish_United States.1252")
+  
+  OAB_hauls[["FECHA_HORA_LAR_CT"]] <- as.POSIXct(OAB_hauls$FECHA_HORA_LAR, format = '%d-%b-%y %H:%M')
+  OAB_hauls[["FECHA_HORA_VIR_CT"]] <- as.POSIXct(OAB_hauls$FECHA_HORA_VIR, format = '%d-%b-%y %H:%M')
+  
+  # and now the come back to the initial configuration of locale:
+  Sys.setlocale("LC_TIME", lct)
+  
+  
+  err <- OAB_hauls %>%
+    select(ID_MAREA, COD_LANCE, ESTRATO_RIM, FECHA_HORA_LAR_CT, FECHA_HORA_VIR_CT) %>%
+    unique() %>%
+    group_by(ID_MAREA, ESTRATO_RIM) %>%
+    summarise(first_date = min(FECHA_HORA_LAR_CT), last_date = max(FECHA_HORA_VIR_CT)) %>%
+    mutate(duration_trip = difftime(last_date, first_date, units = "hours")) %>%
+    merge(, y = trip_hauls, all.x = T) %>%
+    filter(duration_trip > DURACION_MAX) %>%
+    mutate(duration_trip = round(duration_trip, 0)) %>%
+    addTypeOfError("Duración de la marea excesivamente larga... hay que comprobar las fechas de largado y de virado de cada lance.")
+  
+  # TO DO: find the haul with the erroneus date and return it 
+  # duration_p95 <- OAB_hauls %>%
+  #   filter(ID_MAREA%in%err$ID_MAREA) %>%
+  #   group_by(ID_MAREA, ESTRATO_RIM) %>%
+  #   summarise('p95'=quantile(?????, probs=0.95))
+  # 
+  # error_final <- OAB_hauls %>%
+  #   filter(ID_MAREA%in%err$ID_MAREA) %>%
+  #   merge(., duration_p95, by=c("ID_MAREA", "ESTRATO_RIM"))
+  
+  return(err)
+  
+}
+
+
 # ------------------------------------------------------------------------------
 # #### IMPORT DISCARDS FILES ###################################################
 # ------------------------------------------------------------------------------
 
-discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
-                                   path = PATH_FILES)
+# discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
+#                                    path = PATH_FILES)
+# 
+# OAB_trips <- discards_samples$trips
+# OAB_hauls <- discards_samples$hauls
+# OAB_catches <- discards_samples$catches
+# OAB_lengths <- discards_samples$lengths
 
-OAB_trips <- discards_samples$trips
-OAB_hauls <- discards_samples$hauls
-OAB_catches <- discards_samples$catches
-OAB_lengths <- discards_samples$lengths
-
-
+OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
+OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
+OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
 
 # ------------------------------------------------------------------------------
 # #### SEARCHING ERRORS ########################################################
@@ -858,7 +956,7 @@ check_them_all <- function(){
   ERR <- list()
   
   # ALLTOGETHER
-  #ERR$all_empty_fields_in_variable <- check_empty_fields_in_variables()
+    # ERR$all_empty_fields_in_variable <- check_empty_fields_in_variables()
     # ppp <- check_empty_variables()
     # ppp_number <- as.data.frame(table(ppp$TIPO_ERROR))
   
@@ -880,7 +978,7 @@ check_them_all <- function(){
   ERR$trips_check_initial_date_before_final_date <- trips_check_initial_date_before_final_date()
 
   
-  #ERR$coherencia_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_trips)
+  ERR$coherencia_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_trips)
   
   # HAULS
   #ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
@@ -895,14 +993,17 @@ check_them_all <- function(){
   OAB_hauls$FECHA_VIR <- dby_to_dmy_date_format(OAB_hauls$FECHA_VIR)
   ERR$hauls_year_in_hauling_date <- check_year_in_date(OAB_hauls, "FECHA_VIR", YEAR_DISCARD)
   
-  ERR$hauls_check_sooting_date_before_hauling_date <- hauls_check_sooting_date_before_hauling_date()
+  ERR$hauls_check_hauling_date_before_shooting_date <- hauls_check_hauling_date_before_shooting_date()
   
-  #ERR$hauls_coherence_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_hauls)
-  #ERR$hauls_coherence_estrato_rim_gear <- checkCoherenceEstratoRimGear(OAB_hauls)
-  
+  ERR$hauls_coherence_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_hauls)
+
+  ERR$hauls_coherence_estrato_rim_gear <- checkCoherenceEstratoRimGear(OAB_hauls)
+
   ERR$hauls_hauls_sampled_with_catch_weights <- hauls_hauls_sampled_with_catch_weights()
   
   ERR$hauls_possible_speed_outliers <- get_speed_outliers()
+  
+  ERR$hauls_hauls_duration <- hauls_hauls_duration()
   
   # CATCHES
   ERR$catches_field_year <- check_field_year(OAB_catches)
@@ -916,9 +1017,9 @@ check_them_all <- function(){
   ERR$catches_less_discard_weight_than_sampled_discard_weight <- catches_less_discard_weight_than_sampled_discard_weight()
 
   # LENGTHS
-  ERR$lengths_field_year <- check_field_year(OAB_lengths)
+  #ERR$lengths_field_year <- check_field_year(OAB_lengths)
   
-  ERR$lengths_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_lengths)
+  #ERR$lengths_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_lengths)
   
 
   
@@ -955,33 +1056,58 @@ exportListToXlsx(combined_errors, suffix = paste0("descartes", YEAR_DISCARD), se
 
 
 
-OAB_exportListToGoogleSheet <- function (list, prefix = "", suffix = "", separation = "") 
-{
-  if (!requireNamespace("googlesheets", quietly = TRUE)) {
-    stop("Googlesheets package needed for this function to work. Please install it.", 
-         call = FALSE)
-  }
-  lapply(seq_along(list), function(i) {
+# OAB_exportListToGoogleSheet <- function (list, prefix = "", suffix = "", separation = "") 
+# {
+#   if (!requireNamespace("googlesheets", quietly = TRUE)) {
+#     stop("Googlesheets package needed for this function to work. Please install it.", 
+#          call = FALSE)
+#   }
+#   lapply(seq_along(list), function(i) {
+# 
+#     if (is.data.frame(list[[i]])) {
+#       list_name <- names(list)[[i]]
+#       if (prefix != "") 
+#         prefix <- paste0(prefix, separation)
+#       if (suffix != "") 
+#         suffix <- paste0(separation, suffix)
+#       filename <- paste0(prefix, list_name, suffix, ".csv")
+#       googlesheets::gs_new(filename, ws_title = filename, 
+#                            input = list[[i]], trim = TRUE, verbose = FALSE)
+#     }
+#     else {
+#       return(paste("This isn't a dataframe"))
+#     }
+#   })
+# }
+# 
+# OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
 
-    if (is.data.frame(list[[i]])) {
-      list_name <- names(list)[[i]]
-      if (prefix != "") 
-        prefix <- paste0(prefix, separation)
-      if (suffix != "") 
-        suffix <- paste0(separation, suffix)
-      filename <- paste0(prefix, list_name, suffix, ".csv")
-      googlesheets::gs_new(filename, ws_title = filename, 
-                           input = list[[i]], trim = TRUE, verbose = FALSE)
-    }
-    else {
-      return(paste("This isn't a dataframe"))
-    }
-  })
-}
 
-OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
+id_marea_with_obj <- OAB_hauls %>%
+  select(ID_MAREA, COD_LANCE, COD_ESP_OBJ, ESP_OBJ) %>%
+  unique()
 
+catches_only_greater_catch <- OAB_catches %>%
+  select(ID_MAREA, COD_LANCE, COD_ESP, ESP, PESO_RET) %>%
+  #mutate(peso_total = PESO_RET + PESO_DESCAR) %>%
+  group_by(ID_MAREA, COD_LANCE)%>%
+  filter(PESO_RET == max(PESO_RET))
 
+catches_with_obj <- merge(catches_only_greater_catch, id_marea_with_obj)
 
+obj_species <- read.csv("especies_objetivo.csv", sep=",")
+
+catches_with_obj_species <- merge(catches_with_obj, obj_species, by = c("COD_ESP_OBJ", "ESP_OBJ"))
+
+err <-catches_with_obj_species %>%
+  filter(COD_ESP.x != COD_ESP.y)
+
+#instead of select the rows with the species of maximun catch by id_marea and check
+#with the especies_objetivo dataset.wich the object species does not match 
+#
+
+catches_teorical_obj_spe <- merge(catches_only_greater_catch, obj_species, all = T)
+
+catches_with_obj_and_teorical <- merge(catches_teorical_obj_spe, id_marea_with_obj, by = c("ID_MAREA", "COD_LANCE"))
 
 
