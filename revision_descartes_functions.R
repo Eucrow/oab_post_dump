@@ -744,21 +744,22 @@ formatErrorsList <- function(errors_list = ERRORS){
 #'  @return dataframe with ID_MAREA with errors.
 #'  
 hauls_hauls_sampled_with_catch_weights <- function(){
-  
-  sampled <- OAB_hauls %>%
-    filter(MUESTREADO == "S") %>%
-    select(ID_MAREA) %>%
-    unique()
-  
-  catches <- OAB_catches %>%
-    group_by(ID_MAREA) %>%
-    summarise(PESO_CAP_TOT = sum(PESO_CAP)) %>%
-    filter(PESO_CAP_TOT==0)
 
-  err <- merge(x=sampled, y=catches, by= "ID_MAREA")
-  err <- addTypeOfError(err, "ERROR: Lance muestreado pero sin peso de captura.")
-  
-  return(err)
+    sampled <- OAB_hauls %>%
+      filter(MUESTREADO == "S") %>%
+      select(ID_MAREA) %>%
+      unique()
+    
+    catches <- OAB_catches %>%
+      group_by(ID_MAREA) %>%
+      summarise(PESO_CAP_TOT = sum(PESO_CAP)) %>%
+      filter(PESO_CAP_TOT==0)
+    
+    if (nrow(catches) != 0){
+      err <- merge(x=sampled, y=catches, by= "ID_MAREA")
+      err <- addTypeOfError(err, "ERROR: Lance muestreado pero sin peso de captura.")
+      return(err)
+    }
   
 }
 
@@ -876,5 +877,54 @@ hauls_hauls_duration <- function(){
   
 }
 
-
+# ---- Check target specie of hauls is the most catched specie -----------------
+check_target_sp_with_catch <- function(){
+  tryCatch({
+    id_marea_with_obj <- OAB_hauls %>%
+      select(ESTRATO_RIM, ID_MAREA, COD_LANCE, COD_ESP_OBJ, ESP_OBJ) %>%
+      unique()
+    
+    catches_only_greater_catch <- OAB_catches %>%
+      select(ID_MAREA, COD_LANCE, COD_ESP, ESP, PESO_RET) %>%
+      #mutate(peso_total = PESO_RET + PESO_DESCAR) %>%
+      group_by(ID_MAREA, COD_LANCE)%>%
+      filter(PESO_RET == max(PESO_RET))
+    
+    colnames(catches_only_greater_catch)[colnames(catches_only_greater_catch)=="ESP"] <- "ESP_MAYOR_CAPTURA"
+    
+    catches_with_obj <- merge(catches_only_greater_catch, id_marea_with_obj, by = c("ID_MAREA", "COD_LANCE"))
+    
+    
+    # function to get the possible ESP_OBJ according to COD_ESP in OAB_catches
+    # return list with COD_ESP_OBJ
+    get_cod_target_specie <- function(sp_code){
+      as.character(TARGET_SPECIES[TARGET_SPECIES$COD_ESP %in% sp_code,"COD_ESP_OBJ"])
+    }
+    
+    # function to check if a COD_ESP has its COD_ESP_OBJ according to the especies_objetivo master
+    coherence_sp_target_sp <- function(cod_esp, cod_esp_obj){
+      possible_cod_esp_obj <- get_cod_target_specie(cod_esp)
+      if (cod_esp_obj %in% possible_cod_esp_obj){
+        return(TRUE)
+      } else {
+        return(FALSE)
+      }
+    }
+    
+    catches_with_obj$co_sp_target <- apply(catches_with_obj , 1, function(x){
+      coherence_sp_target_sp(x["COD_ESP"], x["COD_ESP_OBJ"])
+    })
+    
+    err <- catches_with_obj[catches_with_obj$co_sp_target==FALSE, ] 
+    err <- err[, -which(names(err) %in% "co_sp_target")]
+    err <- addTypeOfError(err, "WARNING: la especie objetivo no coincide con la especie de mayor captura del lance")
+    
+    return(err)
+  },
+  error = function(err){
+    print(err)
+  }
+  )
+  
+}
 

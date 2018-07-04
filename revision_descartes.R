@@ -12,7 +12,7 @@
 # #### PACKAGES ################################################################
 # ------------------------------------------------------------------------------
 
-# library(plyr)
+library(plyr) # to use function join_all --> TO DO: change to reduce-merge functions
 library(dplyr)
 library(devtools)
 # remove.packages("sapmuebase")
@@ -44,6 +44,8 @@ ERRORS <- list()
 
 # path to the generated errors file
 PATH_ERRORS <- paste(PATH_FILES,"/errors", sep="")
+
+TARGET_SPECIES <- read.csv("especies_objetivo.csv", sep=",")
 
 # ------------------------------------------------------------------------------
 # #### SET WORKING DIRECTORY ###################################################
@@ -143,6 +145,8 @@ check_them_all <- function(){
   
   ERR$hauls_hauls_duration <- hauls_hauls_duration()
   
+  ERR$hauls_target_sp_with_catch <- check_target_sp_with_catch()
+  
   # CATCHES
   ERR$catches_field_year <- check_field_year(OAB_catches)
   
@@ -221,31 +225,12 @@ exportListToXlsx(combined_errors, suffix = paste0("descartes", YEAR_DISCARD), se
 # OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
 
 
-id_marea_with_obj <- OAB_hauls %>%
-  select(ID_MAREA, COD_LANCE, COD_ESP_OBJ, ESP_OBJ) %>%
-  unique()
 
-catches_only_greater_catch <- OAB_catches %>%
-  select(ID_MAREA, COD_LANCE, COD_ESP, ESP, PESO_RET) %>%
-  #mutate(peso_total = PESO_RET + PESO_DESCAR) %>%
-  group_by(ID_MAREA, COD_LANCE)%>%
+# variado blanco ¿?¿?¿?
+cm <- merge(OAB_catches, OAB_hauls, by.x = "ID_MAREA", by.y = "ID_MAREA", all.x = T)
+cm <- cm %>%
+  group_by(ID_MAREA)%>%
   filter(PESO_RET == max(PESO_RET))
-
-catches_with_obj <- merge(catches_only_greater_catch, id_marea_with_obj)
-
-obj_species <- read.csv("especies_objetivo.csv", sep=",")
-
-catches_with_obj_species <- merge(catches_with_obj, obj_species, by = c("COD_ESP_OBJ", "ESP_OBJ"))
-
-err <-catches_with_obj_species %>%
-  filter(COD_ESP.x != COD_ESP.y)
-
-#instead of select the rows with the species of maximun catch by id_marea and check
-#with the especies_objetivo dataset.wich the object species does not match 
-#
-
-catches_teorical_obj_spe <- merge(catches_only_greater_catch, obj_species, all = T)
-
-catches_with_obj_and_teorical <- merge(catches_teorical_obj_spe, id_marea_with_obj, by = c("ID_MAREA", "COD_LANCE"))
-
+sps <- cm[cm$COD_ESP_OBJ == "VBL", "ESP"]
+as.character(sps)
 
