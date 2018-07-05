@@ -36,7 +36,7 @@ addTypeOfError <- function(df, ...){
 check_field_year <- function(df) {
   
   errors <- df %>%
-    select(YEAR, ID_MAREA) %>%
+    select(ID_MAREA, YEAR) %>%
     filter(YEAR != YEAR_DISCARD) %>%
     unique()%>%
     addTypeOfError("ERROR: El campo YEAR no coincide con el año a comprobar: ",YEAR_DISCARD)
@@ -147,7 +147,7 @@ check_year_in_ID_MAREA <- function(df){
   errors.name <- deparse(substitute(df))
   
   errors <- errors %>%
-            select(YEAR, ID_MAREA)%>%
+            select(ID_MAREA, YEAR)%>%
             addTypeOfError(paste("ERROR: el año del ID_MAREA en", errors.name, "no coincide con el año a comprobar"))
   
   return(errors)
@@ -789,7 +789,7 @@ catches_reason_discard_field_empty <- function(){
   err <- OAB_catches %>%
     select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_DESCAR, RAZON_DESCAR) %>%
     filter(PESO_DESCAR!=0 & RAZON_DESCAR =="") %>%
-    addTypeOfError("WARNING: especie descartada pero con el campo 'Razón del descarte' sin rellenar.")
+    addTypeOfError("WARNING: especie descartada con el campo 'Razón del descarte' sin rellenar.")
 
   return(err)  
 }
