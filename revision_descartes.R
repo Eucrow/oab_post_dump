@@ -29,6 +29,8 @@ hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
 # lengths_file <- "IEODESTALLASMARCO.TXT"
 
+MONTH <- 1
+
 YEAR_DISCARD <- "2018"
 
 
@@ -45,7 +47,11 @@ ERRORS <- list()
 # path to the generated errors file
 PATH_ERRORS <- paste(PATH_FILES,"/errors", sep="")
 
+# dataset with target species by COD_OBJ_ESP
 TARGET_SPECIES <- read.csv("especies_objetivo.csv", sep=",")
+
+# month as character
+MONTH_AS_CHARACTER <- sprintf("%02d", MONTH)
 
 # ------------------------------------------------------------------------------
 # #### SET WORKING DIRECTORY ###################################################
@@ -76,6 +82,18 @@ source('revision_descartes_functions.R')
 OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
 OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
 OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
+
+
+# ------------------------------------------------------------------------------
+# #### FILTER BY MONTH #########################################################
+# ------------------------------------------------------------------------------
+OAB_trips$FECHA_INI <- as.POSIXct(OAB_trips$FECHA_INI, format = '%d/%m/%Y')
+OAB_trips$MONTH <- as.POSIXlt(OAB_trips[["FECHA_INI"]])$mon + 1
+OAB_trips <- OAB_trips[OAB_trips$MONTH == MONTH,]
+
+OAB_hauls <- OAB_hauls[OAB_hauls$ID_MAREA%in%OAB_trips$ID_MAREA,]
+OAB_catches <- OAB_catches[OAB_catches$ID_MAREA%in%OAB_trips$ID_MAREA,]
+
 
 # ------------------------------------------------------------------------------
 # #### SEARCHING ERRORS ########################################################
@@ -192,10 +210,13 @@ combined_errors <- formatErrorsList()
 # one month
 
 combined_errors <-  list(errores = combined_errors)
-MONTH <- "all"
 
-exportListToXlsx(combined_errors, suffix = paste0("descartes", YEAR_DISCARD), separation = "_")
-
+original_wd <- getwd()
+setwd(PATH_ERRORS)
+exportListToXlsx(combined_errors, 
+                 suffix = paste("descartes", YEAR_DISCARD, MONTH_AS_CHARACTER, sep = "_"), 
+                 separation = "_")
+setwd(original_wd)
 
 
 # OAB_exportListToGoogleSheet <- function (list, prefix = "", suffix = "", separation = "") 
@@ -223,14 +244,4 @@ exportListToXlsx(combined_errors, suffix = paste0("descartes", YEAR_DISCARD), se
 # }
 # 
 # OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
-
-
-
-# variado blanco ¿?¿?¿?
-cm <- merge(OAB_catches, OAB_hauls, by.x = "ID_MAREA", by.y = "ID_MAREA", all.x = T)
-cm <- cm %>%
-  group_by(ID_MAREA)%>%
-  filter(PESO_RET == max(PESO_RET))
-sps <- cm[cm$COD_ESP_OBJ == "VBL", "ESP"]
-as.character(sps)
 
