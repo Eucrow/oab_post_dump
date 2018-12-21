@@ -6,13 +6,12 @@
 ####
 #### Functions file 
 ####
+#### Convention style guide: http://r-pkgs.had.co.nz/style.html
+####
 #### ---------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-# #### FUNCTIONS ###############################################################
-# ------------------------------------------------------------------------------
 
-# function to add variable with type of error to a dataframe -------------------
+# Add variable with type of error to a dataframe -------------------------------
 addTypeOfError <- function(df, ...){
   
   arguments <- list(...)
@@ -26,8 +25,9 @@ addTypeOfError <- function(df, ...){
   return(df)
 }
 
-# ------------------------------------------------------------------------------
-#' Check if the YEAR variable of the dataframe match with year to stydy.
+
+# YEAR variable of the dataframe match with year to study ----------------------
+#' Check if the YEAR variable of the dataframe match with year to study.
 #' 
 #' @param df daraframe to check the field YEAR. The dataframe must have a field
 #' called YEAR.
@@ -44,11 +44,9 @@ check_field_year <- function(df) {
   return(errors)
   
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-#' Split ID_MAREA field
-#' 
+
+# Split ID_MAREA field ---------------------------------------------------------
 #' Split ID_MAREA field in its components: identifier, year, month, day and 
 #' special
 #' 
@@ -103,10 +101,10 @@ split_ID_MAREA <- function(df) {
   
   return(result)
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-#' Convert date in format 12-ENE-17 to 10/01/2017
+
+# Convert date in format 12-ENE-17 from 10/01/2017 -----------------------------
+#' Convert date in format 12-ENE-17 from 10/01/2017
 #' 
 #' @param dates: vector with dates.
 #' @return vector with dates corrected.
@@ -125,11 +123,11 @@ dby_to_dmy_date_format <- function (dates){
   
   return(dates)
 }
-# ------------------------------------------------------------------------------
 
 
-# ------------------------------------------------------------------------------
-#' Check year in ID_MAREA in a OAB df
+
+# Check year in ID_MAREA -------------------------------------------------------
+#' Check year in ID_MAREA in a OAB df 
 #' 
 #' @param df: df to check. Must be a df obtained by importOAB functions.
 #' @return df with errors
@@ -152,9 +150,9 @@ check_year_in_ID_MAREA <- function(df){
   
   return(errors)
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
+
+# Check whether a date match with a given day, month and year ------------------
 #' Check whether a date match with a given day, month and year.
 #' 
 #' If dd, mm or yyyy are ommited the function check the variable given.
@@ -185,9 +183,8 @@ compare_day_month_year_date <- function(x, day, month, year){
     return(TRUE)
   })
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
+# Check year of a date field ---------------------------------------------------
 #' Check year of a date field
 #' 
 #' @param df: dataframe with the date field.
@@ -222,7 +219,7 @@ check_year_in_date <- function(df, date_field, year){
 }
 
 
-# ------------------------------------------------------------------------------
+# Check if a date match with the ID_MAREA date ---------------------------------
 #' Check if a date match with the ID_MAREA date
 #' 
 #' @param df: dataframe to check.
@@ -256,9 +253,7 @@ check_date_with_id_marea <- function(df, field){
   
 }
 
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
+# Check start date of OAB_trips previous to end date ---------------------------
 #' Check start date of OAB_trips previous to end date
 #' #' Use the OAB_trips df
 #' @return df with errors
@@ -277,19 +272,9 @@ trips_check_initial_date_before_final_date <- function(){
     return(errors)
   }
 }
-# ------------------------------------------------------------------------------
-
-trips_check_mandatory_variables <- function () {
-  
-  err <- lapply(OAB_trips, function(x){
-    e <- which(check_empty_field(x) == T)
-  })
-  
-  
-}
 
 
-# ------------------------------------------------------------------------------
+# Shooting date previous to hauling date ---------------------------------------
 #' Check shooting date previous to hauling date
 #' Use the OAB_hauls df
 #' @return df with errors
@@ -326,9 +311,8 @@ hauls_check_hauling_date_before_shooting_date <- function(){
   }
 }
 
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
+# Final date included in id marea, only in GC samples --------------------------
 #' Check the final date is included in id marea, only in GC samples (CERCO_GC and
 #' BACA_GC)
 #' @return df with errors
@@ -345,9 +329,7 @@ trips_check_final_date_in_id_marea_GC <- function(){
     return(errors)
   }
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
 #' Return a oulier
 #' ggplot defines an outlier by default as something that's > 1.5*IQR from the
 #' borders of the box. 
@@ -355,9 +337,9 @@ trips_check_final_date_in_id_marea_GC <- function(){
 is_outlier <- function(x) {
   return(x < quantile(x, 0.25, na.rm = T) - 1.5 * IQR(x, na.rm = T) | x > quantile(x, 0.75, na.rm = T) + 1.5 * IQR(x, na.rm = T))
   }  
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
+
+# Posible outlier in speed -----------------------------------------------------
 #' Get the posible outlier in speed.
 #' Using the same criteria to ggplot in a boxplot: an outlier is something that's > 1.5*IQR from the
 #' borders of the box.
@@ -383,7 +365,7 @@ get_speed_outliers <- function(){
   
 }
 
-# ------------------------------------------------------------------------------
+# Speed boxplot graphic by ESTRATO_RIM -----------------------------------------
 #' Sow boxplot graphic with speed to check the speed by ESTRATRO_RIM.
 #' 
 #' @export
@@ -414,9 +396,9 @@ view_speed_outliers <-function(){
   # ggiraph(code = print(p))  
   # return (p)
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
+
+# Variable exists in a dataframe -----------------------------------------------
 #' Check if a variable exists in a dataframe
 #' @return TRUE if the variable exists. Otherwise return an error.
 #' @param variable: variable to check.
@@ -437,10 +419,9 @@ variable_exists_in_df <- function (variable, df){
   } else return (TRUE)
   
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
-#' Check if variables exists in a dataframe
+# Multiple variables exists in a dataframe -------------------------------------
+#' Check if multiple variables exists in a dataframe
 #' @param variables: vector with variables to check.
 #' @param df: dataframe to check
 #' @return TRUE if all the variables exists. Otherwise return a list with errors.
@@ -454,7 +435,7 @@ variables_in_df <- function(variables, df){
     function(x){
       result <- tryCatch(
         variable_exists_in_df(x, df),
-        error = function(e){ #here, instead of stop the with the error of variable_exists_in_df, save it in result variable
+        error = function(e){ #here, instead of stop with the error of variable_exists_in_df, save it in result variable
           return(e) }
       )
     })
@@ -462,8 +443,8 @@ variables_in_df <- function(variables, df){
   return(result)
   
 }
-# ------------------------------------------------------------------------------
 
+# Get the caracteristics_arte dataframe ----------------------------------------
 #' function to get the dataframe caracteristicas_arte, which is related to the
 #' characteristics for every gear
 get_gear_characteristics <- function(){
@@ -476,10 +457,15 @@ get_gear_characteristics <- function(){
   return(caracteristicas_arte)
 }
 
-# ------------------------------------------------------------------------------
-#' Check if a variable or variables of a dataframe contain empty values
-#' @param variables: vector with variables to check.
+# Variable or variables of a dataframe contain empty values --------------------
+#' Check if a variable or variables of a dataframe contain empty values.
+#' Some variables are mandatory according to the gear. This information is saved
+#' in file caracteristicas_arte.csv. This variables are checked only if they are
+#' in this file.
+#' TODO: split this in two functions: one for the rest of variables and the other
+#' one fot the mandatory variables by gear.
 #' @param df: dataframe to check
+#' @param variables: vector with variables to check.
 #' @return A list with a dataframe of every variable with empty values. Every
 #' dataframe contains erroneus rows
 #' @export
@@ -510,9 +496,9 @@ check_empty_values_in_variables <- function (df, variables){
   return (errors)
   
 }
-# ------------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
+
+# Data of a dataframe is empty -------------------------------------------------
 #' Check if a data of a dataframe is empty (is NA or "")
 #' @param field Field to check
 #' @return TRUE if the field is empty. FALSE if doesn't.
@@ -523,61 +509,51 @@ check_empty_field <- function(field){
     return(FALSE)
   }
 }
-# ------------------------------------------------------------------------------
 
 
-# ------------------------------------------------------------------------------
-#' Collect all the errors returned by check_empty_values_in_variables of the four discards
-#' datasets.
-#' Some variables are ignored (allowed emptying): OBSERVACIONES from OAB_hauls and
-#' OAB_trips; COD_DESCAR, RAZON_DESCAR, PESO_SUB_MUE_TOT from OAB_catches and 
-#' PESO_MUE_RET, NOMBRE_INGLES from OAB_lengths.
-#' @details Require a dataframe returned by importOABFiles() function
-#' @param df: dataframe returned by importOABFiles() function. By default is called
-#' 'discards_samples'???????
-#' @return A dataframe with the ID_MAREA and variable with values missing
+# Empty fields in variables ----------------------------------------------------
+#' Return empty variables of a OAB dataframes from importOAB functions. Only
+#' variables saved in formato_variables dataset as mandatory are checked.
+#' Some variables are mandatory according to its gear. The file caracteristicas_arte.csv
+#' contains this variables.
+#' @details Require one of the dataframes returned by importOABFiles functions:
+#' importOABFiles(), importOABCatches(), importOABHauls(), importOABTrips() and
+#' ipmortOABLengtsh().
+#' @param df: dataframe returned by one of the importOAB functions.
+#' @param type_file: type of the imported file according to this values: OAB_CATCHES,
+#' OAB_HAULS, OAB_TRIPS and OAB_LENGTHS.
+#' @return A dataframe with the ID_MAREA and variables with values missing.
 #' @export
-check_empty_fields_in_variables <- function(df = discards_samples){
+check_empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_HAULS", "OAB_CATCHES", "OAB_LENGTHS")){
   
-  vars <- lapply(df,
-                 function(x){
-                   variables <- colnames(x)
-                 })
+  # Detect if the variable type_file is correct:
+  match.arg(type_file)
+
   
-  # remove not mandatory variables:
-  vars[["hauls"]] <- vars[["hauls"]][!vars[["hauls"]] %in% "OBSERVACIONES"]
-  vars[["trips"]] <- vars[["trips"]][!vars[["trips"]] %in% "OBSERVACIONES"]
-  vars[["catches"]] <- vars[["catches"]][!vars[["catches"]] %in% c("COD_DESCAR", "RAZON_DESCAR","PESO_SUB_MUE_TOT", "NOMBRE_INGLES")]
-  vars[["lengths"]] <- vars[["lengths"]][!vars[["lengths"]] %in% c("PESO_MUE_RET", "NOMBRE_INGLES")]
+  mandatory_field <- paste0(type_file, "_MANDATORY")
   
-  # check the empty values in every dataframe of discard_samples
-  errors <- lapply(
-    seq_along(df), #instead of use discard_samples, use seq_along(discard_samples)
-    function(i){
-      n <- names(df)[[i]] #this is the name of the list
-      vars[[n]]
-      err <- check_empty_values_in_variables(df[[i]],vars[[n]])
-      # check_empty_values return a list with one dataframe by variable, so:
-      err <- do.call(rbind, err)
-      # only return ID_MAREA and TIPO_ERROR:
-      if ("COD_ARTE" %in% colnames(err)){
-        err <- err %>%
-          select(ID_MAREA, TIPO_ERROR, COD_ARTE) %>%
-          unique()
-      } else {
-        err <- err %>%
-          select(ID_MAREA, TIPO_ERROR) %>%
-          unique() %>%
-          mutate(COD_ARTE = "")
-      }
-    }
-    
+  mandatory <- formato_variables[which(!is.na(formato_variables[type_file])
+                                       & formato_variables[mandatory_field] == TRUE), c("name_variable")]
+  df_mandatory <- df[,mandatory]
+  
+  err <- check_empty_values_in_variables(df_mandatory, mandatory)
+  
+  # check_empty_values return a list with one dataframe by variable, so:
+  err <- do.call(rbind, err)
+  
+  # return different fields according to file type:
+  switch(type_file,
+         OAB_TRIPS = { err <- err[, c("ID_MAREA", "TIPO_ERROR")]},
+         OAB_HAULS = { err <- err[, c("ID_MAREA", "COD_LANCE", "TIPO_ERROR")]},
+         OAB_CATCHES = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]},
+         OAB_LENGTHS = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]}
   )
-  errors <- do.call(rbind, errors)
+
+  return(err)
 }
-# ------------------------------------------------------------------------------
 
 
+# Check variable with master ---------------------------------------------------
 # THIS FUNCTION IS A SHIT!!!! remove and do it individually?????
 check_variable_with_master <- function (df, variable){
   
@@ -660,10 +636,9 @@ check_variable_with_master <- function (df, variable){
   #return
   return(errors)
 }
-# ------------------------------------------------------------------------------
 
-# ---- function to check coherence between ESTRATO_RIM and origin --------------
-#
+
+# Coherence between ESTRATO_RIM and origin -------------------------------------
 #' Check coherence between ESTRATO_RIM and origin.
 #' 
 #'  @return dataframe with wrong coherence.
@@ -684,7 +659,7 @@ checkCoherenceEstratoRimOrigin <- function(df){
   
 }
 
-# Function to check the coherence between 'ESTRATO_RIM' and 'gear' -------------
+# Coherence between 'ESTRATO_RIM' and 'gear' -----------------------------------
 #
 #' Check coherence between ESTRATO_RIM and origin.
 #' 
@@ -706,7 +681,7 @@ checkCoherenceEstratoRimGear <- function(df){
   
 }
 
-# function to format the errors produced ---------------------------------------
+# Format the errors produced ---------------------------------------------------
 # This function combine all the dataframes of the errors_list (a list of dataframes)
 # and format it:
 # - combine all dataframes in one
@@ -739,7 +714,8 @@ formatErrorsList <- function(errors_list = ERRORS){
   return(errors)
 }
 
-#' Check sampled hauls without catches weight ----------------------------------
+# sampled hauls without catches weight -----------------------------------------
+#' Check sampled hauls without catches weight
 #' 
 #'  @return dataframe with ID_MAREA with errors.
 #'  
@@ -763,7 +739,7 @@ hauls_hauls_sampled_with_catch_weights <- function(){
   
 }
 
-
+# species without weight caught neither weight discarded -----------------------
 #' Check species without weight caught neither weight discarded
 #' 
 #'  @return dataframe with ID_MAREA with errors.
@@ -781,6 +757,7 @@ catches_species_without_caught_neither_discarded_weight <- function(){
   
 }
 
+# species with discard weight has filled the reason discard field --------------
 #' Check all the species with discard weight has filled the reason discard field.
 #' 
 #' @return dataframe with errors.
@@ -794,6 +771,7 @@ catches_reason_discard_field_empty <- function(){
   return(err)  
 }
 
+# less catch RETENIDA than sampled RETENIDA ------------------------------------
 #' Check less catch RETENIDA than sampled RETENIDA
 #' 
 #' @return dataframe with errors.
@@ -808,6 +786,7 @@ catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch <- function(){
   
 }
 
+# less catch discarded than discard sampled ------------------------------------
 #' Check less catch RETENIDA than sampled RETENIDA
 #' 
 #' @return dataframe with errors.
@@ -825,6 +804,7 @@ catches_less_discard_weight_than_sampled_discard_weight <- function(){
   
 }
 
+# Hauls duration ---------------------------------------------------------------
 #' Check hauls duration
 #' 
 #' The duration of the hauls are compared with the information of the file
@@ -861,7 +841,7 @@ hauls_hauls_duration <- function(){
     merge(, y = trip_hauls, all.x = T) %>%
     filter(duration_trip > DURACION_MAX) %>%
     mutate(duration_trip = round(duration_trip, 0)) %>%
-    addTypeOfError("Duración de la marea excesivamente larga... hay que comprobar las fechas de largado y de virado de cada lance.")
+    addTypeOfError("WARNING: ¿Duración de la marea excesivamente larga? habría que comprobar las fechas y horas de largado y de virado de los lances.")
   
   # TO DO: find the haul with the erroneus date and return it 
   # duration_p95 <- OAB_hauls %>%
@@ -877,7 +857,8 @@ hauls_hauls_duration <- function(){
   
 }
 
-# ---- Check target specie of hauls is the most catched specie -----------------
+
+# Target specie of the hauls is the most catched specie ------------------------
 check_target_sp_with_catch <- function(){
   tryCatch({
     id_marea_with_obj <- OAB_hauls %>%
@@ -925,6 +906,51 @@ check_target_sp_with_catch <- function(){
     print(err)
   }
   )
+  
+}
+
+# Cable length is greather than 1000 m. ----------------------------------------
+length_cable_1000 <- function(){
+  
+  tryCatch({
+      # in the next line, the use of NA prevent the returned NA rows:
+      war <- OAB_hauls[which(OAB_hauls$CABLE>1000),c("ESTRATO_RIM", "ID_MAREA", "COD_LANCE", "CABLE")]
+      
+      war <- addTypeOfError(war, "WARNING: el cable largado es mayor que 1000m.")
+      
+      return(war)
+    },
+    error = function(err){
+      print(err)
+    }
+  )
+  
+}
+
+# Total discard weight less than subsample discard weight
+total_discard_less_subsample_discard <- function(df){
+  
+  error <- df[
+    df$PESO_DESCAR < df$PESO_MUE_DESCAR,
+    c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "PESO_DESCAR", "PESO_MUE_DESCAR")
+    ]
+  
+  error <- addTypeOfError(error, "ERROR: total discard weight less than subsample discard weight.")
+  
+}
+
+
+
+# Sampled discard weight less than subsample discard weight.
+sampled_discard_less_subsample_discard <- function(df){
+  
+  # usually the PESO_SUB_MUE_TOT is NA, so it is neccesary detect it.
+  error <- df[
+    which( !is.na(df$PESO_SUB_MUE_TOT) 
+           & df$PESO_SUB_MUE_TOT > df$PESO_MUE_DESCAR),]
+  
+  error <- addTypeOfError(error, "ERROR: sampled discard weight less than
+                          subsample discard weight.")
   
 }
 

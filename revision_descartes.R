@@ -16,6 +16,7 @@ library(plyr) # to use function join_all --> TO DO: change to reduce-merge funct
 library(dplyr)
 library(devtools)
 # remove.packages("sapmuebase")
+# .rs.restartR()
 # install("F:/misdoc/sap/sapmuebase")
 library(sapmuebase)
 
@@ -23,13 +24,13 @@ library(sapmuebase)
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
 
-PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/2018_01"
+PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/2018_04"
 trips_file <- "IEODESMAREAMARCO.TXT" 
 hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
 # lengths_file <- "IEODESTALLASMARCO.TXT"
 
-MONTH <- 1
+MONTH <- 4
 
 YEAR_DISCARD <- "2018"
 
@@ -57,7 +58,7 @@ MONTH_AS_CHARACTER <- sprintf("%02d", MONTH)
 # #### SET WORKING DIRECTORY ###################################################
 # ------------------------------------------------------------------------------
 
-setwd("F:/misdoc/sap/revision descartes/")
+setwd("F:/misdoc/sap/revision_descartes/")
 
 # ------------------------------------------------------------------------------
 # #### FUNCTIONS ###############################################################
@@ -72,7 +73,7 @@ source('revision_descartes_functions.R')
 # ------------------------------------------------------------------------------
 
 # discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
-#                                    path = PATH_FILES)
+                                    # path = PATH_FILES)
 # 
 # OAB_trips <- discards_samples$trips
 # OAB_hauls <- discards_samples$hauls
@@ -87,13 +88,15 @@ OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
 # ------------------------------------------------------------------------------
 # #### FILTER BY MONTH #########################################################
 # ------------------------------------------------------------------------------
-OAB_trips$FECHA_INI <- as.POSIXct(OAB_trips$FECHA_INI, format = '%d/%m/%Y')
-OAB_trips$MONTH <- as.POSIXlt(OAB_trips[["FECHA_INI"]])$mon + 1
+
+# TO DO: change all the dates in the same format
+
+trips_fecha_ini <- as.POSIXct(OAB_trips$FECHA_INI, format = '%d/%m/%Y')
+OAB_trips$MONTH <- as.POSIXlt(trips_fecha_ini)$mon + 1
 OAB_trips <- OAB_trips[OAB_trips$MONTH == MONTH,]
 
 OAB_hauls <- OAB_hauls[OAB_hauls$ID_MAREA%in%OAB_trips$ID_MAREA,]
 OAB_catches <- OAB_catches[OAB_catches$ID_MAREA%in%OAB_trips$ID_MAREA,]
-
 
 # ------------------------------------------------------------------------------
 # #### SEARCHING ERRORS ########################################################
@@ -124,6 +127,8 @@ check_them_all <- function(){
   #ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
   #ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
   
+  ERR$trips_empty_fields <- check_empty_fields_in_variables(OAB_trips, "OAB_TRIPS")
+  
   ERR$trips_field_year <- check_field_year(OAB_trips)
   
   ERR$trips_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_trips)
@@ -140,6 +145,7 @@ check_them_all <- function(){
   
   # HAULS
   #ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
+  ERR$hauls_empty_fields <- check_empty_fields_in_variables(OAB_hauls, "OAB_HAULS")
   
   ERR$hauls_field_year <- check_field_year(OAB_hauls)
   
@@ -165,7 +171,12 @@ check_them_all <- function(){
   
   ERR$hauls_target_sp_with_catch <- check_target_sp_with_catch()
   
+  ERR$length_cable_1000 <- length_cable_1000()
+  
   # CATCHES
+  
+  ERR$catches_empty_fields <- check_empty_fields_in_variables(OAB_catches, "OAB_CATCHES")
+  
   ERR$catches_field_year <- check_field_year(OAB_catches)
   
   ERR$catches_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_catches)
@@ -176,7 +187,13 @@ check_them_all <- function(){
   ERR$catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch <- catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch()
   ERR$catches_less_discard_weight_than_sampled_discard_weight <- catches_less_discard_weight_than_sampled_discard_weight()
 
+  
+  ERR$total_discard_less_subsample_discard <- total_discard_less_subsample_discard(OAB_catches)
+  ERR$sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
+  
   # LENGTHS
+  #ERR$lengths_empty_fields <- check_empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
+  
   #ERR$lengths_field_year <- check_field_year(OAB_lengths)
   
   #ERR$lengths_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_lengths)
@@ -190,7 +207,22 @@ check_them_all <- function(){
 ERRORS <- check_them_all()
 
 # CHECK SPEED:
+print_pdf_graphic <- function(filename, func, ...){
+  
+  filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
+  
+  pdf(filename)
+  
+  g <- func(...)
+  
+  print(g)
+  
+  dev.off()
+}
+
 view_speed_outliers()
+filename <- paste("speed_outliers", YEAR_DISCARD,  MONTH_AS_CHARACTER, sep ="_")
+print_pdf_graphic(filename, view_speed_outliers)
 
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
 # library(shiny)
