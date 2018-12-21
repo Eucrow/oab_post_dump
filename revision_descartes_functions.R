@@ -956,15 +956,28 @@ sampled_discard_less_subsample_discard <- function(df){
 
 # retained sampled weigth less than zero (or NA) when there are any specimens
 # retained
-retained_sample_when_specimens_retained <- function(df){
+retained_sampled_weight_when_specimens_retained <- function(df){
   
   errors <- OAB_catches[which(
     OAB_catches[["EJEM_RET"]] > 0 &
       (OAB_catches[["PESO_MUE_RET"]] <= 0 | is.na(OAB_catches[["PESO_MUE_RET"]]))
   ), ]
   
-  error <- addTypeOfError(errors, "ERROR: there are specimens retained without
+  errors <- addTypeOfError(errors, "ERROR: there are specimens retained without
                           retained sampled weight.")
   
 }
 
+# discarded sampled weigth less than zero (or NA) when there are any specimens
+# discarded
+discarded_sampled_weight_when_specimens_discarded <- function(df){
+  
+  errors <- OAB_catches[which(
+    OAB_catches[["EJEM_DESCAR"]] > 0 &
+      (OAB_catches[["PESO_MUE_DESCAR"]] <= 0 | is.na(OAB_catches[["PESO_MUE_DESCAR"]]))
+  ), ]
+  
+  errors <- addTypeOfError(errors, "ERROR: there are specimens discarded without
+                          discarded sampled weight.")
+  
+}
