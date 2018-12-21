@@ -85,6 +85,8 @@ OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
 OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
 
 
+
+
 # ------------------------------------------------------------------------------
 # #### FILTER BY MONTH #########################################################
 # ------------------------------------------------------------------------------
@@ -190,6 +192,8 @@ check_them_all <- function(){
   
   ERR$total_discard_less_subsample_discard <- total_discard_less_subsample_discard(OAB_catches)
   ERR$sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
+  
+  ERR$retained_sample_when_specimens_retained <- retained_sample_when_specimens_retained(OAB_catches)
   
   # LENGTHS
   #ERR$lengths_empty_fields <- check_empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")

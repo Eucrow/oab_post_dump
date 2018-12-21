@@ -930,12 +930,12 @@ length_cable_1000 <- function(){
 # Total discard weight less than subsample discard weight
 total_discard_less_subsample_discard <- function(df){
   
-  error <- df[
+  errors <- df[
     df$PESO_DESCAR < df$PESO_MUE_DESCAR,
     c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "PESO_DESCAR", "PESO_MUE_DESCAR")
     ]
   
-  error <- addTypeOfError(error, "ERROR: total discard weight less than subsample discard weight.")
+  errors <- addTypeOfError(errors, "ERROR: total discard weight less than subsample discard weight.")
   
 }
 
@@ -945,12 +945,26 @@ total_discard_less_subsample_discard <- function(df){
 sampled_discard_less_subsample_discard <- function(df){
   
   # usually the PESO_SUB_MUE_TOT is NA, so it is neccesary detect it.
-  error <- df[
+  errors <- df[
     which( !is.na(df$PESO_SUB_MUE_TOT) 
            & df$PESO_SUB_MUE_TOT > df$PESO_MUE_DESCAR),]
   
-  error <- addTypeOfError(error, "ERROR: sampled discard weight less than
+  errors <- addTypeOfError(errors, "ERROR: sampled discard weight less than
                           subsample discard weight.")
+  
+}
+
+# retained sampled weigth less than zero (or NA) when there are any specimens
+# retained
+retained_sample_when_specimens_retained <- function(df){
+  
+  errors <- OAB_catches[which(
+    OAB_catches[["EJEM_RET"]] > 0 &
+      (OAB_catches[["PESO_MUE_RET"]] <= 0 | is.na(OAB_catches[["PESO_MUE_RET"]]))
+  ), ]
+  
+  error <- addTypeOfError(errors, "ERROR: there are specimens retained without
+                          retained sampled weight.")
   
 }
 
