@@ -5,3 +5,7 @@
 data/
 .httr-oauth
 *.xls
+*.xlsx
+areas/
+estrato_rim_description/
+speed/

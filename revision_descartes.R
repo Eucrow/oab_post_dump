@@ -12,10 +12,11 @@
 # #### PACKAGES ################################################################
 # ------------------------------------------------------------------------------
 
-library(plyr)
+library(plyr) # to use function join_all --> TO DO: change to reduce-merge functions
 library(dplyr)
 library(devtools)
 # remove.packages("sapmuebase")
+# .rs.restartR()
 # install("F:/misdoc/sap/sapmuebase")
 library(sapmuebase)
 
@@ -23,13 +24,15 @@ library(sapmuebase)
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
 
-PATH_FILES <- "F:/misdoc/sap/revision_descartes/data"
+PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/2018_04"
 trips_file <- "IEODESMAREAMARCO.TXT" 
 hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
-lengths_file <- "IEODESTALLASMARCO.TXT"
+# lengths_file <- "IEODESTALLASMARCO.TXT"
 
-YEAR_DISCARD <- "2017"
+MONTH <- 4
+
+YEAR_DISCARD <- "2018"
 
 
 # ------------------------------------------------------------------------------
@@ -45,799 +48,55 @@ ERRORS <- list()
 # path to the generated errors file
 PATH_ERRORS <- paste(PATH_FILES,"/errors", sep="")
 
+# dataset with target species by COD_OBJ_ESP
+TARGET_SPECIES <- read.csv("especies_objetivo.csv", sep=",")
+
+# month as character
+MONTH_AS_CHARACTER <- sprintf("%02d", MONTH)
+
 # ------------------------------------------------------------------------------
 # #### SET WORKING DIRECTORY ###################################################
 # ------------------------------------------------------------------------------
 
-setwd("F:/misdoc/sap/revision descartes/")
-
+setwd("F:/misdoc/sap/revision_descartes/")
 
 # ------------------------------------------------------------------------------
 # #### FUNCTIONS ###############################################################
 # ------------------------------------------------------------------------------
+# All the functions required in this script are located in
+# revision_volcado_functions.R file.
+source('revision_descartes_functions.R')
 
-# function to add variable with type of error to a dataframe -------------------
-addTypeOfError <- function(df, ...){
-  
-  arguments <- list(...)
-  
-  type <- paste(arguments, collapse = '', sep = " ")
-  
-  if(nrow(df)!=0){
-    # df[["TIPO_ERROR"]] <- type
-    df <- df %>% mutate(TIPO_ERROR = type)
-  }
-  return(df)
-}
-
-# ------------------------------------------------------------------------------
-#' Check if the YEAR variable of the dataframe match with year to stydy.
-#' 
-#' @param df daraframe to check the field YEAR. The dataframe must have a field
-#' called YEAR.
-#' @return df with errors
-#' @export
-check_field_year <- function(df) {
-  errors <- df %>%
-    select(YEAR, ID_MAREA) %>%
-    filter(YEAR != YEAR_DISCARD) %>%
-    unique()%>%
-    addTypeOfError("ERROR: El campo YEAR no coincide con el año a comprobar:",YEAR_DISCARD)
-  
-  return(errors)
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Split ID_MAREA field
-#' 
-#' Split ID_MAREA field in its components: identifier, year, month, day and 
-#' special
-#' 
-#' @param df daraframe with ID_MAREA field to split. The dataframe must have a
-#' field called ID_MAREA.
-#' @return character vector list with the components of the ID_MAREA.
-#' @export
-
-split_ID_MAREA <- function(df) {
-  
-  if (!("ID_MAREA" %in% colnames(df))) {
-    stop(paste("ID_MAREA field does not exists in", deparse(substitute(df))))
-  }
-  
-  # to get the date
-  date_indexes <- regexec("[0-9]+", df$ID_MAREA)
-  
-  # NOTE: this function doesn't check the date format...
-  date_from_id_marea <- regmatches(df$ID_MAREA, date_indexes)
-  year_from_id_marea <- substr(date_from_id_marea, 1, 2)
-  month_from_id_marea <- substr(date_from_id_marea, 3, 4)
-  day_from_id_marea <-  substr(date_from_id_marea, 5, 6)
-  
-  # to get the identifier: DESIXAC...
-  identifier_indexes <- regexpr("([a-zA-Z]+)(?=[0-9]+)", df$ID_MAREA, perl = T)
-  
-  # to get the final special character
-  special_idexes <- regexec("(?:\\D+\\d+)([a-zA-z])", df$ID_MAREA)
-  special_idexes <- regmatches(df$ID_MAREA, special_idexes)
-  # OMG: https://stackoverflow.com/questions/23758858/how-can-i-extract-elements-from-lists-of-lists-in-r
-  special_idexes <- lapply(special_idexes, '[', c(2))
-  special_idexes <- as.character(special_idexes)
-  
-  result <- list(
-    identifier= regmatches(df$ID_MAREA, identifier_indexes),
-    year= year_from_id_marea,
-    month= month_from_id_marea,
-    day= day_from_id_marea,
-    special= special_idexes
-  )
-
-  # df <- list(
-  #   identifier= substr(df$ID_MAREA, 1, 7),
-  #   year= substr(df$ID_MAREA, 8, 9),
-  #   month= substr(df$ID_MAREA, 10, 11),
-  #   day= substr(df$ID_MAREA, 12, 13),
-  #   special= substr(df$ID_MAREA, 14, 14)
-  # )
-  
-  # convert two digits year to four digits year:
-  result[["year"]] <- format(as.Date(result[["year"]], "%y"), "%Y")
-  
-  return(result)
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Convert date in format 12-ENE-17 to 10/01/2017
-#' 
-#' @param dates: vector with dates.
-#' @return vector with dates corrected.
-#' @export
-dby_to_dmy_date_format <- function (dates){
-  
-  # to avoid some problems with Spanish_Spain.1252 (or if you are using another
-  # locale), change locale to Spanish_United States.1252:  
-  lct <- Sys.getlocale("LC_TIME")
-  Sys.setlocale("LC_TIME","Spanish_United States.1252")
-  
-  dates <- format(as.Date(dates, "%d-%b-%y"), "%d/%m/%Y")
-  
-  # and now the come back to the initial configuration of locale:
-  Sys.setlocale("LC_TIME", lct)  
-  
-  return(dates)
-}
-# ------------------------------------------------------------------------------
-
-
-# ------------------------------------------------------------------------------
-#' Check year in ID_MAREA in a OAB df
-#' 
-#' @param df: df to check. Must be a df obtained by importOAB functions.
-#' @return df with errors
-#' @export
-check_year_in_ID_MAREA <- function(df){
-  
-  ID_MAREA_split <- split_ID_MAREA(df)
-
-  errors <- which(!(ID_MAREA_split[["year"]] %in% YEAR_DISCARD))
-
-  errors <- df[errors,]
-  
-  # this line add a comment to the errors dataframe wich contain the value of the
-  # df variable
-  errors.name <- deparse(substitute(df))
-  
-  errors <- errors %>%
-            select(YEAR, ID_MAREA)%>%
-            addTypeOfError(paste("ERROR: el año del ID_MAREA en", errors.name, "no coincide con el año a comprobar"))
-  
-  return(errors)
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Check whether a date match with a given day, month and year.
-#' 
-#' If dd, mm or yyyy are ommited the function check the variable given.
-#' 
-#' @param x: date to check. Must be with the spanish format: dd/mm/yyyy
-#' @param dd: day
-#' @param mm: month
-#' @param yyyy: year
-#' @return TRUE if date does match and FALSE if doesn't.
-#' @export
-
-compare_day_month_year_date <- function(x, day, month, year){
-  
-  tryCatch({
-  
-    x <- as.POSIXlt(x, format="%d/%m/%Y") # Date-times known to be invalid will be returned as NA.
-
-    #check if the date has the correct format
-    if( is.na( x ) ) stop( "Error in date format. Be sure the format is day/month/year", call. = F)
-      
-    #check if day, month and year match with x
-    if ((!missing(day) && (x[["mday"]] != day)) || 
-        (!missing(month) && (x[["mon"]]+1 != month)) ||
-        (!missing(year) && (x[["year"]]+1900 != year))) {
-      return(FALSE) 
-    }
-    
-    return(TRUE)
-  })
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Check year of a date field
-#' 
-#' @param df: dataframe with the date field.
-#' @param date_field: name of the field with de date to check.
-#' @param year: year to compare with.
-#' @return df with errors
-#' @export
-check_year_in_date <- function(df, date_field, year){
-  
-  if (!date_field %in% colnames(df)){
-    stop(deparse(substitute(df)), " don't have a ", deparse(substitute(date_field)), " variable.")
-  }
-  
-  l <- sapply(df[[date_field]],
-              function(x) {
-                return (compare_day_month_year_date(x, year=year))
-              },
-              USE.NAMES = F)
-
-  errors <- df[!l,]
-  
-  errors <- errors[, c("ID_MAREA", "YEAR", date_field)]
-
-  # this line add a comment to the errors dataframe wich contain the value of the
-  # df variable
-  errors.date_field <- deparse(substitute(date_field))
-  
-  errors <- addTypeOfError(errors, "ERROR: el año del campo ", errors.date_field, " no coincide con el año ", year)
-    
-  return(errors)
-  
-}
-
-
-# ------------------------------------------------------------------------------
-#' Check if a date match with the ID_MAREA date
-#' 
-#' @param df: dataframe to check.
-#' @param field: name of the field with de date to check.
-#' @return df with errors
-#' @export
-check_date_with_id_marea <- function(df, field){
-  
-  indexes <- regexec("[0-9]+", df$ID_MAREA)
-  
-  date_from_id_marea <- split_ID_MAREA(df)
-  
-  # date_from_id_marea <- regmatches(df$ID_MAREA, indexes)
-  year_from_id_marea <- date_from_id_marea$year
-  month_from_id_marea <- date_from_id_marea$month
-  day_from_id_marea <-  date_from_id_marea$day
-  
-  date_form_id_marea <- paste0(day_from_id_marea, "/", month_from_id_marea, "/", year_from_id_marea)
-  
-  errors <- df[date_form_id_marea != df[[field]],]
-  
-  if (length(errors$ID_MAREA)>0){
-    # this line add a comment to the errors dataframe wich contain the value of the
-    # df variable
-    errors.date_field <- deparse(substitute(field))
-    errors <- addTypeOfError(errors, "WARNING: la fecha del campo ", errors.date_field, " no concuerda con el ID_MAREA")
-    return(errors)
-  } else {
-    return()
-  }
-  
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Check start date of OAB_trips previous to end date
-#' #' Use the OAB_trips df
-#' @return df with errors
-#' @export
-trips_check_initial_date_before_final_date <- function(){
-  
-  start <- as.POSIXlt(OAB_trips$FECHA_INI, format="%d/%m/%Y")
-  end <- as.POSIXlt(OAB_trips$FECHA_FIN, format="%d/%m/%Y") 
-
-  errors <- OAB_trips[(start - end)>0,]
-  
-  if(length(nrow(errors)==0)) {
-    return(NULL)
-  } else {
-    errors <- addTypeOfError(errors, "ERROR: la ficha final de la marea es anterior a la fecha inicial")
-    return(errors)
-  }
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Check shooting date previous to hauling date
-#' Use the OAB_hauls df
-#' @return df with errors
-#' @export
-hauls_check_sooting_date_before_hauling_date <- function(){
-  
-  start_date <- dby_to_dmy_date_format(OAB_hauls$FECHA_LAR)
-  start <- paste(start_date, OAB_hauls$HORA_LAR)
-  start <- as.POSIXlt(start, format="%d/%m/%Y %H:%M")
-  
-  end_date <- dby_to_dmy_date_format(OAB_hauls$FECHA_VIR)
-  end <- paste(end_date, OAB_hauls$HORA_VIR)
-  end <- as.POSIXlt(end, format="%d/%m/%Y %H:%M")
-  
-
-  errors <- OAB_hauls[(start - end) > 0,c("ID_MAREA", "LANCE", "FECHA_LAR", "FECHA_VIR")]
-  
-  errors <- addTypeOfError(errors, "ERROR: La fecha de largada es anterior a la fecha de virado.")
-  
-  if (nrow(errors)==0){
-    return(NULL)
-  } else {
-    return(errors)
-  }
-}
-
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Check the final date is included in id marea, only in GC samples (CERCO_GC and
-#' BACA_GC)
-#' @return df with errors
-#' @export
-trips_check_final_date_in_id_marea_GC <- function(){
-  errors <- OAB_trips %>%
-    filter(ESTRATO_RIM=="BACA_GC" | ESTRATO_RIM == "CERCO_GC")%>%
-    check_date_with_id_marea("FECHA_FIN") %>%
-    select(ID_MAREA, FECHA_FIN)%>%
-    addTypeOfError("ERROR: el ID_MAREA no se corresponde con el campo FECHA_FIN")
-  
-  return(errors)
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Return a oulier
-#' ggplot defines an outlier by default as something that's > 1.5*IQR from the
-#' borders of the box. 
-#' To use only in get_outliers_speed() and show_outliers_speed() functions
-is_outlier <- function(x) {
-  return(x < quantile(x, 0.25, na.rm = T) - 1.5 * IQR(x, na.rm = T) | x > quantile(x, 0.75, na.rm = T) + 1.5 * IQR(x, na.rm = T))
-  }  
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Get the posible outlier in speed.
-#' Using the same criteria to ggplot in a boxplot: an outlier is something that's > 1.5*IQR from the
-#' borders of the box.
-#' 
-#' @export
-get_speed_outliers <- function(){
-  
-  hauls_speed <- OAB_hauls %>%
-    select(ID_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
-    filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
-  
-  hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
-  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ != "CABALLA", "str"] <- "PAREJA_CN.RESTO"
-  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ == "CABALLA", "str"] <- "PAREJA_CN.CABALLA"
- 
-  hauls_speed <- hauls_speed %>%
-    group_by(str)%>%
-    mutate(OUTLIER = ifelse(is_outlier(VELOCIDAD), VELOCIDAD, as.numeric(NA)))%>%
-    filter(!is.na(OUTLIER))%>%
-    addTypeOfError("WARNING: posible outlier en el campo velocidad")
-
-  return(as.data.frame(hauls_speed))  
-  
-}
-
-# ------------------------------------------------------------------------------
-#' Sow boxplot graphic with speed to check the speed by ESTRATRO_RIM.
-#' 
-#' @export
-view_speed_outliers <-function(){
-  
-  library(ggplot2)  
-  library(ggiraph)
-  
-  hauls_speed <- OAB_hauls %>%
-    select(ID_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
-    filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
-  
-  hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
-  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ != "CABALLA", "str"] <- "PAREJA_CN.RESTO"
-  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ == "CABALLA", "str"] <- "PAREJA_CN.CABALLA"
-
-  hauls_speed %>%
-    group_by(str)%>%
-    #in the next mutate line: if in the ifelse use ID_MAREA as the returned value
-    #when the condition is True, it doesnt't print the ID_MAREA but a weird number¿??¿?¿?¿?¿
-    mutate(outlier = ifelse(is_outlier(VELOCIDAD), VELOCIDAD, as.numeric(NA)))%>%
-      ggplot(., aes(str, VELOCIDAD))+
-      # geom_boxplot_interactive()+
-      geom_boxplot()+
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-      geom_text(aes(label = outlier), na.rm=T, hjust=1.1)
-
-  # ggiraph(code = print(p))  
-  # return (p)
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Check if a variable exists in a dataframe
-#' @return TRUE if the variable exists. Otherwise return an error.
-#' @param variable: variable to check.
-#' @param df: dataframe to check
-#' @export
-variable_exists_in_df <- function (variable, df){
-  
-  # get all the variables of df with the variable name = variable
-  var_in_df <- colnames(df)[colnames(df) %in% variable]
-  
-  if (length(var_in_df) > 1) {
-    stop(paste("Hey hard worker! check the ", variable, 
-               "variable. Looks like there are multiple columns with the same variable name.
-               Using consistents dataframes we will get a better world. Really :) ", 
-               variable, "."))
-  } else if (length(var_in_df) == 0) {
-    stop(paste(variable, " does not exists in this dataframe."))
-  } else return (TRUE)
-  
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Check if variables exists in a dataframe
-#' @param variables: vector with variables to check.
-#' @param df: dataframe to check
-#' @return TRUE if all the variables exists. Otherwise return a list with errors.
-#' @export
-variables_in_df <- function(variables, df){
-  
-  variables <- as.list(variables)
-  
-  result <- lapply(
-    variables, 
-    function(x){
-      result <- tryCatch(
-        variable_exists_in_df(x, df),
-        error = function(e){ #here, instead of stop the with the error of variable_exists_in_df, save it in result variable
-          return(e) }
-      )
-    })
-  
-  return(result)
-  
-}
-# ------------------------------------------------------------------------------
-
-#' function to get the dataframe caracteristicas_arte, which is related to the
-#' characteristics for every gear
-get_gear_characteristics <- function(){
-  
-  caracteristicas_arte <- read.table("caracteristicas_arte.csv", 
-                                     header = T, 
-                                     sep=";",
-                                     colClasses = c("factor", "factor"))
-  
-  return(caracteristicas_arte)
-}
-
-# ------------------------------------------------------------------------------
-#' Check if a variable or variables of a dataframe contain empty values
-#' @param variables: vector with variables to check.
-#' @param df: dataframe to check
-#' @return A list with a dataframe of every variable with empty values. Every
-#' dataframe contains erroneus rows
-#' @export
-check_empty_values_in_variables <- function (df, variables){
-  
-  try(variables_in_df(df, variables))
-  
-  gear_characteristics <- get_gear_characteristics()
-  characteristic_to_check <- levels(gear_characteristics$CARACTERISTICA)
-  
-  variables <- as.list(variables)
-  
-  errors <- lapply(variables, function(x){
-    
-    # Only some characteristicas must be filled according to its gear:
-    if(x %in% characteristic_to_check) {
-      gear_code <- gear_characteristics[gear_characteristics[["CARACTERISTICA"]]==x,]
-      error <- (df[ (df[[x]]=="" | is.na(df[[x]])) & df[["COD_ARTE"]]%in%gear_code[["COD_ARTE"]],])
-      error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía" )
-    } else {
-      error <- (df[df[[x]]=="" | is.na(df[[x]]),])
-      error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía" )
-    }
-    error
-  })
-  
-  errors <- Filter(function(x) nrow(x) > 0, errors)
-  return (errors)
-  
-}
-# ------------------------------------------------------------------------------
-
-# ------------------------------------------------------------------------------
-#' Collect all the errors returned by check_empty_values_in_variables of the four discards
-#' datasets.
-#' Some variables are ignored (allowed emptying): OBSERVACIONES from OAB_hauls and
-#' OAB_trips; COD_DESCAR, RAZON_DESCAR, PESO_SUB_MUE_TOT from OAB_catches and 
-#' PESO_MUE_RET, NOMBRE_INGLES from OAB_lengths.
-#' @details Require a dataframe returned by importOABFiles() function
-#' @param df: dataframe returned by importOABFiles() function. By default is called
-#' 'discards_samples'
-#' @return A dataframe with the ID_MAREA and variable with values missing
-#' @export
-check_empty_fields_in_variables <- function(df = discards_samples){
-  
-  vars <- lapply(df,
-                 function(x){
-                   variables <- colnames(x)
-                 })
-  
-  # remove not mandatory variables:
-  vars[["hauls"]] <- vars[["hauls"]][!vars[["hauls"]] %in% "OBSERVACIONES"]
-  vars[["trips"]] <- vars[["trips"]][!vars[["trips"]] %in% "OBSERVACIONES"]
-  vars[["catches"]] <- vars[["catches"]][!vars[["catches"]] %in% c("COD_DESCAR", "RAZON_DESCAR","PESO_SUB_MUE_TOT", "NOMBRE_INGLES")]
-  vars[["lengths"]] <- vars[["lengths"]][!vars[["lengths"]] %in% c("PESO_MUE_RET", "NOMBRE_INGLES")]
-  
-  # check the empty values in every dataframe of discard_samples
-  errors <- lapply(
-    seq_along(df), #instead of use discard_samples, use seq_along(discard_samples)
-    function(i){
-      n <- names(df)[[i]] #this is the name of the list
-      vars[[n]]
-      err <- check_empty_values_in_variables(df[[i]],vars[[n]])
-      # check_empty_values return a list with one dataframe by variable, so:
-      err <- do.call(rbind, err)
-      # only return ID_MAREA and TIPO_ERROR:
-      if ("COD_ARTE" %in% colnames(err)){
-        err <- err %>%
-          select(ID_MAREA, TIPO_ERROR, COD_ARTE) %>%
-          unique()
-      } else {
-        err <- err %>%
-          select(ID_MAREA, TIPO_ERROR) %>%
-          unique() %>%
-          mutate(COD_ARTE = "")
-      }
-    }
-    
-  )
-  errors <- do.call(rbind, errors)
-}
-# ------------------------------------------------------------------------------
-
-
-# THIS FUNCTION IS A SHIT!!!! remove and do it individually?????
-check_variable_with_master <- function (df, variable){
-  
-  if(variable != "ESTRATO_RIM" &&
-     # variable != "COD_PUERTO" &&
-     # variable != "COD_PUERTO_BASE" &&
-     variable != "COD_PUERTO_LLEGADA" &&
-     variable != "COD_PUERTO_DESCARGA" &&
-     variable != "COD_ORIGEN" &&
-     variable != "COD_ARTE" &&
-     variable != "PROCEDENCIA" &&
-     variable != "COD_TIPO_MUE"){
-    stop(paste("This function is not available for ", variable))
-  }
-  
-  # If the variable begin with "COD_", the name of the data source
-  # is the name of the variable without "COD_"
-  variable_formatted <- variable
-  if (grepl("^COD_", variable)){
-    variable_formatted <- strsplit(variable, "COD_")
-    variable_formatted <- variable_formatted[[1]][2]
-  }
-  
-  
-  # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********
-  # change the name of PUERTO_BASE, PUERTO_LLEGADA or PUERTO_DESCARGA
-  # to PUERTO:
-  if(variable_formatted == "PUERTO_LLEGADA" ||
-     # variable_formatted == "PUERTO_BASE" ||
-     variable_formatted == "PUERTO_DESCARGA") {
-    variable_puerto_original <- variable_formatted
-    variable_formatted <- "PUERTO"
-  }
-  
-  # ******************************************************************************
-  
-  name_data_set <- tolower(variable_formatted)
-  
-  # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********    
-  # it's required  join via the variable COD_PUERTO, so a new variable is required:
-  if(variable == "COD_PUERTO_LLEGADA" ||
-     # variable == "COD_PUERTO_BASE" ||
-     variable == "COD_PUERTO_DESCARGA") {
-    variable_to_change <- "COD_PUERTO"
-  }
-  # ****************************************************************************** 
-  
-  dataframe_variable <- get(name_data_set)
-  
-  # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********  
-  if (exists("variable_to_change")){
-    names(dataframe_variable)[names(dataframe_variable) == variable_to_change] <- variable
-  }
-  
-  #search the errors in variable
-  # errors <- anti_join(df, get(name_data_set), by = variable)
-  
-  # ******************************************************************************
-  
-  
-  #prepare to return
-  # fields_to_filter <- c(BASE_FIELDS, variable, variable_formatted)
-  if (exists("variable_to_change")){
-    errors <- anti_join(df, get(name_data_set), by = setNames(nm=variable, variable_to_change))
-    fields_to_filter <- c("ID_MAREA", variable, variable_puerto_original)
-  } else {
-    errors <- anti_join(df, get(name_data_set), by = setNames(nm=variable, variable))
-    fields_to_filter <- c("ID_MAREA", variable, variable_formatted)
-  }
-  
-  
-  errors <- errors %>%
-    select(one_of(fields_to_filter))%>%
-    unique()
-  
-  
-  text_type_of_error <- paste0("ERROR: ", name_data_set, " no concuerda con los maestros de SIRENO")
-  errors <- addTypeOfError(errors, text_type_of_error)
-  
-  #return
-  return(errors)
-}
-# ------------------------------------------------------------------------------
-
-# ---- function to check coherence between ESTRATO_RIM and origin --------------
-#
-#' Check coherence between ESTRATO_RIM and origin.
-#' 
-#'  @return dataframe with wrong coherence.
-#'  
-checkCoherenceEstratoRimOrigin <- function(df){
-  
-  try(variables_in_df(c("ESTRATO_RIM", "COD_ORIGEN"), df))
-  
-  BASE_FIELDS <- c("ID_MAREA", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
-  
-  errors <- df %>%
-    select(one_of(BASE_FIELDS)) %>%
-    unique() %>%
-    anti_join(y=estratorim_origen, by=c("ESTRATO_RIM", "COD_ORIGEN")) %>%
-    addTypeOfError("ERROR: no concuerda el estrato_rim con el origen")
-  
-  return(errors)
-  
-}
-
-# Function to check the coherence between 'ESTRATO_RIM' and 'gear' -------------
-#
-#' Check coherence between ESTRATO_RIM and origin.
-#' 
-#'  @return dataframe with wrong coherence.
-#'  
-checkCoherenceEstratoRimGear <- function(df){
-  
-  try(variables_in_df(c("ESTRATO_RIM", "COD_ARTE"), df))
-  
-  BASE_FIELDS <- c("ID_MAREA", "ESTRATO_RIM", "COD_ARTE", "ARTE")
-  
-  errors <- df %>%
-    select(one_of(BASE_FIELDS)) %>%
-    unique() %>%
-    anti_join(y=estratorim_arte, by=c("ESTRATO_RIM", "COD_ARTE")) %>%
-    addTypeOfError("ERROR: no concuerda el estrato_rim con el arte")
-  
-  return(errors)
-  
-}
-
-# function to format the errors produced ---------------------------------------
-# This function combine all the dataframes of the errors_list (a list of dataframes)
-# and format it:
-# - combine all dataframes in one
-# - order columns
-# - remove empty columns in every area dataframe
-formatErrorsList <- function(errors_list = ERRORS){
-  
-  # Combine all the dataframes of ERRORS list:
-  # Reduce uses a binary function to successively combine the elements of a
-  # given vector. In this case, merge the dataframes in the ERRORS list
-  #errors <- Reduce(function(x, y) merge(x, y, all=TRUE), errors_list)
-  
-  #better with join_all form plyr package because doesn't change the order of columns:
-  errors <- join_all(errors_list, type = "full")
-  
-  # Order the errors and remove columns with only NA values
-  # Order columns
-  errors <- errors %>%
-    select(-one_of("TIPO_ERROR"), one_of("TIPO_ERROR")) %>% #remove TIPO_ERROR, and add it to the end
-    # mutate(FECHA_MUE = as.Date(FECHA_MUE, "%d-%m-%y")) %>%
-    arrange_("ID_MAREA")
-  
-  #Remove columns with only NA values
-  #Filter extracts the elements of a vector for which a predicate (logical) function gives true
-  errors <- Filter(function(errors){!all(is.na(errors))}, errors)
-  
-  # Add column Comprobado
-  errors[["comprobado"]] <- ""
-  
-  return(errors)
-}
-
-#' Check sampled hauls without catches weight ---------------------------------------
-#' 
-#'  @return dataframe with ID_MAREA with errors .
-#'  
-hauls_hauls_sampled_with_catch_weights <- function(){
-  
-  sampled <- OAB_hauls %>%
-    filter(MUESTREADO == "S") %>%
-    select(ID_MAREA) %>%
-    unique()
-  
-  catches <- OAB_catches %>%
-    group_by(ID_MAREA) %>%
-    summarise(PESO_CAP_TOT = sum(PESO_CAP)) %>%
-    filter(PESO_CAP_TOT==0)
-
-  err <- merge(x=sampled, y=catches, by= "ID_MAREA")
-  err <- addTypeOfError(err, "ERROR: Lance muestreado pero sin peso de captura.")
-  
-  return(err)
-  
-}
-
-
-#' Check species without weight caught neither weight discarded
-#' 
-#'  @return dataframe with ID_MAREA with errors.
-#'  
-catches_species_without_caught_neither_discarded_weight <- function(){
-
-  err <- OAB_catches %>%
-    filter(PESO_CAP == 0 & PESO_DESCAR == 0) %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, ESP, PESO_CAP, PESO_DESCAR) %>%
-    arrange(ID_MAREA)%>%
-    unique() %>%
-    addTypeOfError("ERROR: Especie sin peso captura ni peso descarte.")
-  
-  return(err)
-  
-}
-
-#' Check all the species with discard weight has filled the reason discard field.
-#' 
-#' @return dataframe with errors.
-catches_reason_discard_field_empty <- function(){
-  
-  err <- OAB_catches %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_DESCAR, RAZON_DESCAR) %>%
-    filter(PESO_DESCAR!=0 & RAZON_DESCAR =="") %>%
-    addTypeOfError("WARNING: especie descartada pero con el campo 'Razón del descarte' sin rellenar.")
-
-  return(err)  
-}
-
-#' Check less catch RETENIDA than sampled RETENIDA
-#' 
-#' @return dataframe with errors.
-catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch <- function(){
-  
-  err <- OAB_catches %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_RET, PESO_MUE_RET) %>%
-    filter(PESO_RET < PESO_MUE_RET) %>%
-    addTypeOfError("ERROR: captura retenida menor que captura retenida muestreada.")
-  
-  return(err)
-  
-}
-
-#' Check less catch RETENIDA than sampled RETENIDA
-#' 
-#' @return dataframe with errors.
-catches_less_discard_weight_than_sampled_discard_weight <- function(){
-  
-  err <- OAB_catches %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_DESCAR, PESO_MUE_DESCAR) %>%
-    filter(PESO_DESCAR < PESO_MUE_DESCAR) %>%
-    addTypeOfError("ERROR: peso descartado menor que peso descartado muestreado.")
-  
-  return(err)
-  
-}
 
 # ------------------------------------------------------------------------------
 # #### IMPORT DISCARDS FILES ###################################################
 # ------------------------------------------------------------------------------
 
-discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
-                                   path = PATH_FILES)
+# discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
+                                    # path = PATH_FILES)
+# 
+# OAB_trips <- discards_samples$trips
+# OAB_hauls <- discards_samples$hauls
+# OAB_catches <- discards_samples$catches
+# OAB_lengths <- discards_samples$lengths
 
-OAB_trips <- discards_samples$trips
-OAB_hauls <- discards_samples$hauls
-OAB_catches <- discards_samples$catches
-OAB_lengths <- discards_samples$lengths
+OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
+OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
+OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
 
 
+# ------------------------------------------------------------------------------
+# #### FILTER BY MONTH #########################################################
+# ------------------------------------------------------------------------------
+
+# TO DO: change all the dates in the same format
+
+trips_fecha_ini <- as.POSIXct(OAB_trips$FECHA_INI, format = '%d/%m/%Y')
+OAB_trips$MONTH <- as.POSIXlt(trips_fecha_ini)$mon + 1
+OAB_trips <- OAB_trips[OAB_trips$MONTH == MONTH,]
+
+OAB_hauls <- OAB_hauls[OAB_hauls$ID_MAREA%in%OAB_trips$ID_MAREA,]
+OAB_catches <- OAB_catches[OAB_catches$ID_MAREA%in%OAB_trips$ID_MAREA,]
 
 # ------------------------------------------------------------------------------
 # #### SEARCHING ERRORS ########################################################
@@ -858,7 +117,7 @@ check_them_all <- function(){
   ERR <- list()
   
   # ALLTOGETHER
-  #ERR$all_empty_fields_in_variable <- check_empty_fields_in_variables()
+    # ERR$all_empty_fields_in_variable <- check_empty_fields_in_variables()
     # ppp <- check_empty_variables()
     # ppp_number <- as.data.frame(table(ppp$TIPO_ERROR))
   
@@ -867,6 +126,8 @@ check_them_all <- function(){
   #ERR$trips_estrato_rim <- check_variable_with_master(OAB_trips, "ESTRATO_RIM")
   #ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
   #ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
+  
+  ERR$trips_empty_fields <- check_empty_fields_in_variables(OAB_trips, "OAB_TRIPS")
   
   ERR$trips_field_year <- check_field_year(OAB_trips)
   
@@ -880,10 +141,11 @@ check_them_all <- function(){
   ERR$trips_check_initial_date_before_final_date <- trips_check_initial_date_before_final_date()
 
   
-  #ERR$coherencia_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_trips)
+  ERR$coherencia_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_trips)
   
   # HAULS
   #ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
+  ERR$hauls_empty_fields <- check_empty_fields_in_variables(OAB_hauls, "OAB_HAULS")
   
   ERR$hauls_field_year <- check_field_year(OAB_hauls)
   
@@ -895,16 +157,26 @@ check_them_all <- function(){
   OAB_hauls$FECHA_VIR <- dby_to_dmy_date_format(OAB_hauls$FECHA_VIR)
   ERR$hauls_year_in_hauling_date <- check_year_in_date(OAB_hauls, "FECHA_VIR", YEAR_DISCARD)
   
-  ERR$hauls_check_sooting_date_before_hauling_date <- hauls_check_sooting_date_before_hauling_date()
+  ERR$hauls_check_hauling_date_before_shooting_date <- hauls_check_hauling_date_before_shooting_date()
   
-  #ERR$hauls_coherence_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_hauls)
-  #ERR$hauls_coherence_estrato_rim_gear <- checkCoherenceEstratoRimGear(OAB_hauls)
-  
+  ERR$hauls_coherence_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_hauls)
+
+  ERR$hauls_coherence_estrato_rim_gear <- checkCoherenceEstratoRimGear(OAB_hauls)
+
   ERR$hauls_hauls_sampled_with_catch_weights <- hauls_hauls_sampled_with_catch_weights()
   
   ERR$hauls_possible_speed_outliers <- get_speed_outliers()
   
+  ERR$hauls_hauls_duration <- hauls_hauls_duration()
+  
+  ERR$hauls_target_sp_with_catch <- check_target_sp_with_catch()
+  
+  ERR$length_cable_1000 <- length_cable_1000()
+  
   # CATCHES
+  
+  ERR$catches_empty_fields <- check_empty_fields_in_variables(OAB_catches, "OAB_CATCHES")
+  
   ERR$catches_field_year <- check_field_year(OAB_catches)
   
   ERR$catches_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_catches)
@@ -915,10 +187,16 @@ check_them_all <- function(){
   ERR$catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch <- catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch()
   ERR$catches_less_discard_weight_than_sampled_discard_weight <- catches_less_discard_weight_than_sampled_discard_weight()
 
-  # LENGTHS
-  ERR$lengths_field_year <- check_field_year(OAB_lengths)
   
-  ERR$lengths_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_lengths)
+  ERR$total_discard_less_subsample_discard <- total_discard_less_subsample_discard(OAB_catches)
+  ERR$sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
+  
+  # LENGTHS
+  #ERR$lengths_empty_fields <- check_empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
+  
+  #ERR$lengths_field_year <- check_field_year(OAB_lengths)
+  
+  #ERR$lengths_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_lengths)
   
 
   
@@ -929,7 +207,22 @@ check_them_all <- function(){
 ERRORS <- check_them_all()
 
 # CHECK SPEED:
+print_pdf_graphic <- function(filename, func, ...){
+  
+  filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
+  
+  pdf(filename)
+  
+  g <- func(...)
+  
+  print(g)
+  
+  dev.off()
+}
+
 view_speed_outliers()
+filename <- paste("speed_outliers", YEAR_DISCARD,  MONTH_AS_CHARACTER, sep ="_")
+print_pdf_graphic(filename, view_speed_outliers)
 
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
 # library(shiny)
@@ -949,39 +242,38 @@ combined_errors <- formatErrorsList()
 # one month
 
 combined_errors <-  list(errores = combined_errors)
-MONTH <- "all"
 
-exportListToXlsx(combined_errors, suffix = paste0("descartes", YEAR_DISCARD), separation = "_")
-
-
-
-OAB_exportListToGoogleSheet <- function (list, prefix = "", suffix = "", separation = "") 
-{
-  if (!requireNamespace("googlesheets", quietly = TRUE)) {
-    stop("Googlesheets package needed for this function to work. Please install it.", 
-         call = FALSE)
-  }
-  lapply(seq_along(list), function(i) {
-
-    if (is.data.frame(list[[i]])) {
-      list_name <- names(list)[[i]]
-      if (prefix != "") 
-        prefix <- paste0(prefix, separation)
-      if (suffix != "") 
-        suffix <- paste0(separation, suffix)
-      filename <- paste0(prefix, list_name, suffix, ".csv")
-      googlesheets::gs_new(filename, ws_title = filename, 
-                           input = list[[i]], trim = TRUE, verbose = FALSE)
-    }
-    else {
-      return(paste("This isn't a dataframe"))
-    }
-  })
-}
-
-OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
+original_wd <- getwd()
+setwd(PATH_ERRORS)
+exportListToXlsx(combined_errors, 
+                 suffix = paste("descartes", YEAR_DISCARD, MONTH_AS_CHARACTER, sep = "_"), 
+                 separation = "_")
+setwd(original_wd)
 
 
-
-
+# OAB_exportListToGoogleSheet <- function (list, prefix = "", suffix = "", separation = "") 
+# {
+#   if (!requireNamespace("googlesheets", quietly = TRUE)) {
+#     stop("Googlesheets package needed for this function to work. Please install it.", 
+#          call = FALSE)
+#   }
+#   lapply(seq_along(list), function(i) {
+# 
+#     if (is.data.frame(list[[i]])) {
+#       list_name <- names(list)[[i]]
+#       if (prefix != "") 
+#         prefix <- paste0(prefix, separation)
+#       if (suffix != "") 
+#         suffix <- paste0(separation, suffix)
+#       filename <- paste0(prefix, list_name, suffix, ".csv")
+#       googlesheets::gs_new(filename, ws_title = filename, 
+#                            input = list[[i]], trim = TRUE, verbose = FALSE)
+#     }
+#     else {
+#       return(paste("This isn't a dataframe"))
+#     }
+#   })
+# }
+# 
+# OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
 
