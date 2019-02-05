@@ -20,6 +20,10 @@ library(devtools)
 # install("F:/misdoc/sap/sapmuebase")
 library(sapmuebase)
 
+
+
+library(googledrive)
+
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
@@ -39,12 +43,15 @@ library(sapmuebase)
 PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/anual"
 trips_file <- "IEODESMAREASIRENO_fixed_marco.TXT"
 hauls_file <- "IEODESLANCESIRENO_fixed_marco.TXT"
-catches_file <- "IEODESCAPTURASIRENO.TXT"
+catches_file <- "IEODESCAPTURAMARCO.TXT"
 lengths_file <- "IEODESTALLASSIRENO.TXT"
 
 MONTH <- FALSE
 
 YEAR_DISCARD <- "2018"
+
+# only if the file must be uploaded to google drive
+GOOGLE_DRIVE_PATH <- "/equipo muestreos/revision_descartes/2018/"
 
 
 # ------------------------------------------------------------------------------
@@ -254,8 +261,6 @@ combined_errors <- formatErrorsList()
 
 # Uncomment the way to export errors:
 
-# one month
-
 combined_errors <-  list(errores = combined_errors)
 
 original_wd <- getwd()
@@ -292,3 +297,59 @@ setwd(original_wd)
 # 
 # OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
 
+
+# Export to google drive -------------------------------------------------------
+# Export the dataframes contained in a list to google drive
+exportListToGoogleSheet <- function(list, prefix = "", suffix = "", separation = ""){
+  
+  #check if package openxlsx is instaled:
+  if (!requireNamespace("googlesheets", quietly = TRUE)) {
+    stop("Googlesheets package needed for this function to work. Please install it.",
+         call = FALSE)
+  }
+  
+  # sep_along(list): generate regular sequences. With a list, generates
+  # the sequence 1, 2, ..., length(from). Return a integer vector.
+  lapply(seq_along(list), function(i){
+    
+    
+    if(is.data.frame(list[[i]])){
+      
+      list_name <- names(list)[[i]]
+      
+      if (prefix != "") prefix <- paste0(prefix, separation)
+      
+      if (suffix != "") suffix <- paste0(separation, suffix)
+      
+      # Before export to google drive, is mandatory export file to csv in local:
+      # When the googlesheet4 packages have the oauth implemented, we can
+      # use it instead of googledrive package
+      filename <- paste0(PATH_ERRORS, "/", prefix, list_name, suffix, '.csv')
+      
+      write.table(
+        list[[i]], 
+        file = filename, 
+        quote = FALSE, 
+        sep = ",", 
+        dec = ".", 
+        row.names = FALSE,
+        na = "")
+      
+      # export to google drive
+      google_drive_path <- paste0(GOOGLE_DRIVE_PATH, list_name, "/")
+      
+      
+      drive_upload(
+        media = filename,
+        # path = google_drive_path,
+        type = "spreadsheet"
+      )
+      
+    } else {
+      return(paste("This isn't a dataframe"))
+    }
+    
+  })
+}
+
+exportListToGoogleSheet(combined_errors, suffix = paste0("OAB", "_", YEAR_DISCARD), separation = "_")
