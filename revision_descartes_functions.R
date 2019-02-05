@@ -146,7 +146,7 @@ check_year_in_ID_MAREA <- function(df){
   
   errors <- errors %>%
             select(ID_MAREA, YEAR)%>%
-            addTypeOfError(paste("ERROR: el año del ID_MAREA en", errors.name, "no coincide con el año a comprobar"))
+            addTypeOfError(paste("ERROR: el a?o del ID_MAREA en", errors.name, "no coincide con el a?o a comprobar"))
   
   return(errors)
 }
@@ -212,7 +212,7 @@ check_year_in_date <- function(df, date_field, year){
   # df variable
   errors.date_field <- deparse(substitute(date_field))
   
-  errors <- addTypeOfError(errors, "ERROR: el año del campo ", errors.date_field, " no coincide con el año ", year)
+  errors <- addTypeOfError(errors, "ERROR: el a?o del campo ", errors.date_field, " no coincide con el a?o ", year)
     
   return(errors)
   
@@ -326,6 +326,8 @@ trips_check_final_date_in_id_marea_GC <- function(){
     errors <- errors %>%
       select(ID_MAREA, FECHA_FIN)
     
+    addTypeOfError(errors, "ERROR: Final date contained in IDMAREA doesn't match whith FECHA_FIN variable (view trips)")
+    
     return(errors)
   }
 }
@@ -385,7 +387,7 @@ view_speed_outliers <-function(){
   hauls_speed %>%
     group_by(str)%>%
     #in the next mutate line: if in the ifelse use ID_MAREA as the returned value
-    #when the condition is True, it doesnt't print the ID_MAREA but a weird number¿??¿?¿?¿?¿
+    #when the condition is True, it doesnt't print the ID_MAREA but a weird number??????????
     mutate(outlier = ifelse(is_outlier(VELOCIDAD), VELOCIDAD, as.numeric(NA)))%>%
       ggplot(., aes(str, VELOCIDAD))+
       # geom_boxplot_interactive()+
@@ -467,7 +469,7 @@ get_gear_characteristics <- function(){
 #' @param df: dataframe to check
 #' @param variables: vector with variables to check.
 #' @return A list with a dataframe of every variable with empty values. Every
-#' dataframe contains erroneus rows
+#' dataframe contains erroneus rows.
 #' @export
 check_empty_values_in_variables <- function (df, variables){
   
@@ -484,16 +486,21 @@ check_empty_values_in_variables <- function (df, variables){
     if(x %in% characteristic_to_check) {
       gear_code <- gear_characteristics[gear_characteristics[["CARACTERISTICA"]]==x,]
       error <- (df[ (df[[x]]=="" | is.na(df[[x]])) & df[["COD_ARTE"]]%in%gear_code[["COD_ARTE"]],])
-      error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía" )
+      error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
     } else {
       error <- (df[df[[x]]=="" | is.na(df[[x]]),])
-      error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía" )
+      error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
     }
     error
   })
   
   errors <- Filter(function(x) nrow(x) > 0, errors)
-  return (errors)
+  
+  if(length(errors) == 0){
+    return(NULL)
+  } else{
+    return (errors)
+  }
   
 }
 
@@ -538,18 +545,26 @@ check_empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_
   
   err <- check_empty_values_in_variables(df_mandatory, mandatory)
   
-  # check_empty_values return a list with one dataframe by variable, so:
-  err <- do.call(rbind, err)
+  # in case there aren't any errors, check_empty_values returns NULL, so:
+  if (!is.null(err)){
+    
+    # check_empty_values return a list with one dataframe by variable, so:
+    err <- do.call(rbind, err)
   
-  # return different fields according to file type:
-  switch(type_file,
-         OAB_TRIPS = { err <- err[, c("ID_MAREA", "TIPO_ERROR")]},
-         OAB_HAULS = { err <- err[, c("ID_MAREA", "COD_LANCE", "TIPO_ERROR")]},
-         OAB_CATCHES = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]},
-         OAB_LENGTHS = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]}
-  )
+  
+    # return different fields according to file type:
+    switch(type_file,
+           OAB_TRIPS = { err <- err[, c("ID_MAREA", "TIPO_ERROR")]},
+           OAB_HAULS = { err <- err[, c("ID_MAREA", "COD_LANCE", "TIPO_ERROR")]},
+           OAB_CATCHES = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]},
+           OAB_LENGTHS = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]}
+    )
+    
+    return(err)
+  } else {
+    return(NULL)
+  }
 
-  return(err)
 }
 
 
@@ -689,6 +704,10 @@ checkCoherenceEstratoRimGear <- function(df){
 # - remove empty columns in every area dataframe
 formatErrorsList <- function(errors_list = ERRORS){
   
+  if (length(errors_list) == 0){
+    stop("There aren't any errors.")
+  }
+  
   # Combine all the dataframes of ERRORS list:
   # Reduce uses a binary function to successively combine the elements of a
   # given vector. In this case, merge the dataframes in the ERRORS list
@@ -713,6 +732,8 @@ formatErrorsList <- function(errors_list = ERRORS){
   
   return(errors)
 }
+
+
 
 # sampled hauls without catches weight -----------------------------------------
 #' Check sampled hauls without catches weight
@@ -766,7 +787,7 @@ catches_reason_discard_field_empty <- function(){
   err <- OAB_catches %>%
     select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_DESCAR, RAZON_DESCAR) %>%
     filter(PESO_DESCAR!=0 & RAZON_DESCAR =="") %>%
-    addTypeOfError("WARNING: especie descartada con el campo 'Razón del descarte' sin rellenar.")
+    addTypeOfError("WARNING: especie descartada con el campo 'Raz?n del descarte' sin rellenar.")
 
   return(err)  
 }
@@ -841,7 +862,7 @@ hauls_hauls_duration <- function(){
     merge(, y = trip_hauls, all.x = T) %>%
     filter(duration_trip > DURACION_MAX) %>%
     mutate(duration_trip = round(duration_trip, 0)) %>%
-    addTypeOfError("WARNING: ¿Duración de la marea excesivamente larga? habría que comprobar las fechas y horas de largado y de virado de los lances.")
+    addTypeOfError("WARNING: ?Duraci?n de la marea excesivamente larga? habr?a que comprobar las fechas y horas de largado y de virado de los lances.")
   
   # TO DO: find the haul with the erroneus date and return it 
   # duration_p95 <- OAB_hauls %>%
@@ -930,12 +951,12 @@ length_cable_1000 <- function(){
 # Total discard weight less than subsample discard weight
 total_discard_less_subsample_discard <- function(df){
   
-  error <- df[
+  errors <- df[
     df$PESO_DESCAR < df$PESO_MUE_DESCAR,
     c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "PESO_DESCAR", "PESO_MUE_DESCAR")
     ]
   
-  error <- addTypeOfError(error, "ERROR: total discard weight less than subsample discard weight.")
+  errors <- addTypeOfError(errors, "ERROR: total discard weight less than subsample discard weight.")
   
 }
 
@@ -945,12 +966,41 @@ total_discard_less_subsample_discard <- function(df){
 sampled_discard_less_subsample_discard <- function(df){
   
   # usually the PESO_SUB_MUE_TOT is NA, so it is neccesary detect it.
-  error <- df[
-    which( !is.na(df$PESO_SUB_MUE_TOT) 
-           & df$PESO_SUB_MUE_TOT > df$PESO_MUE_DESCAR),]
+  errors <- df[
+    which( !is.na(df$PESO_SUB_MUE_TOT) & df$PESO_SUB_MUE_TOT > df$PESO_MUE_DESCAR),
+           c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "PESO_SUB_MUE_TOT", "PESO_MUE_DESCAR")
+    ]
   
-  error <- addTypeOfError(error, "ERROR: sampled discard weight less than
-                          subsample discard weight.")
+  errors <- addTypeOfError(errors, "ERROR: sampled discard weight less than subsample discard weight.")
   
 }
 
+# retained sampled weigth less than zero (or NA) when there are any specimens
+# retained
+retained_sampled_weight_when_specimens_retained <- function(df){
+  
+  errors <- df[which(
+    df[["EJEM_RET"]] > 0 &
+      (df[["PESO_MUE_RET"]] <= 0 |
+         is.na(df[["PESO_MUE_RET"]]))),
+      c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "EJEM_RET", "PESO_MUE_RET")
+    ]
+  
+  errors <- addTypeOfError(errors, "ERROR: there are specimens retained without retained sampled weight.")
+  
+}
+
+# discarded sampled weigth less than zero (or NA) when there are any specimens
+# discarded
+discarded_sampled_weight_when_specimens_discarded <- function(df){
+  
+  errors <- OAB_catches[which(
+    OAB_catches[["EJEM_DESCAR"]] > 0 &
+      (OAB_catches[["PESO_MUE_DESCAR"]] <= 0 | is.na(OAB_catches[["PESO_MUE_DESCAR"]]))
+    ),
+    c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "EJEM_DESCAR", "PESO_MUE_DESCAR")]
+  
+  errors <- addTypeOfError(errors, "ERROR: there are specimens discarded without
+                          discarded sampled weight.")
+  
+}
