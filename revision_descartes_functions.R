@@ -573,8 +573,8 @@ check_empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_
 check_variable_with_master <- function (df, variable){
   
   if(variable != "ESTRATO_RIM" &&
-     # variable != "COD_PUERTO" &&
-     # variable != "COD_PUERTO_BASE" &&
+     variable != "COD_PUERTO" &&
+     variable != "COD_PUERTO_BASE" &&
      variable != "COD_PUERTO_LLEGADA" &&
      variable != "COD_PUERTO_DESCARGA" &&
      variable != "COD_ORIGEN" &&
@@ -597,15 +597,15 @@ check_variable_with_master <- function (df, variable){
   # change the name of PUERTO_BASE, PUERTO_LLEGADA or PUERTO_DESCARGA
   # to PUERTO:
   if(variable_formatted == "PUERTO_LLEGADA" ||
-     # variable_formatted == "PUERTO_BASE" ||
+     variable_formatted == "PUERTO_BASE" ||
      variable_formatted == "PUERTO_DESCARGA") {
     variable_puerto_original <- variable_formatted
     variable_formatted <- "PUERTO"
   }
   
   # ******************************************************************************
-  
   name_data_set <- tolower(variable_formatted)
+  name_data_set <- paste0(name_data_set, "_OAB")
   
   # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********    
   # it's required  join via the variable COD_PUERTO, so a new variable is required:

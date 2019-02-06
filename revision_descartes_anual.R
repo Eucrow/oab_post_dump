@@ -20,10 +20,21 @@ library(devtools)
 # install("F:/misdoc/sap/sapmuebase")
 library(sapmuebase)
 
-
-
 library(googledrive)
 
+
+# ------------------------------------------------------------------------------
+# #### LOAD DATASETS ###########################################################
+# ------------------------------------------------------------------------------
+# can't use importCsvSAPMUE() because I don't know why use ANSI instead of UTF-8
+origen_OAB <- read.table(file = "origenes_OAB.csv", head = TRUE, sep = ";", 
+                   fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
+estrato_rim_OAB <- read.table(file = "estrato_rim_OAB.csv", head = TRUE, sep = ";", 
+                         fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
+puerto_OAB <- read.table(file = "puerto_OAB.csv", head = TRUE, sep = ";", 
+                              fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor", "factor"))
+arte_OAB <- read.table(file = "arte_OAB.csv", head = TRUE, sep = ";", 
+                         fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
@@ -141,10 +152,10 @@ check_them_all <- function(){
     # ppp_number <- as.data.frame(table(ppp$TIPO_ERROR))
   
   # TRIPS
-  #ERR$trips_origen <- check_variable_with_master(OAB_trips, "COD_ORIGEN")
-  #ERR$trips_estrato_rim <- check_variable_with_master(OAB_trips, "ESTRATO_RIM")
-  #ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
-  #ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
+  ERR$trips_origen <- check_variable_with_master(OAB_trips, "COD_ORIGEN")
+  ERR$trips_estrato_rim <- check_variable_with_master(OAB_trips, "ESTRATO_RIM")
+  ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
+  ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
   
   ERR$trips_empty_fields <- check_empty_fields_in_variables(OAB_trips, "OAB_TRIPS")
   
@@ -163,7 +174,7 @@ check_them_all <- function(){
   ERR$coherencia_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_trips)
   
   # HAULS
-  #ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
+  ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
   ERR$hauls_empty_fields <- check_empty_fields_in_variables(OAB_hauls, "OAB_HAULS")
   
   ERR$hauls_field_year <- check_field_year(OAB_hauls)
