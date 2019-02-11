@@ -26,6 +26,9 @@ library(googledrive)
 # ------------------------------------------------------------------------------
 # #### LOAD DATASETS ###########################################################
 # ------------------------------------------------------------------------------
+
+# TO DO: add this datasets in sapmuebase
+
 # can't use importCsvSAPMUE() because I don't know why use ANSI instead of UTF-8
 origen_OAB <- read.table(file = "origenes_OAB.csv", head = TRUE, sep = ";", 
                    fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
@@ -35,6 +38,7 @@ puerto_OAB <- read.table(file = "puerto_OAB.csv", head = TRUE, sep = ";",
                               fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor", "factor"))
 arte_OAB <- read.table(file = "arte_OAB.csv", head = TRUE, sep = ";", 
                          fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
+
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
@@ -48,14 +52,14 @@ arte_OAB <- read.table(file = "arte_OAB.csv", head = TRUE, sep = ";",
 # PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/anual"
 # trips_file <- "IEODESMAREASIRENO_fixed_marco.TXT"
 # hauls_file <- "IEODESLANCESIRENO_fixed_marco.TXT"
-# catches_file <- "IEODESCAPTURASIRENO.TXT"
+# catches_file <- "IEODESCAPTURASIRENO_1.TXT"
 # lengths_file <- "IEODESTALLASSIRENO.TXT"
 
 PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/anual"
-trips_file <- "IEODESMAREASIRENO_fixed_marco.TXT"
-hauls_file <- "IEODESLANCESIRENO_fixed_marco.TXT"
+trips_file <- "IEODESMAREAMARCO_fixed_marco.TXT"
+hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
-lengths_file <- "IEODESTALLASSIRENO.TXT"
+# lengths_file <- "IEODESTALLASMARCO.TXT"
 
 MONTH <- FALSE
 
@@ -127,6 +131,25 @@ OAB_trips$MONTH <- as.POSIXlt(trips_fecha_ini)$mon + 1
 
 OAB_hauls <- OAB_hauls[OAB_hauls$ID_MAREA%in%OAB_trips$ID_MAREA,]
 OAB_catches <- OAB_catches[OAB_catches$ID_MAREA%in%OAB_trips$ID_MAREA,]
+
+# ------------------------------------------------------------------------------
+# #### FILTER BY ACRONYM #######################################################
+# ------------------------------------------------------------------------------
+
+# DESNOR
+# OAB_trips <- OAB_trips[ grep("DESNOR", OAB_trips$ID_MAREA), ]
+# OAB_hauls <- OAB_hauls[ grep("DESNOR", OAB_hauls$ID_MAREA), ]
+# OAB_catches <- OAB_catches[ grep("DESNOR", OAB_catches$ID_MAREA), ]
+
+# DESSUR
+# OAB_trips <- OAB_trips[ grep("DESSUR", OAB_trips$ID_MAREA), ]
+# OAB_hauls <- OAB_hauls[ grep("DESSUR", OAB_hauls$ID_MAREA), ]
+# OAB_catches <- OAB_catches[ grep("DESSUR", OAB_catches$ID_MAREA), ]
+
+# DESIXA
+OAB_trips <- OAB_trips[ grep("(DESIXA)(?!C)", OAB_trips$ID_MAREA, perl = T), ]
+OAB_hauls <- OAB_hauls[ grep("(DESIXA)(?!C)", OAB_hauls$ID_MAREA, perl = T), ]
+OAB_catches <- OAB_catches[ grep("(DESIXA)(?!C)", OAB_catches$ID_MAREA, perl = T), ]
 
 # ------------------------------------------------------------------------------
 # #### SEARCHING ERRORS ########################################################

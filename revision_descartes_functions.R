@@ -491,10 +491,20 @@ check_empty_values_in_variables <- function (df, variables){
       error <- (df[df[[x]]=="" | is.na(df[[x]]),])
       error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
     }
+    
+    if (nrow(error) > 0){
+      # select only interested variables
+      error <- error[, c(BASE_FIELDS, "COD_LANCE", "TIPO_ERROR")]
+      #remove duplicated rows
+      error <- unique(error)
+    }
+    
     error
+    
   })
   
   errors <- Filter(function(x) nrow(x) > 0, errors)
+  
   
   if(length(errors) == 0){
     return(NULL)
@@ -553,12 +563,12 @@ check_empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_
   
   
     # return different fields according to file type:
-    switch(type_file,
-           OAB_TRIPS = { err <- err[, c("ID_MAREA", "TIPO_ERROR")]},
-           OAB_HAULS = { err <- err[, c("ID_MAREA", "COD_LANCE", "TIPO_ERROR")]},
-           OAB_CATCHES = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]},
-           OAB_LENGTHS = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]}
-    )
+    # switch(type_file,
+    #        OAB_TRIPS = { err <- err[, c("ID_MAREA", "TIPO_ERROR")]},
+    #        OAB_HAULS = { err <- err[, c("ID_MAREA", "COD_LANCE", "TIPO_ERROR")]},
+    #        OAB_CATCHES = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]},
+    #        OAB_LENGTHS = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]}
+    # )
     
     return(err)
   } else {
