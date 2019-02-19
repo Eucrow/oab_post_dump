@@ -20,31 +20,43 @@ library(devtools)
 # install("F:/misdoc/sap/sapmuebase")
 library(sapmuebase)
 
+library(googledrive)
+
+
+# ------------------------------------------------------------------------------
+# #### LOAD DATASETS ###########################################################
+# ------------------------------------------------------------------------------
+
+# TO DO: add this datasets in sapmuebase
+
+# can't use importCsvSAPMUE() because I don't know why it uses ANSI instead of UTF-8
+origen_OAB <- read.table(file = "origenes_OAB.csv", head = TRUE, sep = ";", 
+                   fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
+estrato_rim_OAB <- read.table(file = "estrato_rim_OAB.csv", head = TRUE, sep = ";", 
+                         fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
+puerto_OAB <- read.table(file = "puerto_OAB.csv", head = TRUE, sep = ";", 
+                              fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor", "factor"))
+arte_OAB <- read.table(file = "arte_OAB.csv", head = TRUE, sep = ";", 
+                         fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
+
+especies_a_medir_OAB <- importCsvSAPMUE("especies_a_medir_OAB.csv")
+
 # ------------------------------------------------------------------------------
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
 
-# PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/2018_04"
-# trips_file <- "IEODESMAREAMARCO.TXT"
-# hauls_file <- "IEODESLANCEMARCO.TXT"
-# catches_file <- "IEODESCAPTURAMARCO.TXT"
-# lengths_file <- "IEODESTALLASMARCO.TXT"
-
-# PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/anual"
-# trips_file <- "IEODESMAREASIRENO_fixed_marco.TXT"
-# hauls_file <- "IEODESLANCESIRENO_fixed_marco.TXT"
-# catches_file <- "IEODESCAPTURASIRENO.TXT"
-# lengths_file <- "IEODESTALLASSIRENO.TXT"
-
 PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/anual"
-trips_file <- "IEODESMAREASIRENO_fixed_marco.TXT"
-hauls_file <- "IEODESLANCESIRENO_fixed_marco.TXT"
-catches_file <- "IEODESCAPTURASIRENO.TXT"
-lengths_file <- "IEODESTALLASSIRENO.TXT"
+trips_file <- "IEODESMAREAMARCO.TXT"
+hauls_file <- "IEODESLANCEMARCO.TXT"
+catches_file <- "IEODESCAPTURAMARCO.TXT"
+lengths_file <- "IEODESTALLASMARCO.TXT"
 
-MONTH <- FALSE
+MONTH <- 12
 
 YEAR_DISCARD <- "2018"
+
+# only if the file must be uploaded to google drive
+GOOGLE_DRIVE_PATH <- "/equipo muestreos/revision_descartes/2018/"
 
 
 # ------------------------------------------------------------------------------
@@ -111,17 +123,27 @@ OAB_hauls <- OAB_hauls[OAB_hauls$ID_MAREA%in%OAB_trips$ID_MAREA,]
 OAB_catches <- OAB_catches[OAB_catches$ID_MAREA%in%OAB_trips$ID_MAREA,]
 
 # ------------------------------------------------------------------------------
-# #### SEARCHING ERRORS ########################################################
+# #### FILTER BY ACRONYM #######################################################
 # ------------------------------------------------------------------------------
 
-#create errors in dataframe to check functions
-#levels(OAB_catches[["ID_MAREA"]]) <- c(levels(OAB_catches[["ID_MAREA"]]), "DESIXAC150515M", "DESIXAC160329M")
-#OAB_catches[1:2, c("ID_MAREA")] <- c("DESIXAC150515M", "DESIXAC160329M")
+# DESNOR
+# OAB_trips <- OAB_trips[ grep("DESNOR", OAB_trips$ID_MAREA), ]
+# OAB_hauls <- OAB_hauls[ grep("DESNOR", OAB_hauls$ID_MAREA), ]
+# OAB_catches <- OAB_catches[ grep("DESNOR", OAB_catches$ID_MAREA), ]
 
-#create errors in dataframe to check functions
-#levels(OAB_trips[["ID_MAREA"]]) <- c(levels(OAB_trips[["ID_MAREA"]]), "DESIXAC150515M", "DESIXAC160329M")
-#OAB_trips[1:2, c("ID_MAREA")] <- c("DESIXAC150515M", "DESIXAC160329M")
+# DESSUR
+# OAB_trips <- OAB_trips[ grep("DESSUR", OAB_trips$ID_MAREA), ]
+# OAB_hauls <- OAB_hauls[ grep("DESSUR", OAB_hauls$ID_MAREA), ]
+# OAB_catches <- OAB_catches[ grep("DESSUR", OAB_catches$ID_MAREA), ]
 
+# DESIXA
+# OAB_trips <- OAB_trips[ grep("(DESIXA)(?!C)", OAB_trips$ID_MAREA, perl = T), ]
+# OAB_hauls <- OAB_hauls[ grep("(DESIXA)(?!C)", OAB_hauls$ID_MAREA, perl = T), ]
+# OAB_catches <- OAB_catches[ grep("(DESIXA)(?!C)", OAB_catches$ID_MAREA, perl = T), ]
+
+# ------------------------------------------------------------------------------
+# #### SEARCHING ERRORS ########################################################
+# ------------------------------------------------------------------------------
 
 
 check_them_all <- function(){
@@ -134,10 +156,10 @@ check_them_all <- function(){
     # ppp_number <- as.data.frame(table(ppp$TIPO_ERROR))
   
   # TRIPS
-  #ERR$trips_origen <- check_variable_with_master(OAB_trips, "COD_ORIGEN")
-  #ERR$trips_estrato_rim <- check_variable_with_master(OAB_trips, "ESTRATO_RIM")
-  #ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
-  #ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
+  ERR$trips_origen <- check_variable_with_master(OAB_trips, "COD_ORIGEN")
+  ERR$trips_estrato_rim <- check_variable_with_master(OAB_trips, "ESTRATO_RIM")
+  ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
+  ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
   
   ERR$trips_empty_fields <- check_empty_fields_in_variables(OAB_trips, "OAB_TRIPS")
   
@@ -156,7 +178,7 @@ check_them_all <- function(){
   ERR$coherencia_estrato_rim_origin <- checkCoherenceEstratoRimOrigin(OAB_trips)
   
   # HAULS
-  #ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
+  ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
   ERR$hauls_empty_fields <- check_empty_fields_in_variables(OAB_hauls, "OAB_HAULS")
   
   ERR$hauls_field_year <- check_field_year(OAB_hauls)
@@ -206,6 +228,8 @@ check_them_all <- function(){
   ERR$retained_sampled_weight_when_specimens_retained <- retained_sampled_weight_when_specimens_retained(OAB_catches)
   ERR$discarded_sampled_weight_when_specimens_discarded <- discarded_sampled_weight_when_specimens_discarded(OAB_catches)
   
+  ERR$catches_reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
+  
   # LENGTHS
   #ERR$lengths_empty_fields <- check_empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
   
@@ -254,8 +278,6 @@ combined_errors <- formatErrorsList()
 
 # Uncomment the way to export errors:
 
-# one month
-
 combined_errors <-  list(errores = combined_errors)
 
 original_wd <- getwd()
@@ -292,3 +314,59 @@ setwd(original_wd)
 # 
 # OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
 
+
+# Export to google drive -------------------------------------------------------
+# Export the dataframes contained in a list to google drive
+exportListToGoogleSheet <- function(list, prefix = "", suffix = "", separation = ""){
+  
+  #check if package openxlsx is instaled:
+  if (!requireNamespace("googlesheets", quietly = TRUE)) {
+    stop("Googlesheets package needed for this function to work. Please install it.",
+         call = FALSE)
+  }
+  
+  # sep_along(list): generate regular sequences. With a list, generates
+  # the sequence 1, 2, ..., length(from). Return a integer vector.
+  lapply(seq_along(list), function(i){
+    
+    
+    if(is.data.frame(list[[i]])){
+      
+      list_name <- names(list)[[i]]
+      
+      if (prefix != "") prefix <- paste0(prefix, separation)
+      
+      if (suffix != "") suffix <- paste0(separation, suffix)
+      
+      # Before export to google drive, is mandatory export file to csv in local:
+      # When the googlesheet4 packages have the oauth implemented, we can
+      # use it instead of googledrive package
+      filename <- paste0(PATH_ERRORS, "/", prefix, list_name, suffix, '.csv')
+      
+      write.table(
+        list[[i]], 
+        file = filename, 
+        quote = FALSE, 
+        sep = ",", 
+        dec = ".", 
+        row.names = FALSE,
+        na = "")
+      
+      # export to google drive
+      google_drive_path <- paste0(GOOGLE_DRIVE_PATH, list_name, "/")
+      
+      
+      drive_upload(
+        media = filename,
+        # path = google_drive_path,
+        type = "spreadsheet"
+      )
+      
+    } else {
+      return(paste("This isn't a dataframe"))
+    }
+    
+  })
+}
+
+exportListToGoogleSheet(combined_errors, suffix = paste0("OAB", "_", YEAR_DISCARD), separation = "_")

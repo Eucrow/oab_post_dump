@@ -788,19 +788,6 @@ catches_species_without_caught_neither_discarded_weight <- function(){
   
 }
 
-# species with discard weight has filled the reason discard field --------------
-#' Check all the species with discard weight has filled the reason discard field.
-#' 
-#' @return dataframe with errors.
-catches_reason_discard_field_empty <- function(){
-  
-  err <- OAB_catches %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_DESCAR, RAZON_DESCAR) %>%
-    filter(PESO_DESCAR!=0 & RAZON_DESCAR =="") %>%
-    addTypeOfError("WARNING: especie descartada con el campo 'Raz?n del descarte' sin rellenar.")
-
-  return(err)  
-}
 
 # less catch RETENIDA than sampled RETENIDA ------------------------------------
 #' Check less catch RETENIDA than sampled RETENIDA
@@ -1004,13 +991,59 @@ retained_sampled_weight_when_specimens_retained <- function(df){
 # discarded
 discarded_sampled_weight_when_specimens_discarded <- function(df){
   
-  errors <- OAB_catches[which(
-    OAB_catches[["EJEM_DESCAR"]] > 0 &
-      (OAB_catches[["PESO_MUE_DESCAR"]] <= 0 | is.na(OAB_catches[["PESO_MUE_DESCAR"]]))
+  errors <- df[which(
+    df[["EJEM_DESCAR"]] > 0 &
+      (df[["PESO_MUE_DESCAR"]] <= 0 | is.na(df[["PESO_MUE_DESCAR"]]))
     ),
     c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "EJEM_DESCAR", "PESO_MUE_DESCAR")]
   
   errors <- addTypeOfError(errors, "ERROR: there are specimens discarded without
                           discarded sampled weight.")
+  
+}
+
+# reason discard field filled, when the discarded species belongs to the species
+# list saved in especies_a_medir_OAB.csv
+# Require the file especies_a_medir_OAB.csv
+reason_discard_field_filled <- function(df){
+  
+  species_to_measure <- importCsvSAPMUE("especies_a_medir_OAB.csv")
+  species_to_measure <- species_to_measure[,"COD_ESP"]
+  
+  errors <- df[which(
+    df[["PESO_DESCAR"]]>0 & df[["COD_DESCAR"]] == ""),
+    c(BASE_FIELDS, "COD_LANCE", "COD_ESP", "A3_ESP", "ESP", "PESO_DESCAR", "RAZON_DESCAR")]
+  
+  errors <- unique(errors)
+  
+  errors <- errors[errors[["COD_ESP"]] %in% species_to_measure,]
+  
+  errors <- addTypeOfError(errors, "ERROR: this species must have the field reason discard filled but it doesn't")
+  
+  return(errors)
+  
+}
+
+# Haul sampled with empty discard weight.
+# When a haul is sampled, the discard weight must be zero even there aren't any
+# species discarded
+# THIS CHECK CAN'T BE DONE BECAUSE PESO_DESCAR IS FILLED WITH A ZERO IN THE
+# REPORT IF THE FIELD IS EMPTY IN SIRENO.
+haul_sampled_with_empty_discard_weight <- function(df_catches, df_hauls){
+  
+  sampled_hauls <- OAB_hauls[which(OAB_hauls["MUESTREADO"]=="S"),
+                             c("ID_MAREA", "COD_LANCE")]
+  
+  clean_catches <- OAB_catches[, c("ID_MAREA", "COD_LANCE", "PESO_DESCAR")]
+  clean_catches <- unique(clean_catches)
+  
+  sampled_hauls <- merge(sampled_hauls,
+                         clean_catches,
+                         by = c("ID_MAREA", "COD_LANCE"),
+                         all.x = TRUE)
+  
+  errors <- sampled_hauls[which(sampled_hauls[["PESO_DESCAR"]] == ""),]
+  
+  sampled_catches <- merge(OAB_catches, sampled_hauls, by=c("ID_MAREA", "COD"))
   
 }
