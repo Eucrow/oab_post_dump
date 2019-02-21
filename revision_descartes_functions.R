@@ -750,7 +750,7 @@ formatErrorsList <- function(errors_list = ERRORS){
 #' 
 #'  @return dataframe with ID_MAREA with errors.
 #'  
-hauls_hauls_sampled_with_catch_weights <- function(){
+hauls_sampled_with_catch_weights <- function(){
 
     sampled <- OAB_hauls %>%
       filter(MUESTREADO == "S") %>%
@@ -775,7 +775,7 @@ hauls_hauls_sampled_with_catch_weights <- function(){
 #' 
 #'  @return dataframe with ID_MAREA with errors.
 #'  
-catches_species_without_caught_neither_discarded_weight <- function(){
+species_without_caught_neither_discarded_weight <- function(){
 
   err <- OAB_catches %>%
     filter(PESO_CAP == 0 & PESO_DESCAR == 0) %>%
@@ -793,7 +793,7 @@ catches_species_without_caught_neither_discarded_weight <- function(){
 #' Check less catch RETENIDA than sampled RETENIDA
 #' 
 #' @return dataframe with errors.
-catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch <- function(){
+catches_less_retained_catch_than_sampled_retained_catch <- function(){
   
   err <- OAB_catches %>%
     select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_RET, PESO_MUE_RET) %>%
@@ -1045,5 +1045,43 @@ haul_sampled_with_empty_discard_weight <- function(df_catches, df_hauls){
   errors <- sampled_hauls[which(sampled_hauls[["PESO_DESCAR"]] == ""),]
   
   sampled_catches <- merge(OAB_catches, sampled_hauls, by=c("ID_MAREA", "COD"))
+  
+}
+
+# There are priority species without length sampled
+# Require the file especies_a_medir_OAB.csv
+priority_species_without_lengths <- function(){
+  
+  # get the list of priority species which must be measured
+  species_to_measure <- importCsvSAPMUE("especies_a_medir_OAB.csv")
+  species_to_measure <- species_to_measure[,"COD_ESP"]
+  
+  # get Species With Catch which must be measured
+  swc <- OAB_catches[which(OAB_catches[["COD_ESP"]]%in%species_to_measure),
+                     c("ID_MAREA", "COD_LANCE", "COD_ESP", "PESO_CAP")]
+  swc <- unique(swc)
+  
+  # clean lengths
+  lengths_clean <- OAB_lengths[, c("ID_MAREA", "COD_LANCE",
+                                   "COD_ESP", "EJEM_MEDIDOS")]
+  
+  lengths_clean <- aggregate.data.frame(lengths_clean[, c("EJEM_MEDIDOS")],
+                             by=list(lengths_clean$ID_MAREA,
+                                     lengths_clean$COD_LANCE,
+                                     lengths_clean$COD_ESP),
+                             sum, na.rm=TRUE)
+  
+  colnames(lengths_clean) <- c("ID_MAREA", "COD_LANCE", "COD_ESP", "EJEM_MEDIDOS")
+
+  # create errors dataframe
+  errors <- merge(swc, 
+                  lengths_clean, 
+                  by.x = c("ID_MAREA", "COD_LANCE", "COD_ESP"),
+                  all.x = TRUE)
+  errors <- errors[which(errors$EJEM_MEDIDOS==0 |
+                         is.na(errors$EJEM_MEDIDOS)),]
+  
+  errors <- addTypeOfError(errors, "ERROR: priority species which hasn't been
+                           measured")
   
 }

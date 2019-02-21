@@ -51,7 +51,7 @@ hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
 lengths_file <- "IEODESTALLASMARCO.TXT"
 
-MONTH <- 12
+MONTH <- FALSE
 
 YEAR_DISCARD <- "2018"
 
@@ -107,7 +107,7 @@ source('revision_descartes_functions.R')
 OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
 OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
 OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
-# OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
+OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
 
 # ------------------------------------------------------------------------------
 # #### FILTER BY MONTH #########################################################
@@ -197,7 +197,7 @@ check_them_all <- function(){
 
   ERR$hauls_coherence_estrato_rim_gear <- checkCoherenceEstratoRimGear(OAB_hauls)
 
-  ERR$hauls_hauls_sampled_with_catch_weights <- hauls_hauls_sampled_with_catch_weights()
+  ERR$hauls_sampled_with_catch_weights <- hauls_sampled_with_catch_weights()
   
   ERR$hauls_possible_speed_outliers <- get_speed_outliers()
   
@@ -214,11 +214,11 @@ check_them_all <- function(){
   ERR$catches_field_year <- check_field_year(OAB_catches)
   
   ERR$catches_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_catches)
-  ERR$catches_species_without_caught_neither_discarded_weight <- catches_species_without_caught_neither_discarded_weight()
+  ERR$species_without_caught_neither_discarded_weight <- species_without_caught_neither_discarded_weight()
   
   #ERR$catches_reason_discard_field_empty <- catches_reason_discard_field_empty()
   
-  ERR$catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch <- catches_less_RETENIDA_catch_than_sampled_RETENIDA_catch()
+  ERR$catches_less_retained_catch_than_sampled_retained_catch <- catches_less_retained_catch_than_sampled_retained_catch()
   ERR$catches_less_discard_weight_than_sampled_discard_weight <- catches_less_discard_weight_than_sampled_discard_weight()
 
   
@@ -228,7 +228,7 @@ check_them_all <- function(){
   ERR$retained_sampled_weight_when_specimens_retained <- retained_sampled_weight_when_specimens_retained(OAB_catches)
   ERR$discarded_sampled_weight_when_specimens_discarded <- discarded_sampled_weight_when_specimens_discarded(OAB_catches)
   
-  ERR$catches_reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
+  ERR$reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
   
   # LENGTHS
   #ERR$lengths_empty_fields <- check_empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
@@ -236,6 +236,7 @@ check_them_all <- function(){
   #ERR$lengths_field_year <- check_field_year(OAB_lengths)
   
   #ERR$lengths_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_lengths)
+  ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
 
   
