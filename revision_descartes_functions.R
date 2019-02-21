@@ -1029,7 +1029,7 @@ reason_discard_field_filled <- function(df){
 # species discarded
 # THIS CHECK CAN'T BE DONE BECAUSE PESO_DESCAR IS FILLED WITH A ZERO IN THE
 # REPORT IF THE FIELD IS EMPTY IN SIRENO.
-haul_sampled_with_empty_discard_weight <- function(df_catches, df_hauls){
+haul_sampled_with_empty_discard_weight <- function(){
   
   sampled_hauls <- OAB_hauls[which(OAB_hauls["MUESTREADO"]=="S"),
                              c("ID_MAREA", "COD_LANCE")]
@@ -1084,4 +1084,26 @@ priority_species_without_lengths <- function(){
   errors <- addTypeOfError(errors, "ERROR: priority species which hasn't been
                            measured")
   
+}
+
+# check target species with metier ieo
+# Require the file metier_ieo_especie_objetivo_OAB.txt
+target_species_metier_ieo <- function(){
+  
+  # get dataset with relation between metier ieo and target species
+  ms <- importCsvSAPMUE("metier_ieo_especie_objetivo_OAB.csv")
+  ms$OK <- "ok"
+  
+  # hauls cleaned
+  hc <- OAB_hauls[, c("ID_MAREA", "COD_LANCE", "METIER_IEO", "COD_ESP_OBJ")]
+
+  # errors
+  errors <- merge(hc, ms,
+                  all.x = TRUE,
+                  by = c("METIER_IEO", "COD_ESP_OBJ"))
+  
+  errors <- errors[is.na(errors[["OK"]]),]
+  
+  errors <- addTypeOfError(errors, "ERROR: the target species is not coherent with metier ieo.")
+    
 }

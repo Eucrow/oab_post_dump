@@ -88,7 +88,7 @@ setwd("F:/misdoc/sap/revision_descartes/")
 # #### FUNCTIONS ###############################################################
 # ------------------------------------------------------------------------------
 # All the functions required in this script are located in
-# revision_volcado_functions.R file.
+# revision_descartes_functions file.
 source('revision_descartes_functions.R')
 
 
@@ -205,7 +205,10 @@ check_them_all <- function(){
   
   ERR$hauls_target_sp_with_catch <- check_target_sp_with_catch()
   
+  ERR$target_species_metier_ieo <- target_species_metier_ieo()
+  
   ERR$length_cable_1000 <- length_cable_1000()
+  
   
   # CATCHES
   
