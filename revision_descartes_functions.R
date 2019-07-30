@@ -36,7 +36,7 @@ addTypeOfError <- function(df, ...){
 check_field_year <- function(df) {
   
   errors <- df %>%
-    select(ID_MAREA, YEAR) %>%
+    select(COD_MAREA, YEAR) %>%
     filter(YEAR != YEAR_DISCARD) %>%
     unique()%>%
     addTypeOfError("ERROR: El campo YEAR no coincide con el año a comprobar: ",YEAR_DISCARD)
@@ -46,54 +46,54 @@ check_field_year <- function(df) {
 }
 
 
-# Split ID_MAREA field ---------------------------------------------------------
-#' Split ID_MAREA field in its components: identifier, year, month, day and 
+# Split COD_MAREA field ---------------------------------------------------------
+#' Split COD_MAREA field in its components: identifier, year, month, day and 
 #' special
 #' 
-#' @param df daraframe with ID_MAREA field to split. The dataframe must have a
-#' field called ID_MAREA.
-#' @return character vector list with the components of the ID_MAREA.
+#' @param df daraframe with COD_MAREA field to split. The dataframe must have a
+#' field called COD_MAREA.
+#' @return character vector list with the components of the COD_MAREA.
 #' @export
 
-split_ID_MAREA <- function(df) {
+split_COD_MAREA <- function(df) {
   
-  if (!("ID_MAREA" %in% colnames(df))) {
-    stop(paste("ID_MAREA field does not exists in", deparse(substitute(df))))
+  if (!("COD_MAREA" %in% colnames(df))) {
+    stop(paste("COD_MAREA field does not exists in", deparse(substitute(df))))
   }
   
   # to get the date
-  date_indexes <- regexec("[0-9]+", df$ID_MAREA)
+  date_indexes <- regexec("[0-9]+", df$COD_MAREA)
   
   # NOTE: this function doesn't check the date format...
-  date_from_id_marea <- regmatches(df$ID_MAREA, date_indexes)
-  year_from_id_marea <- substr(date_from_id_marea, 1, 2)
-  month_from_id_marea <- substr(date_from_id_marea, 3, 4)
-  day_from_id_marea <-  substr(date_from_id_marea, 5, 6)
+  date_from_COD_MAREA <- regmatches(df$COD_MAREA, date_indexes)
+  year_from_COD_MAREA <- substr(date_from_COD_MAREA, 1, 2)
+  month_from_COD_MAREA <- substr(date_from_COD_MAREA, 3, 4)
+  day_from_COD_MAREA <-  substr(date_from_COD_MAREA, 5, 6)
   
   # to get the identifier: DESIXAC...
-  identifier_indexes <- regexpr("([a-zA-Z]+)(?=[0-9]+)", df$ID_MAREA, perl = T)
+  identifier_indexes <- regexpr("([a-zA-Z]+)(?=[0-9]+)", df$COD_MAREA, perl = T)
   
   # to get the final special character
-  special_idexes <- regexec("(?:\\D+\\d+)([a-zA-z])", df$ID_MAREA)
-  special_idexes <- regmatches(df$ID_MAREA, special_idexes)
+  special_idexes <- regexec("(?:\\D+\\d+)([a-zA-z])", df$COD_MAREA)
+  special_idexes <- regmatches(df$COD_MAREA, special_idexes)
   # OMG: https://stackoverflow.com/questions/23758858/how-can-i-extract-elements-from-lists-of-lists-in-r
   special_idexes <- lapply(special_idexes, '[', c(2))
   special_idexes <- as.character(special_idexes)
   
   result <- list(
-    identifier= regmatches(df$ID_MAREA, identifier_indexes),
-    year= year_from_id_marea,
-    month= month_from_id_marea,
-    day= day_from_id_marea,
+    identifier= regmatches(df$COD_MAREA, identifier_indexes),
+    year= year_from_COD_MAREA,
+    month= month_from_COD_MAREA,
+    day= day_from_COD_MAREA,
     special= special_idexes
   )
 
   # df <- list(
-  #   identifier= substr(df$ID_MAREA, 1, 7),
-  #   year= substr(df$ID_MAREA, 8, 9),
-  #   month= substr(df$ID_MAREA, 10, 11),
-  #   day= substr(df$ID_MAREA, 12, 13),
-  #   special= substr(df$ID_MAREA, 14, 14)
+  #   identifier= substr(df$COD_MAREA, 1, 7),
+  #   year= substr(df$COD_MAREA, 8, 9),
+  #   month= substr(df$COD_MAREA, 10, 11),
+  #   day= substr(df$COD_MAREA, 12, 13),
+  #   special= substr(df$COD_MAREA, 14, 14)
   # )
   
   # convert two digits year to four digits year:
@@ -126,17 +126,17 @@ dby_to_dmy_date_format <- function (dates){
 
 
 
-# Check year in ID_MAREA -------------------------------------------------------
-#' Check year in ID_MAREA in a OAB df 
+# Check year in COD_MAREA -------------------------------------------------------
+#' Check year in COD_MAREA in a OAB df 
 #' 
 #' @param df: df to check. Must be a df obtained by importOAB functions.
 #' @return df with errors
 #' @export
-check_year_in_ID_MAREA <- function(df){
+check_year_in_COD_MAREA <- function(df){
   
-  ID_MAREA_split <- split_ID_MAREA(df)
+  COD_MAREA_split <- split_COD_MAREA(df)
 
-  errors <- which(!(ID_MAREA_split[["year"]] %in% YEAR_DISCARD))
+  errors <- which(!(COD_MAREA_split[["year"]] %in% YEAR_DISCARD))
 
   errors <- df[errors,]
   
@@ -145,8 +145,8 @@ check_year_in_ID_MAREA <- function(df){
   errors.name <- deparse(substitute(df))
   
   errors <- errors %>%
-            select(ID_MAREA, YEAR)%>%
-            addTypeOfError(paste("ERROR: el a?o del ID_MAREA en", errors.name, "no coincide con el a?o a comprobar"))
+            select(COD_MAREA, YEAR)%>%
+            addTypeOfError(paste("ERROR: el a?o del COD_MAREA en", errors.name, "no coincide con el a?o a comprobar"))
   
   return(errors)
 }
@@ -206,7 +206,7 @@ check_year_in_date <- function(df, date_field, year){
 
   errors <- df[!l,]
   
-  errors <- errors[, c("ID_MAREA", "YEAR", date_field)]
+  errors <- errors[, c("COD_MAREA", "YEAR", date_field)]
 
   # this line add a comment to the errors dataframe wich contain the value of the
   # df variable
@@ -219,33 +219,33 @@ check_year_in_date <- function(df, date_field, year){
 }
 
 
-# Check if a date match with the ID_MAREA date ---------------------------------
-#' Check if a date match with the ID_MAREA date
+# Check if a date match with the COD_MAREA date ---------------------------------
+#' Check if a date match with the COD_MAREA date
 #' 
 #' @param df: dataframe to check.
 #' @param field: name of the field with de date to check.
 #' @return df with errors
 #' @export
-check_date_with_id_marea <- function(df, field){
+check_date_with_COD_MAREA <- function(df, field){
   
-  indexes <- regexec("[0-9]+", df$ID_MAREA)
+  indexes <- regexec("[0-9]+", df$COD_MAREA)
   
-  date_from_id_marea <- split_ID_MAREA(df)
+  date_from_COD_MAREA <- split_COD_MAREA(df)
   
-  # date_from_id_marea <- regmatches(df$ID_MAREA, indexes)
-  year_from_id_marea <- date_from_id_marea$year
-  month_from_id_marea <- date_from_id_marea$month
-  day_from_id_marea <-  date_from_id_marea$day
+  # date_from_COD_MAREA <- regmatches(df$COD_MAREA, indexes)
+  year_from_COD_MAREA <- date_from_COD_MAREA$year
+  month_from_COD_MAREA <- date_from_COD_MAREA$month
+  day_from_COD_MAREA <-  date_from_COD_MAREA$day
   
-  date_form_id_marea <- paste0(day_from_id_marea, "/", month_from_id_marea, "/", year_from_id_marea)
+  date_form_COD_MAREA <- paste0(day_from_COD_MAREA, "/", month_from_COD_MAREA, "/", year_from_COD_MAREA)
   
-  errors <- df[date_form_id_marea != df[[field]],]
+  errors <- df[date_form_COD_MAREA != df[[field]],]
   
-  if (length(errors$ID_MAREA)>0){
+  if (length(errors$COD_MAREA)>0){
     # this line add a comment to the errors dataframe wich contain the value of the
     # df variable
     errors.date_field <- deparse(substitute(field))
-    errors <- addTypeOfError(errors, "WARNING: la fecha del campo ", errors.date_field, " no concuerda con el ID_MAREA")
+    errors <- addTypeOfError(errors, "WARNING: la fecha del campo ", errors.date_field, " no concuerda con el COD_MAREA")
     return(errors)
   } else {
     return()
@@ -299,8 +299,8 @@ hauls_check_hauling_date_before_shooting_date <- function(){
   
   start_end <- start - end
 
-  #errors <- OAB_hauls[(start - end) > 0, c("ID_MAREA", "COD_LANCE", "FECHA_LAR", "FECHA_VIR")]
-  errors <- OAB_hauls[(start - end) > 0 | is.na(start - end), c("ID_MAREA", "COD_LANCE", "FECHA_LAR", "HORA_LAR", "FECHA_VIR", "HORA_VIR")]
+  #errors <- OAB_hauls[(start - end) > 0, c("COD_MAREA", "COD_LANCE", "FECHA_LAR", "FECHA_VIR")]
+  errors <- OAB_hauls[(start - end) > 0 | is.na(start - end), c("COD_MAREA", "COD_LANCE", "FECHA_LAR", "HORA_LAR", "FECHA_VIR", "HORA_VIR")]
   
   errors <- addTypeOfError(errors, "ERROR: La fecha y hora de virada es anterior o igual a la fecha y hora de largada.")
   
@@ -317,14 +317,14 @@ hauls_check_hauling_date_before_shooting_date <- function(){
 #' BACA_GC)
 #' @return df with errors
 #' @export
-trips_check_final_date_in_id_marea_GC <- function(){
+trips_check_final_date_in_COD_MAREA_GC <- function(){
   errors <- OAB_trips %>%
     filter(ESTRATO_RIM=="BACA_GC" | ESTRATO_RIM == "CERCO_GC")%>%
-    check_date_with_id_marea("FECHA_FIN")
+    check_date_with_COD_MAREA("FECHA_FIN")
   
   if (!is.null(errors)) {
     errors <- errors %>%
-      select(ID_MAREA, FECHA_FIN)
+      select(COD_MAREA, FECHA_FIN)
     
     addTypeOfError(errors, "ERROR: Final date contained in IDMAREA doesn't match whith FECHA_FIN variable (view trips)")
     
@@ -350,7 +350,7 @@ is_outlier <- function(x) {
 get_speed_outliers <- function(){
   
   hauls_speed <- OAB_hauls %>%
-    select(ID_MAREA, COD_LANCE, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
+    select(COD_MAREA, COD_LANCE, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
     filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
   
   hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
@@ -377,7 +377,7 @@ view_speed_outliers <-function(){
   library(ggiraph)
   
   hauls_speed <- OAB_hauls %>%
-    select(ID_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
+    select(COD_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
     filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
   
   hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
@@ -386,8 +386,8 @@ view_speed_outliers <-function(){
 
   hauls_speed %>%
     group_by(str)%>%
-    #in the next mutate line: if in the ifelse use ID_MAREA as the returned value
-    #when the condition is True, it doesnt't print the ID_MAREA but a weird number??????????
+    #in the next mutate line: if in the ifelse use COD_MAREA as the returned value
+    #when the condition is True, it doesnt't print the COD_MAREA but a weird number??????????
     mutate(outlier = ifelse(is_outlier(VELOCIDAD), VELOCIDAD, as.numeric(NA)))%>%
       ggplot(., aes(str, VELOCIDAD))+
       # geom_boxplot_interactive()+
@@ -489,7 +489,9 @@ check_empty_values_in_variables <- function (df, variables){
       error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
     } else {
       error <- (df[df[[x]]=="" | is.na(df[[x]]),])
-      error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
+      if (nrow(error)>0){
+        error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
+      }
     }
     
     if (nrow(error) > 0){
@@ -539,7 +541,7 @@ check_empty_field <- function(field){
 #' @param df: dataframe returned by one of the importOAB functions.
 #' @param type_file: type of the imported file according to this values: OAB_CATCHES,
 #' OAB_HAULS, OAB_TRIPS and OAB_LENGTHS.
-#' @return A dataframe with the ID_MAREA and variables with values missing.
+#' @return A dataframe with the COD_MAREA and variables with values missing.
 #' @export
 check_empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_HAULS", "OAB_CATCHES", "OAB_LENGTHS")){
   
@@ -564,10 +566,10 @@ check_empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_
   
     # return different fields according to file type:
     # switch(type_file,
-    #        OAB_TRIPS = { err <- err[, c("ID_MAREA", "TIPO_ERROR")]},
-    #        OAB_HAULS = { err <- err[, c("ID_MAREA", "COD_LANCE", "TIPO_ERROR")]},
-    #        OAB_CATCHES = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]},
-    #        OAB_LENGTHS = { err <- err[, c("ID_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]}
+    #        OAB_TRIPS = { err <- err[, c("COD_MAREA", "TIPO_ERROR")]},
+    #        OAB_HAULS = { err <- err[, c("COD_MAREA", "COD_LANCE", "TIPO_ERROR")]},
+    #        OAB_CATCHES = { err <- err[, c("COD_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]},
+    #        OAB_LENGTHS = { err <- err[, c("COD_MAREA", "COD_LANCE", "COD_ESP", "TIPO_ERROR")]}
     # )
     
     return(err)
@@ -643,10 +645,10 @@ check_variable_with_master <- function (df, variable){
   # fields_to_filter <- c(BASE_FIELDS, variable, variable_formatted)
   if (exists("variable_to_change")){
     errors <- anti_join(df, get(name_data_set), by = setNames(nm=variable, variable_to_change))
-    fields_to_filter <- c("ID_MAREA", variable, variable_puerto_original)
+    fields_to_filter <- c("COD_MAREA", variable, variable_puerto_original)
   } else {
     errors <- anti_join(df, get(name_data_set), by = setNames(nm=variable, variable))
-    fields_to_filter <- c("ID_MAREA", variable, variable_formatted)
+    fields_to_filter <- c("COD_MAREA", variable, variable_formatted)
   }
   
   
@@ -672,7 +674,9 @@ checkCoherenceEstratoRimOrigin <- function(df){
   
   try(variables_in_df(c("ESTRATO_RIM", "COD_ORIGEN"), df))
   
-  BASE_FIELDS <- c("ID_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
+  BASE_FIELDS <- c("COD_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
+  
+  estratorim_origen_OAB <- estratorim_origen[, c("ESTRATO_RIM", "COD_ORIGEN", "OAB")]
   
   errors <- OAB_hauls %>%
     select(one_of(BASE_FIELDS)) %>%
@@ -694,7 +698,9 @@ checkCoherenceEstratoRimGear <- function(df){
   
   try(variables_in_df(c("ESTRATO_RIM", "COD_ARTE"), df))
   
-  BASE_FIELDS <- c("ID_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ARTE", "ARTE")
+  BASE_FIELDS <- c("COD_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ARTE", "ARTE")
+  
+  estratorim_arte_OAB <- estratorim_arte[, c("ESTRATO_RIM", "COD_ARTE", "OAB")]
   
   errors <- df %>%
     select(one_of(BASE_FIELDS)) %>%
@@ -731,7 +737,7 @@ formatErrorsList <- function(errors_list = ERRORS){
   errors <- errors %>%
     select(-one_of("TIPO_ERROR"), one_of("TIPO_ERROR")) %>% #remove TIPO_ERROR, and add it to the end
     # mutate(FECHA_MUE = as.Date(FECHA_MUE, "%d-%m-%y")) %>%
-    arrange_("ID_MAREA")
+    arrange_("COD_MAREA")
   
   #Remove columns with only NA values
   #Filter extracts the elements of a vector for which a predicate (logical) function gives true
@@ -748,22 +754,22 @@ formatErrorsList <- function(errors_list = ERRORS){
 # sampled hauls without catches weight -----------------------------------------
 #' Check sampled hauls without catches weight
 #' 
-#'  @return dataframe with ID_MAREA with errors.
+#'  @return dataframe with COD_MAREA with errors.
 #'  
 hauls_sampled_with_catch_weights <- function(){
 
     sampled <- OAB_hauls %>%
       filter(MUESTREADO == "S") %>%
-      select(ID_MAREA) %>%
+      select(COD_MAREA) %>%
       unique()
     
     catches <- OAB_catches %>%
-      group_by(ID_MAREA) %>%
-      summarise(PESO_CAP_TOT = sum(PESO_CAP)) %>%
-      filter(PESO_CAP_TOT==0)
+      group_by(COD_MAREA) %>%
+      summarise(P_CAP_TOT = sum(P_CAP)) %>%
+      filter(P_CAP_TOT==0)
     
     if (nrow(catches) != 0){
-      err <- merge(x=sampled, y=catches, by= "ID_MAREA")
+      err <- merge(x=sampled, y=catches, by= "COD_MAREA")
       err <- addTypeOfError(err, "ERROR: Lance muestreado pero sin peso de captura.")
       return(err)
     }
@@ -773,14 +779,14 @@ hauls_sampled_with_catch_weights <- function(){
 # species without weight caught neither weight discarded -----------------------
 #' Check species without weight caught neither weight discarded
 #' 
-#'  @return dataframe with ID_MAREA with errors.
+#'  @return dataframe with COD_MAREA with errors.
 #'  
 species_without_caught_neither_discarded_weight <- function(){
 
   err <- OAB_catches %>%
-    filter(PESO_CAP == 0 & PESO_DESCAR == 0) %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, ESP, PESO_CAP, PESO_DESCAR) %>%
-    arrange(ID_MAREA)%>%
+    filter(P_CAP == 0 & P_DESCAR == 0) %>%
+    select(COD_MAREA, COD_LANCE, COD_ESP, ESP, P_CAP, P_DESCAR) %>%
+    arrange(COD_MAREA)%>%
     unique() %>%
     addTypeOfError("ERROR: Especie sin peso captura ni peso descarte.")
   
@@ -796,8 +802,8 @@ species_without_caught_neither_discarded_weight <- function(){
 catches_less_retained_catch_than_sampled_retained_catch <- function(){
   
   err <- OAB_catches %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_RET, PESO_MUE_RET) %>%
-    filter(PESO_RET < PESO_MUE_RET) %>%
+    select(COD_MAREA, COD_LANCE, COD_ESP, CATEGORIA, P_RET, P_MUE_RET) %>%
+    filter(P_RET < P_MUE_RET) %>%
     addTypeOfError("ERROR: captura retenida menor que captura retenida muestreada.")
   
   return(err)
@@ -810,12 +816,12 @@ catches_less_retained_catch_than_sampled_retained_catch <- function(){
 #' @return dataframe with errors.
 catches_less_discard_weight_than_sampled_discard_weight <- function(){
   
-  OAB_catches[["PESO_DESCAR"]] <- round(OAB_catches[["PESO_DESCAR"]], 2)
-  OAB_catches[["PESO_MUE_DESCAR"]] <- round(OAB_catches[["PESO_MUE_DESCAR"]], 2)
+  OAB_catches[["P_DESCAR"]] <- round(OAB_catches[["P_DESCAR"]], 2)
+  OAB_catches[["P_MUE_DESCAR"]] <- round(OAB_catches[["P_MUE_DESCAR"]], 2)
   
   err <- OAB_catches %>%
-    select(ID_MAREA, COD_LANCE, COD_ESP, CATEGORIA, PESO_DESCAR, PESO_MUE_DESCAR) %>%
-    filter(PESO_DESCAR < PESO_MUE_DESCAR) %>%
+    select(COD_MAREA, COD_LANCE, COD_ESP, CATEGORIA, P_DESCAR, P_MUE_DESCAR) %>%
+    filter(P_DESCAR < P_MUE_DESCAR) %>%
     addTypeOfError("ERROR: peso descartado menor que peso descartado muestreado.")
   
   return(err)
@@ -851,9 +857,9 @@ hauls_hauls_duration <- function(){
   
   
   err <- OAB_hauls %>%
-    select(ID_MAREA, COD_LANCE, ESTRATO_RIM, FECHA_HORA_LAR_CT, FECHA_HORA_VIR_CT) %>%
+    select(COD_MAREA, COD_LANCE, ESTRATO_RIM, FECHA_HORA_LAR_CT, FECHA_HORA_VIR_CT) %>%
     unique() %>%
-    group_by(ID_MAREA, ESTRATO_RIM) %>%
+    group_by(COD_MAREA, ESTRATO_RIM) %>%
     summarise(first_date = min(FECHA_HORA_LAR_CT), last_date = max(FECHA_HORA_VIR_CT)) %>%
     mutate(duration_trip = difftime(last_date, first_date, units = "hours")) %>%
     merge(, y = trip_hauls, all.x = T) %>%
@@ -863,13 +869,13 @@ hauls_hauls_duration <- function(){
   
   # TO DO: find the haul with the erroneus date and return it 
   # duration_p95 <- OAB_hauls %>%
-  #   filter(ID_MAREA%in%err$ID_MAREA) %>%
-  #   group_by(ID_MAREA, ESTRATO_RIM) %>%
+  #   filter(COD_MAREA%in%err$COD_MAREA) %>%
+  #   group_by(COD_MAREA, ESTRATO_RIM) %>%
   #   summarise('p95'=quantile(?????, probs=0.95))
   # 
   # error_final <- OAB_hauls %>%
-  #   filter(ID_MAREA%in%err$ID_MAREA) %>%
-  #   merge(., duration_p95, by=c("ID_MAREA", "ESTRATO_RIM"))
+  #   filter(COD_MAREA%in%err$COD_MAREA) %>%
+  #   merge(., duration_p95, by=c("COD_MAREA", "ESTRATO_RIM"))
   
   return(err)
   
@@ -879,19 +885,19 @@ hauls_hauls_duration <- function(){
 # Target specie of the hauls is the most catched specie ------------------------
 check_target_sp_with_catch <- function(){
   tryCatch({
-    id_marea_with_obj <- OAB_hauls %>%
-      select(ESTRATO_RIM, ID_MAREA, COD_LANCE, COD_ESP_OBJ, ESP_OBJ) %>%
+    COD_MAREA_with_obj <- OAB_hauls %>%
+      select(ESTRATO_RIM, COD_MAREA, COD_LANCE, COD_ESP_OBJ, ESP_OBJ) %>%
       unique()
     
     catches_only_greater_catch <- OAB_catches %>%
-      select(ID_MAREA, COD_LANCE, COD_ESP, ESP, PESO_RET) %>%
+      select(COD_MAREA, COD_LANCE, COD_ESP, ESP, P_RET) %>%
       #mutate(peso_total = PESO_RET + PESO_DESCAR) %>%
-      group_by(ID_MAREA, COD_LANCE)%>%
-      filter(PESO_RET == max(PESO_RET))
+      group_by(COD_MAREA, COD_LANCE)%>%
+      filter(P_RET == max(P_RET))
     
     colnames(catches_only_greater_catch)[colnames(catches_only_greater_catch)=="ESP"] <- "ESP_MAYOR_CAPTURA"
     
-    catches_with_obj <- merge(catches_only_greater_catch, id_marea_with_obj, by = c("ID_MAREA", "COD_LANCE"))
+    catches_with_obj <- merge(catches_only_greater_catch, COD_MAREA_with_obj, by = c("COD_MAREA", "COD_LANCE"))
     
     
     # function to get the possible ESP_OBJ according to COD_ESP in OAB_catches
@@ -932,7 +938,7 @@ length_cable_1000 <- function(){
   
   tryCatch({
       # in the next line, the use of NA prevent the returned NA rows:
-      war <- OAB_hauls[which(OAB_hauls$CABLE>1000),c("ESTRATO_RIM", "ID_MAREA", "COD_LANCE", "CABLE")]
+      war <- OAB_hauls[which(OAB_hauls$CABLE>1000),c("ESTRATO_RIM", "COD_MAREA", "COD_LANCE", "CABLE")]
       
       war <- addTypeOfError(war, "WARNING: el cable largado es mayor que 1000m.")
       
@@ -949,8 +955,8 @@ length_cable_1000 <- function(){
 total_discard_less_subsample_discard <- function(df){
   
   errors <- df[
-    df$PESO_DESCAR < df$PESO_MUE_DESCAR,
-    c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "PESO_DESCAR", "PESO_MUE_DESCAR")
+    df$P_DESCAR < df$P_MUE_DESCAR,
+    c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "P_DESCAR", "P_MUE_DESCAR")
     ]
   
   errors <- addTypeOfError(errors, "ERROR: total discard weight less than subsample discard weight.")
@@ -964,8 +970,8 @@ sampled_discard_less_subsample_discard <- function(df){
   
   # usually the PESO_SUB_MUE_TOT is NA, so it is neccesary detect it.
   errors <- df[
-    which( !is.na(df$PESO_SUB_MUE_TOT) & df$PESO_SUB_MUE_TOT > df$PESO_MUE_DESCAR),
-           c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "PESO_SUB_MUE_TOT", "PESO_MUE_DESCAR")
+    which( !is.na(df$P_SUB_MUE_TOT) & df$P_SUB_MUE_TOT > df$P_MUE_DESCAR),
+           c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "P_SUB_MUE_TOT", "P_MUE_DESCAR")
     ]
   
   errors <- addTypeOfError(errors, "ERROR: sampled discard weight less than subsample discard weight.")
@@ -978,9 +984,9 @@ retained_sampled_weight_when_specimens_retained <- function(df){
   
   errors <- df[which(
     df[["EJEM_RET"]] > 0 &
-      (df[["PESO_MUE_RET"]] <= 0 |
-         is.na(df[["PESO_MUE_RET"]]))),
-      c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "EJEM_RET", "PESO_MUE_RET")
+      (df[["P_MUE_RET"]] <= 0 |
+         is.na(df[["P_MUE_RET"]]))),
+      c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "EJEM_RET", "P_MUE_RET")
     ]
   
   errors <- addTypeOfError(errors, "ERROR: there are specimens retained without retained sampled weight.")
@@ -993,9 +999,9 @@ discarded_sampled_weight_when_specimens_discarded <- function(df){
   
   errors <- df[which(
     df[["EJEM_DESCAR"]] > 0 &
-      (df[["PESO_MUE_DESCAR"]] <= 0 | is.na(df[["PESO_MUE_DESCAR"]]))
+      (df[["P_MUE_DESCAR"]] <= 0 | is.na(df[["P_MUE_DESCAR"]]))
     ),
-    c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "EJEM_DESCAR", "PESO_MUE_DESCAR")]
+    c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "EJEM_DESCAR", "P_MUE_DESCAR")]
   
   errors <- addTypeOfError(errors, "ERROR: there are specimens discarded without
                           discarded sampled weight.")
@@ -1011,8 +1017,8 @@ reason_discard_field_filled <- function(df){
   species_to_measure <- species_to_measure[,"COD_ESP"]
   
   errors <- df[which(
-    df[["PESO_DESCAR"]]>0 & df[["COD_DESCAR"]] == ""),
-    c(BASE_FIELDS, "COD_LANCE", "COD_ESP", "A3_ESP", "ESP", "PESO_DESCAR", "RAZON_DESCAR")]
+    df[["P_DESCAR"]]>0 & df[["COD_DESCAR"]] == ""),
+    c(BASE_FIELDS, "COD_LANCE", "COD_ESP", "A3_ESP", "ESP", "P_DESCAR", "RAZON_DESCAR")]
   
   errors <- unique(errors)
   
@@ -1032,19 +1038,19 @@ reason_discard_field_filled <- function(df){
 haul_sampled_with_empty_discard_weight <- function(){
   
   sampled_hauls <- OAB_hauls[which(OAB_hauls["MUESTREADO"]=="S"),
-                             c("ID_MAREA", "COD_LANCE")]
+                             c("COD_MAREA", "COD_LANCE")]
   
-  clean_catches <- OAB_catches[, c("ID_MAREA", "COD_LANCE", "PESO_DESCAR")]
+  clean_catches <- OAB_catches[, c("COD_MAREA", "COD_LANCE", "P_DESCAR")]
   clean_catches <- unique(clean_catches)
   
   sampled_hauls <- merge(sampled_hauls,
                          clean_catches,
-                         by = c("ID_MAREA", "COD_LANCE"),
+                         by = c("COD_MAREA", "COD_LANCE"),
                          all.x = TRUE)
   
-  errors <- sampled_hauls[which(sampled_hauls[["PESO_DESCAR"]] == ""),]
+  errors <- sampled_hauls[which(sampled_hauls[["P_DESCAR"]] == ""),]
   
-  sampled_catches <- merge(OAB_catches, sampled_hauls, by=c("ID_MAREA", "COD"))
+  sampled_catches <- merge(OAB_catches, sampled_hauls, by=c("COD_MAREA", "COD"))
   
 }
 
@@ -1058,25 +1064,25 @@ priority_species_without_lengths <- function(){
   
   # get Species With Catch which must be measured
   swc <- OAB_catches[which(OAB_catches[["COD_ESP"]]%in%species_to_measure),
-                     c("ID_MAREA", "COD_LANCE", "COD_ESP", "PESO_CAP")]
+                     c("COD_MAREA", "COD_LANCE", "COD_ESP", "P_CAP")]
   swc <- unique(swc)
   
   # clean lengths
-  lengths_clean <- OAB_lengths[, c("ID_MAREA", "COD_LANCE",
+  lengths_clean <- OAB_lengths[, c("COD_MAREA", "COD_LANCE",
                                    "COD_ESP", "EJEM_MEDIDOS")]
   
   lengths_clean <- aggregate.data.frame(lengths_clean[, c("EJEM_MEDIDOS")],
-                             by=list(lengths_clean$ID_MAREA,
+                             by=list(lengths_clean$COD_MAREA,
                                      lengths_clean$COD_LANCE,
                                      lengths_clean$COD_ESP),
                              sum, na.rm=TRUE)
   
-  colnames(lengths_clean) <- c("ID_MAREA", "COD_LANCE", "COD_ESP", "EJEM_MEDIDOS")
+  colnames(lengths_clean) <- c("COD_MAREA", "COD_LANCE", "COD_ESP", "EJEM_MEDIDOS")
 
   # create errors dataframe
   errors <- merge(swc, 
                   lengths_clean, 
-                  by.x = c("ID_MAREA", "COD_LANCE", "COD_ESP"),
+                  by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP"),
                   all.x = TRUE)
   errors <- errors[which(errors$EJEM_MEDIDOS==0 |
                          is.na(errors$EJEM_MEDIDOS)),]
@@ -1095,7 +1101,7 @@ target_species_metier_ieo <- function(){
   ms$OK <- "ok"
   
   # hauls cleaned
-  hc <- OAB_hauls[, c("ID_MAREA", "COD_LANCE", "METIER_IEO", "COD_ESP_OBJ")]
+  hc <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "COD_ESP_OBJ")]
 
   # errors
   errors <- merge(hc, ms,

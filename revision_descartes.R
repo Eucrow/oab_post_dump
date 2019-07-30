@@ -45,7 +45,8 @@ especies_a_medir_OAB <- importCsvSAPMUE("especies_a_medir_OAB.csv")
 # ------------------------------------------------------------------------------
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES 
 
-PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2018/anual"
+PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2019/test"
+# PATH_FILES <- "C:/Users/Marco IEO/Desktop/revision_descartes/data/2019/test"
 trips_file <- "IEODESMAREAMARCO.TXT"
 hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
@@ -64,7 +65,7 @@ GOOGLE_DRIVE_PATH <- "/equipo muestreos/revision_descartes/2018/"
 # ------------------------------------------------------------------------------
 
 # list with the common fields used in all tables
-BASE_FIELDS <- c("YEAR", "ID_MAREA")
+BASE_FIELDS <- c("YEAR", "COD_MAREA")
 
 # list with all errors found in dataframes:
 ERRORS <- list()
@@ -82,7 +83,7 @@ MONTH_AS_CHARACTER <- sprintf("%02d", MONTH)
 # #### SET WORKING DIRECTORY ###################################################
 # ------------------------------------------------------------------------------
 
-setwd("F:/misdoc/sap/revision_descartes/")
+# setwd("F:/misdoc/sap/revision_descartes/")
 
 # ------------------------------------------------------------------------------
 # #### FUNCTIONS ###############################################################
@@ -107,8 +108,10 @@ source('revision_descartes_functions.R')
 OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
 OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
 OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
-OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
+# OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
 
+subsample <- OAB_catches[which(OAB_catches$P_SUB_MUE_TOT != OAB_catches$P_MUE_DESCAR),]
+subsample$dif <- subsample$P_SUB_MUE_TOT - subsample$P_MUE_DESCAR
 # ------------------------------------------------------------------------------
 # #### FILTER BY MONTH #########################################################
 # ------------------------------------------------------------------------------
@@ -119,32 +122,31 @@ trips_fecha_ini <- as.POSIXct(OAB_trips$FECHA_INI, format = '%d/%m/%Y')
 OAB_trips$MONTH <- as.POSIXlt(trips_fecha_ini)$mon + 1
 # OAB_trips <- OAB_trips[OAB_trips$MONTH == MONTH,]
 
-OAB_hauls <- OAB_hauls[OAB_hauls$ID_MAREA%in%OAB_trips$ID_MAREA,]
-OAB_catches <- OAB_catches[OAB_catches$ID_MAREA%in%OAB_trips$ID_MAREA,]
+OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
+OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
 
 # ------------------------------------------------------------------------------
 # #### FILTER BY ACRONYM #######################################################
 # ------------------------------------------------------------------------------
 
 # DESNOR
-# OAB_trips <- OAB_trips[ grep("DESNOR", OAB_trips$ID_MAREA), ]
-# OAB_hauls <- OAB_hauls[ grep("DESNOR", OAB_hauls$ID_MAREA), ]
-# OAB_catches <- OAB_catches[ grep("DESNOR", OAB_catches$ID_MAREA), ]
+# OAB_trips <- OAB_trips[ grep("DESNOR", OAB_trips$COD_MAREA), ]
+# OAB_hauls <- OAB_hauls[ grep("DESNOR", OAB_hauls$COD_MAREA), ]
+# OAB_catches <- OAB_catches[ grep("DESNOR", OAB_catches$COD_MAREA), ]
 
 # DESSUR
-# OAB_trips <- OAB_trips[ grep("DESSUR", OAB_trips$ID_MAREA), ]
-# OAB_hauls <- OAB_hauls[ grep("DESSUR", OAB_hauls$ID_MAREA), ]
-# OAB_catches <- OAB_catches[ grep("DESSUR", OAB_catches$ID_MAREA), ]
+# OAB_trips <- OAB_trips[ grep("DESSUR", OAB_trips$COD_MAREA), ]
+# OAB_hauls <- OAB_hauls[ grep("DESSUR", OAB_hauls$COD_MAREA), ]
+# OAB_catches <- OAB_catches[ grep("DESSUR", OAB_catches$COD_MAREA), ]
 
 # DESIXA
-# OAB_trips <- OAB_trips[ grep("(DESIXA)(?!C)", OAB_trips$ID_MAREA, perl = T), ]
-# OAB_hauls <- OAB_hauls[ grep("(DESIXA)(?!C)", OAB_hauls$ID_MAREA, perl = T), ]
-# OAB_catches <- OAB_catches[ grep("(DESIXA)(?!C)", OAB_catches$ID_MAREA, perl = T), ]
+# OAB_trips <- OAB_trips[ grep("(DESIXA)(?!C)", OAB_trips$COD_MAREA, perl = T), ]
+# OAB_hauls <- OAB_hauls[ grep("(DESIXA)(?!C)", OAB_hauls$COD_MAREA, perl = T), ]
+# OAB_catches <- OAB_catches[ grep("(DESIXA)(?!C)", OAB_catches$COD_MAREA, perl = T), ]
 
 # ------------------------------------------------------------------------------
 # #### SEARCHING ERRORS ########################################################
 # ------------------------------------------------------------------------------
-
 
 check_them_all <- function(){
   
@@ -161,16 +163,18 @@ check_them_all <- function(){
   ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
   ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
   
+  
+  
   ERR$trips_empty_fields <- check_empty_fields_in_variables(OAB_trips, "OAB_TRIPS")
   
   ERR$trips_field_year <- check_field_year(OAB_trips)
   
-  ERR$trips_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_trips)
+  ERR$trips_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_trips)
   
   ERR$trips_year_in_initial_date <- check_year_in_date(OAB_trips, "FECHA_INI", YEAR_DISCARD)
   ERR$trips_year_in_final_date <- check_year_in_date(OAB_trips, "FECHA_FIN", YEAR_DISCARD)
   
-  ERR$trips_check_final_date_in_id_marea_GC <- trips_check_final_date_in_id_marea_GC()
+  ERR$trips_check_final_date_in_COD_MAREA_GC <- trips_check_final_date_in_COD_MAREA_GC()
   
   ERR$trips_check_initial_date_before_final_date <- trips_check_initial_date_before_final_date()
 
@@ -183,7 +187,7 @@ check_them_all <- function(){
   
   ERR$hauls_field_year <- check_field_year(OAB_hauls)
   
-  ERR$hauls_year_in_ID_MAREA_hauls <- check_year_in_ID_MAREA(OAB_hauls)
+  ERR$hauls_year_in_COD_MAREA_hauls <- check_year_in_COD_MAREA(OAB_hauls)
   
   OAB_hauls$FECHA_LAR <- dby_to_dmy_date_format(OAB_hauls$FECHA_LAR)
   ERR$hauls_year_in_shotting_date <- check_year_in_date(OAB_hauls, "FECHA_LAR", YEAR_DISCARD)
@@ -216,7 +220,7 @@ check_them_all <- function(){
   
   ERR$catches_field_year <- check_field_year(OAB_catches)
   
-  ERR$catches_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_catches)
+  ERR$catches_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_catches)
   ERR$species_without_caught_neither_discarded_weight <- species_without_caught_neither_discarded_weight()
   
   #ERR$catches_reason_discard_field_empty <- catches_reason_discard_field_empty()
@@ -238,14 +242,61 @@ check_them_all <- function(){
   
   #ERR$lengths_field_year <- check_field_year(OAB_lengths)
   
-  #ERR$lengths_year_in_ID_MAREA <- check_year_in_ID_MAREA(OAB_lengths)
-  ERR$priority_species_without_lengths <- priority_species_without_lengths()
+  #ERR$lengths_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_lengths)
+  # ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
 
   
   return(ERR)
 }
-
+check_empty_values_in_variables <- function (df, variables){
+  
+  try(variables_in_df(df, variables))
+  
+  gear_characteristics <- get_gear_characteristics()
+  characteristic_to_check <- levels(gear_characteristics$CARACTERISTICA)
+  
+  variables <- as.list(variables)
+  
+  errors <- lapply(variables, function(x){
+    
+    # Only some characteristicas must be filled according to its gear:
+    if(x %in% characteristic_to_check) {
+      gear_code <- gear_characteristics[gear_characteristics[["CARACTERISTICA"]]==x,]
+      error <- (df[ (df[[x]]=="" | is.na(df[[x]])) & df[["COD_ARTE"]]%in%gear_code[["COD_ARTE"]],])
+      error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
+    } else {
+      error <- (df[df[[x]]=="" | is.na(df[[x]]),])
+      if (nrow(error)>0){
+        error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
+      }
+    }
+    
+    if (nrow(error) > 0){
+      # select only interested variables
+      if ("COD_LAMCE" %in% colnames(error)){
+        error <- error[, c(BASE_FIELDS, "COD_LANCE", "TIPO_ERROR")]
+      } else {
+        error <- error[, c(BASE_FIELDS, "TIPO_ERROR")]
+      }
+      #remove duplicated rows
+      error <- unique(error)
+    }
+    
+    error
+    
+  })
+  
+  errors <- Filter(function(x) nrow(x) > 0, errors)
+  
+  
+  if(length(errors) == 0){
+    return(NULL)
+  } else{
+    return (errors)
+  }
+  
+}
 
 ERRORS <- check_them_all()
 
