@@ -496,7 +496,11 @@ check_empty_values_in_variables <- function (df, variables){
     
     if (nrow(error) > 0){
       # select only interested variables
-      error <- error[, c(BASE_FIELDS, "COD_LANCE", "TIPO_ERROR")]
+      if ("COD_LANCE" %in% colnames(error)){
+        error <- error[, c(BASE_FIELDS, "COD_LANCE", "TIPO_ERROR")]
+      } else {
+        error <- error[, c(BASE_FIELDS, "TIPO_ERROR")]
+      }
       #remove duplicated rows
       error <- unique(error)
     }

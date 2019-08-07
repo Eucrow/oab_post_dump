@@ -2,8 +2,9 @@
 .Rhistory
 .RData
 .Ruserdata
-data/
+.tmp.drivedownload
 .httr-oauth
+data/
 *.xls
 *.xlsx
 areas/

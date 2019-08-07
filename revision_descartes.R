@@ -1,4 +1,3 @@
-#### ---------------------------------------------------------------------------
 #### Check discards from SIRENO
 ####
 #### author: Marco A. Amez Fernandez
@@ -6,11 +5,8 @@
 ####
 #### files required: 
 ####
-#### ---------------------------------------------------------------------------
 
-# ------------------------------------------------------------------------------
 # #### PACKAGES ################################################################
-# ------------------------------------------------------------------------------
 
 library(plyr) # to use function join_all --> TO DO: change to reduce-merge functions
 library(dplyr)
@@ -22,14 +18,12 @@ library(sapmuebase)
 
 library(googledrive)
 
-
-# ------------------------------------------------------------------------------
 # #### LOAD DATASETS ###########################################################
-# ------------------------------------------------------------------------------
 
 # TO DO: add this datasets in sapmuebase
 
 # can't use importCsvSAPMUE() because I don't know why it uses ANSI instead of UTF-8
+origen_OAB <- importCsvSAPMUE("origenes_OAB.csv")
 origen_OAB <- read.table(file = "origenes_OAB.csv", head = TRUE, sep = ";", 
                    fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
 estrato_rim_OAB <- read.table(file = "estrato_rim_OAB.csv", head = TRUE, sep = ";", 
@@ -41,11 +35,9 @@ arte_OAB <- read.table(file = "arte_OAB.csv", head = TRUE, sep = ";",
 
 especies_a_medir_OAB <- importCsvSAPMUE("especies_a_medir_OAB.csv")
 
-# ------------------------------------------------------------------------------
-# ------------------------------------------------------------------------------
-# YOU HAVE ONLY TO CHANGE THIS VARIABLES 
+# YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-PATH_FILES <- "F:/misdoc/sap/revision_descartes/data/2019/test"
+PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/test"
 # PATH_FILES <- "C:/Users/Marco IEO/Desktop/revision_descartes/data/2019/test"
 trips_file <- "IEODESMAREAMARCO.TXT"
 hauls_file <- "IEODESLANCEMARCO.TXT"
@@ -57,12 +49,12 @@ MONTH <- FALSE
 YEAR_DISCARD <- "2018"
 
 # only if the file must be uploaded to google drive
-GOOGLE_DRIVE_PATH <- "/equipo muestreos/revision_descartes/2018/"
+GOOGLE_DRIVE_PATH <- "/equipo muestreos/revision_descartes/2019/"
 
 
-# ------------------------------------------------------------------------------
+
 # #### GLOBAL VARIABLES ########################################################
-# ------------------------------------------------------------------------------
+
 
 # list with the common fields used in all tables
 BASE_FIELDS <- c("YEAR", "COD_MAREA")
@@ -79,23 +71,23 @@ TARGET_SPECIES <- read.csv("especies_objetivo.csv", sep=",")
 # month as character
 MONTH_AS_CHARACTER <- sprintf("%02d", MONTH)
 
-# ------------------------------------------------------------------------------
+
 # #### SET WORKING DIRECTORY ###################################################
-# ------------------------------------------------------------------------------
+
 
 # setwd("F:/misdoc/sap/revision_descartes/")
 
-# ------------------------------------------------------------------------------
+
 # #### FUNCTIONS ###############################################################
-# ------------------------------------------------------------------------------
-# All the functions required in this script are located in
-# revision_descartes_functions file.
+
+# All the functions required in this script are located in the next files:
 source('revision_descartes_functions.R')
+source('fix_import_files.R')
 
 
-# ------------------------------------------------------------------------------
+
 # #### IMPORT DISCARDS FILES ###################################################
-# ------------------------------------------------------------------------------
+
 
 # discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
                                     # path = PATH_FILES)
@@ -112,9 +104,9 @@ OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
 
 subsample <- OAB_catches[which(OAB_catches$P_SUB_MUE_TOT != OAB_catches$P_MUE_DESCAR),]
 subsample$dif <- subsample$P_SUB_MUE_TOT - subsample$P_MUE_DESCAR
-# ------------------------------------------------------------------------------
+
 # #### FILTER BY MONTH #########################################################
-# ------------------------------------------------------------------------------
+
 
 # TO DO: change all the dates in the same format
 
@@ -125,9 +117,9 @@ OAB_trips$MONTH <- as.POSIXlt(trips_fecha_ini)$mon + 1
 OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
 OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
 
-# ------------------------------------------------------------------------------
+
 # #### FILTER BY ACRONYM #######################################################
-# ------------------------------------------------------------------------------
+
 
 # DESNOR
 # OAB_trips <- OAB_trips[ grep("DESNOR", OAB_trips$COD_MAREA), ]
@@ -144,9 +136,9 @@ OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # OAB_hauls <- OAB_hauls[ grep("(DESIXA)(?!C)", OAB_hauls$COD_MAREA, perl = T), ]
 # OAB_catches <- OAB_catches[ grep("(DESIXA)(?!C)", OAB_catches$COD_MAREA, perl = T), ]
 
-# ------------------------------------------------------------------------------
+
 # #### SEARCHING ERRORS ########################################################
-# ------------------------------------------------------------------------------
+
 
 check_them_all <- function(){
   
@@ -249,54 +241,7 @@ check_them_all <- function(){
   
   return(ERR)
 }
-check_empty_values_in_variables <- function (df, variables){
-  
-  try(variables_in_df(df, variables))
-  
-  gear_characteristics <- get_gear_characteristics()
-  characteristic_to_check <- levels(gear_characteristics$CARACTERISTICA)
-  
-  variables <- as.list(variables)
-  
-  errors <- lapply(variables, function(x){
-    
-    # Only some characteristicas must be filled according to its gear:
-    if(x %in% characteristic_to_check) {
-      gear_code <- gear_characteristics[gear_characteristics[["CARACTERISTICA"]]==x,]
-      error <- (df[ (df[[x]]=="" | is.na(df[[x]])) & df[["COD_ARTE"]]%in%gear_code[["COD_ARTE"]],])
-      error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
-    } else {
-      error <- (df[df[[x]]=="" | is.na(df[[x]]),])
-      if (nrow(error)>0){
-        error <- addTypeOfError(error, "ERROR: Variable ", x, " vac?a" )
-      }
-    }
-    
-    if (nrow(error) > 0){
-      # select only interested variables
-      if ("COD_LAMCE" %in% colnames(error)){
-        error <- error[, c(BASE_FIELDS, "COD_LANCE", "TIPO_ERROR")]
-      } else {
-        error <- error[, c(BASE_FIELDS, "TIPO_ERROR")]
-      }
-      #remove duplicated rows
-      error <- unique(error)
-    }
-    
-    error
-    
-  })
-  
-  errors <- Filter(function(x) nrow(x) > 0, errors)
-  
-  
-  if(length(errors) == 0){
-    return(NULL)
-  } else{
-    return (errors)
-  }
-  
-}
+
 
 ERRORS <- check_them_all()
 
@@ -321,15 +266,15 @@ print_pdf_graphic(filename, view_speed_outliers)
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
 # library(shiny)
 # runApp("speed", display.mode = "showcase")
-# ------------------------------------------------------------------------------    
+    
 # #### COMBINE ERRORS ##########################################################
-# ------------------------------------------------------------------------------
+
 
 combined_errors <- formatErrorsList()
 
-# ------------------------------------------------------------------------------
+
 # #### EXPORT ERRORS ###########################################################
-# ------------------------------------------------------------------------------
+
 
 # Uncomment the way to export errors:
 
