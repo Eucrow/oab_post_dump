@@ -21,24 +21,22 @@ library(googledrive)
 # #### LOAD DATASETS ###########################################################
 
 # TO DO: add this datasets in sapmuebase
+origen_OAB <- read.table("origenes_OAB.csv", header = T, sep = ";",
+                         colClasses = c("factor", "character"))
+estrato_rim_OAB <- read.table("estrato_rim_OAB.csv", header = T, sep = ";")
+puerto_OAB <- read.table("puerto_OAB.csv", header = T, sep = ";",
+                         colClasses = c("factor"))
+arte_OAB <- read.table("arte_OAB.csv", header = T, sep = ";",
+                         colClasses = c("factor", "character"))
+especies_a_medir_OAB <- read.table("especies_a_medir_OAB.csv", header = T, sep = ";",
+                         colClasses = c("factor"))
+especies_objetiVo_oab <- read.table("especies_objetivo_OAB.csv", header = T, sep = ";")
 
-# can't use importCsvSAPMUE() because I don't know why it uses ANSI instead of UTF-8
-origen_OAB <- importCsvSAPMUE("origenes_OAB.csv")
-origen_OAB <- read.table(file = "origenes_OAB.csv", head = TRUE, sep = ";", 
-                   fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
-estrato_rim_OAB <- read.table(file = "estrato_rim_OAB.csv", head = TRUE, sep = ";", 
-                         fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
-puerto_OAB <- read.table(file = "puerto_OAB.csv", head = TRUE, sep = ";", 
-                              fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor", "factor"))
-arte_OAB <- read.table(file = "arte_OAB.csv", head = TRUE, sep = ";", 
-                         fill = TRUE, fileEncoding = "UTF-8", colClasses = c("factor", "factor"))
-
-especies_a_medir_OAB <- importCsvSAPMUE("especies_a_medir_OAB.csv")
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/test"
-# PATH_FILES <- "C:/Users/Marco IEO/Desktop/revision_descartes/data/2019/test"
+PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/1_checking"
+# PATH_FILES <- "C:/Users/Marco IEO/Desktop/oab_post_dump/data/2019/1_checking"
 trips_file <- "IEODESMAREAMARCO.TXT"
 hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
@@ -46,15 +44,17 @@ lengths_file <- "IEODESTALLASMARCO.TXT"
 
 MONTH <- FALSE
 
-YEAR_DISCARD <- "2018"
+YEAR_DISCARD <- "2019"
 
-# only if the file must be uploaded to google drive
-GOOGLE_DRIVE_PATH <- "/equipo muestreos/revision_descartes/2019/"
+# Suffix_id is a suffix added to filenames when they are exported both xls and
+# google drive files
+suffix_id <- "1_check"
 
+# Only required if the file will be uploaded to google drive. It is the path
+# where in google drive will be saved.
+GOOGLE_DRIVE_PATH <- "/equipo muestreos/oab_post_dump/2019/errors/"
 
-
-# #### GLOBAL VARIABLES ########################################################
-
+# GLOBAL VARIABLES -------------------------------------------------------------
 
 # list with the common fields used in all tables
 BASE_FIELDS <- c("YEAR", "COD_MAREA")
@@ -65,26 +65,24 @@ ERRORS <- list()
 # path to the generated errors file
 PATH_ERRORS <- paste(PATH_FILES,"/errors", sep="")
 
-# dataset with target species by COD_OBJ_ESP
-TARGET_SPECIES <- read.csv("especies_objetivo.csv", sep=",")
-
 # month as character
-MONTH_AS_CHARACTER <- sprintf("%02d", MONTH)
+MONTH_AS_CHARACTER <- ifelse(isFALSE(MONTH), "", sprintf("%02d", MONTH))
 
+# names to export
+prefix_to_export <- "OAB"
+suffix_to_export <- paste(YEAR_DISCARD, MONTH_AS_CHARACTER, suffix_id, sep = "_")
 
 # #### SET WORKING DIRECTORY ###################################################
 
 
-# setwd("F:/misdoc/sap/revision_descartes/")
+# setwd("F:/misdoc/sap/oab_post_dump/")
 
 
 # #### FUNCTIONS ###############################################################
 
 # All the functions required in this script are located in the next files:
-source('revision_descartes_functions.R')
+source('oab_post_dump_functions.R')
 source('fix_import_files.R')
-
-
 
 # #### IMPORT DISCARDS FILES ###################################################
 
@@ -96,17 +94,19 @@ source('fix_import_files.R')
 # OAB_hauls <- discards_samples$hauls
 # OAB_catches <- discards_samples$catches
 # OAB_lengths <- discards_samples$lengths
+fix_import_files(paste0(PATH_FILES, "/", trips_file), "OAB_TRIPS")
+OAB_trips <- importOABTrips("IEODESMAREAMARCO_fixed.TXT", path = PATH_FILES)
 
-OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
 OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
+
 OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
-# OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
+
+OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
 
 subsample <- OAB_catches[which(OAB_catches$P_SUB_MUE_TOT != OAB_catches$P_MUE_DESCAR),]
 subsample$dif <- subsample$P_SUB_MUE_TOT - subsample$P_MUE_DESCAR
 
 # #### FILTER BY MONTH #########################################################
-
 
 # TO DO: change all the dates in the same format
 
@@ -230,12 +230,13 @@ check_them_all <- function(){
   ERR$reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
   
   # LENGTHS
-  #ERR$lengths_empty_fields <- check_empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
-  
-  #ERR$lengths_field_year <- check_field_year(OAB_lengths)
-  
-  #ERR$lengths_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_lengths)
-  # ERR$priority_species_without_lengths <- priority_species_without_lengths()
+  # next line: uncomment when remove the not mandatory fields in formato variables (see trello)
+  ERR$lengths_empty_fields <- check_empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
+
+  ERR$lengths_field_year <- check_field_year(OAB_lengths)
+
+  ERR$lengths_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_lengths)
+  ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
 
   
@@ -245,79 +246,28 @@ check_them_all <- function(){
 
 ERRORS <- check_them_all()
 
-# CHECK SPEED:
-print_pdf_graphic <- function(filename, func, ...){
-  
-  filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
-  
-  pdf(filename)
-  
-  g <- func(...)
-  
-  print(g)
-  
-  dev.off()
-}
 
-view_speed_outliers()
-filename <- paste("speed_outliers", YEAR_DISCARD,  MONTH_AS_CHARACTER, sep ="_")
-print_pdf_graphic(filename, view_speed_outliers)
-
-# PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
-# library(shiny)
-# runApp("speed", display.mode = "showcase")
     
-# #### COMBINE ERRORS ##########################################################
-
+# FORMAT ERRORS ----------------------------------------------------------------
 
 combined_errors <- formatErrorsList()
 
+errors <- separate_df_by_acronym(combined_errors)
 
-# #### EXPORT ERRORS ###########################################################
+# EXPORT ERRORS ----------------------------------------------------------------
 
-
-# Uncomment the way to export errors:
-
-combined_errors <-  list(errores = combined_errors)
-
+# Export to xls
 original_wd <- getwd()
+# TO DO: add the variable PATH_ERRORS to exportListToXlsx function
 setwd(PATH_ERRORS)
-exportListToXlsx(combined_errors, 
-                 suffix = paste("descartes", YEAR_DISCARD, MONTH_AS_CHARACTER, sep = "_"), 
+exportListToXlsx(errors, prefix = prefix_to_export,
+                 suffix = suffix_to_export, 
                  separation = "_")
 setwd(original_wd)
 
-
-# OAB_exportListToGoogleSheet <- function (list, prefix = "", suffix = "", separation = "") 
-# {
-#   if (!requireNamespace("googlesheets", quietly = TRUE)) {
-#     stop("Googlesheets package needed for this function to work. Please install it.", 
-#          call = FALSE)
-#   }
-#   lapply(seq_along(list), function(i) {
-# 
-#     if (is.data.frame(list[[i]])) {
-#       list_name <- names(list)[[i]]
-#       if (prefix != "") 
-#         prefix <- paste0(prefix, separation)
-#       if (suffix != "") 
-#         suffix <- paste0(separation, suffix)
-#       filename <- paste0(prefix, list_name, suffix, ".csv")
-#       googlesheets::gs_new(filename, ws_title = filename, 
-#                            input = list[[i]], trim = TRUE, verbose = FALSE)
-#     }
-#     else {
-#       return(paste("This isn't a dataframe"))
-#     }
-#   })
-# }
-# 
-# OAB_exportListToGoogleSheet(combined_errors, suffix = paste0("errors", "_", YEAR_DISCARD), separation = "_")
-
-
-# Export to google drive -------------------------------------------------------
+# Export to google drive 
 # Export the dataframes contained in a list to google drive
-exportListToGoogleSheet <- function(list, prefix = "", suffix = "", separation = ""){
+OAB_export_list_google_sheet <- function(list, prefix = "", suffix = "", separation = ""){
   
   #check if package openxlsx is instaled:
   if (!requireNamespace("googlesheets", quietly = TRUE)) {
@@ -353,12 +303,9 @@ exportListToGoogleSheet <- function(list, prefix = "", suffix = "", separation =
         na = "")
       
       # export to google drive
-      google_drive_path <- paste0(GOOGLE_DRIVE_PATH, list_name, "/")
-      
-      
       drive_upload(
         media = filename,
-        # path = google_drive_path,
+        path = GOOGLE_DRIVE_PATH,
         type = "spreadsheet"
       )
       
@@ -369,4 +316,31 @@ exportListToGoogleSheet <- function(list, prefix = "", suffix = "", separation =
   })
 }
 
-exportListToGoogleSheet(combined_errors, suffix = paste0("OAB", "_", YEAR_DISCARD), separation = "_")
+OAB_export_list_google_sheet(errors, prefix = prefix_to_export,
+                        suffix = suffix_to_export,
+                        separation = "_")
+
+
+
+# CHECK SPEED ------------------------------------------------------------------
+print_pdf_graphic <- function(filename, func, ...){
+  
+  filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
+  
+  pdf(filename)
+  
+  g <- func(...)
+  
+  print(g)
+  
+  dev.off()
+}
+
+view_speed_outliers()
+filename <- paste("speed_outliers", YEAR_DISCARD,  MONTH_AS_CHARACTER, sep ="_")
+print_pdf_graphic(filename, view_speed_outliers)
+
+# PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
+# library(shiny)
+# runApp("speed", display.mode = "showcase")
+

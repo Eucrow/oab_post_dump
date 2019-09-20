@@ -1,4 +1,3 @@
-#### ---------------------------------------------------------------------------
 #### Check discards from SIRENO
 ####
 #### author: Marco A. Amez Fernandez
@@ -7,8 +6,6 @@
 #### Functions file 
 ####
 #### Convention style guide: http://r-pkgs.had.co.nz/style.html
-####
-#### ---------------------------------------------------------------------------
 
 
 # Add variable with type of error to a dataframe -------------------------------
@@ -907,7 +904,7 @@ check_target_sp_with_catch <- function(){
     # function to get the possible ESP_OBJ according to COD_ESP in OAB_catches
     # return list with COD_ESP_OBJ
     get_cod_target_specie <- function(sp_code){
-      as.character(TARGET_SPECIES[TARGET_SPECIES$COD_ESP %in% sp_code,"COD_ESP_OBJ"])
+      as.character(especies_objetiVo_oab[especies_objetiVo_oab$COD_ESP %in% sp_code,"COD_ESP_OBJ"])
     }
     
     # function to check if a COD_ESP has its COD_ESP_OBJ according to the especies_objetivo master
@@ -975,7 +972,8 @@ sampled_discard_less_subsample_discard <- function(df){
   # usually the PESO_SUB_MUE_TOT is NA, so it is neccesary detect it.
   errors <- df[
     which( !is.na(df$P_SUB_MUE_TOT) & df$P_SUB_MUE_TOT > df$P_MUE_DESCAR),
-           c(BASE_FIELDS, "COD_ESP", "A3_ESP", "ESP", "P_SUB_MUE_TOT", "P_MUE_DESCAR")
+           c(BASE_FIELDS, "COD_LANCE", "COD_ESP", "A3_ESP", "ESP",
+             "P_SUB_MUE_TOT", "P_MUE_DESCAR")
     ]
   
   errors <- addTypeOfError(errors, "ERROR: sampled discard weight less than subsample discard weight.")
@@ -1059,40 +1057,38 @@ haul_sampled_with_empty_discard_weight <- function(){
 }
 
 # There are priority species without length sampled
-# Require the file especies_a_medir_OAB.csv
 priority_species_without_lengths <- function(){
   
   # get the list of priority species which must be measured
-  species_to_measure <- importCsvSAPMUE("especies_a_medir_OAB.csv")
-  species_to_measure <- species_to_measure[,"COD_ESP"]
+  species_to_measure <- especies_a_medir_OAB[,"COD_ESP"]
   
   # get Species With Catch which must be measured
   swc <- OAB_catches[which(OAB_catches[["COD_ESP"]]%in%species_to_measure),
-                     c("COD_MAREA", "COD_LANCE", "COD_ESP", "P_CAP")]
+                     c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_CAP")]
   swc <- unique(swc)
   
   # clean lengths
   lengths_clean <- OAB_lengths[, c("COD_MAREA", "COD_LANCE",
-                                   "COD_ESP", "EJEM_MEDIDOS")]
+                                   "COD_ESP", "ESP", "EJEM_MEDIDOS")]
   
   lengths_clean <- aggregate.data.frame(lengths_clean[, c("EJEM_MEDIDOS")],
                              by=list(lengths_clean$COD_MAREA,
                                      lengths_clean$COD_LANCE,
-                                     lengths_clean$COD_ESP),
+                                     lengths_clean$COD_ESP,
+                                     lengths_clean$ESP),
                              sum, na.rm=TRUE)
   
-  colnames(lengths_clean) <- c("COD_MAREA", "COD_LANCE", "COD_ESP", "EJEM_MEDIDOS")
+  colnames(lengths_clean) <- c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "EJEM_MEDIDOS")
 
   # create errors dataframe
   errors <- merge(swc, 
                   lengths_clean, 
-                  by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP"),
+                  by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP"),
                   all.x = TRUE)
   errors <- errors[which(errors$EJEM_MEDIDOS==0 |
                          is.na(errors$EJEM_MEDIDOS)),]
   
-  errors <- addTypeOfError(errors, "ERROR: priority species which hasn't been
-                           measured")
+  errors <- addTypeOfError(errors, "ERROR: priority species which hasn't been measured")
   
 }
 
@@ -1116,4 +1112,56 @@ target_species_metier_ieo <- function(){
   
   errors <- addTypeOfError(errors, "ERROR: the target species is not coherent with metier ieo.")
     
+}
+
+#' Get the different survey acronyms
+#' All the COD_MAREA of discards samples starts with an acronym. This function
+#' get all the acronyms available in a dataframe
+#' @param df dataframe with COD_MAREA variable
+#' @return character vector with the acronyms stored in df 
+get_base_acronyms <- function(df){
+  
+  base_acronym <- lapply(as.character(df[["COD_MAREA"]]), function(x){
+    
+    spl <- strsplit(x, "\\d")
+    
+    spl <- unlist(spl)
+    
+    return(spl[[1]])
+    
+  })
+  
+  base_acronym <- unique(base_acronym)
+  base_acronym <- unlist(base_acronym)
+  
+  return(base_acronym)
+}
+
+
+#' Separate a dataframe by base acronym.
+#' All the COD_MAREA of discards samples starts with an acronym. Whit this
+#' function, a dataframe is split by the base acronym and stored in a list.
+#' @param df dataframe to split. Df must contain variable "COD_MAREA"
+#' @return list of dataframes each of them named as its base acronym.
+separate_df_by_acronym <- function(df){
+  
+  try(variable_exists_in_df("COD_MAREA", df))
+  
+  acronyms <- get_base_acronyms(df)
+  
+  p <- lapply(acronyms, function(acro, df){
+    
+    df[["COD_MAREA"]] <- as.character(df[["COD_MAREA"]])
+    assign(acro, df[startsWith(df[["COD_MAREA"]], acro), ])
+    
+    return(get(acro))
+    
+    
+  }, df)
+  
+  
+  names(p) <- acronyms
+  
+  return(p)
+  
 }

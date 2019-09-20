@@ -22,12 +22,12 @@ split_line <- function(line){
 
 
 #' Fix error format of the files from SIRENO in the 'observations' variable.
-#' Sometimes in SIRENO, in 'observations' variable, a semicolor or a enter is
+#' Sometimes in SIRENO, in 'observations' variable, a semicolon or a enter is
 #' saved. When SIRENO generate the report files, the 'observations' variable is
-#' exported as is, with the semicolor and enter characteres. This means that
+#' exported as is, with the semicolon and enter characteres. This means that
 #' some lines of the file have more of the theorical number of variables (when
-#' observations variable have a semicolon inside) or less than the theorical.
-#' (when a enter character is in the observations variable of the previous row)
+#' observations variable have a semicolon inside) or less than the theorical
+#' (when a enter character is in the observations variable of the previous row).
 #' 
 #' This function check the number of variables and works as follow:
 #' - If the number of variables is the same of the theorical, there aren't any
@@ -38,7 +38,7 @@ split_line <- function(line){
 #' - When there are less variable than the theorical, we asume an enter has
 #' been saved in the observations variable of the previous row and after
 #' the enter there are more semicolons. The content of this row is added to the
-#' variable observation of the previous row and the ";" is changed to "." of
+#' variable observation of the previous row and the ";" is changed to ".".
 #' 
 #' @param filename Filename of the file to check.
 #' @param filetype Tipe of file: RIM_CATCHES, RIM_CATCHES_IN_LENGTHS,
@@ -48,11 +48,11 @@ split_line <- function(line){
 #' @return a file
 #' 
 #' @note Use this function carefully, if the format or the sireno reports
-#' changed can produce unexpected results
+#' changed can produce unexpected results. Furthermore, only is appropiate when
+#' the 'observations' field is the last one of the row.
 fix_import_files <- function(filename, filetype) {
   
   require(sapmuebase)
-  require(xtable)
   
   con <- file(filename, "r")
   
