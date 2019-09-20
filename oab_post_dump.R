@@ -94,7 +94,6 @@ source('fix_import_files.R')
 # OAB_hauls <- discards_samples$hauls
 # OAB_catches <- discards_samples$catches
 # OAB_lengths <- discards_samples$lengths
-fix_import_files(paste0(PATH_FILES, "/", trips_file), "OAB_TRIPS")
 OAB_trips <- importOABTrips("IEODESMAREAMARCO_fixed.TXT", path = PATH_FILES)
 
 OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
