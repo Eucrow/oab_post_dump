@@ -14,6 +14,7 @@ library(devtools)
 # remove.packages("sapmuebase")
 # .rs.restartR()
 # install("F:/misdoc/sap/sapmuebase")
+# install_github("Eucrow/sapmuebase")
 library(sapmuebase)
 
 library(googledrive)
@@ -35,8 +36,9 @@ especies_objetiVo_oab <- read.table("especies_objetivo_OAB.csv", header = T, sep
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/1_checking"
+# PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/1_checking"
 # PATH_FILES <- "C:/Users/Marco IEO/Desktop/oab_post_dump/data/2019/1_checking"
+PATH_FILES <- file.path(getwd(), "data/2019/1_checking")
 trips_file <- "IEODESMAREAMARCO.TXT"
 hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
@@ -82,7 +84,6 @@ suffix_to_export <- paste(YEAR_DISCARD, MONTH_AS_CHARACTER, suffix_id, sep = "_"
 
 # All the functions required in this script are located in the next files:
 source('oab_post_dump_functions.R')
-source('fix_import_files.R')
 
 # #### IMPORT DISCARDS FILES ###################################################
 
@@ -94,7 +95,7 @@ source('fix_import_files.R')
 # OAB_hauls <- discards_samples$hauls
 # OAB_catches <- discards_samples$catches
 # OAB_lengths <- discards_samples$lengths
-OAB_trips <- importOABTrips("IEODESMAREAMARCO_fixed.TXT", path = PATH_FILES)
+OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
 
 OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
 
