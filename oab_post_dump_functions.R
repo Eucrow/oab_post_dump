@@ -923,7 +923,7 @@ check_target_sp_with_catch <- function(){
     
     err <- catches_with_obj[catches_with_obj$co_sp_target==FALSE, ] 
     err <- err[, -which(names(err) %in% "co_sp_target")]
-    err <- addTypeOfError(err, "WARNING: la especie objetivo no coincide con la especie de mayor captura del lance")
+    err <- addTypeOfError(err, "WARNING: la especie objetivo no coincide con la especie de mayor captura del lance. Comprobar posible error de tecleo.")
     
     return(err)
   },
