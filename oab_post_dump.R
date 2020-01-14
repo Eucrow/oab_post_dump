@@ -39,7 +39,7 @@ YEAR_DISCARD <- 2019
 
 # Suffix_id is a suffix added to filenames when they are exported both xls and
 # google drive files
-suffix_id <- ""
+suffix_id <- "_test"
 
 # Only required if the file will be uploaded to google drive. It is the path
 # where in google drive will be saved.
@@ -79,6 +79,10 @@ metier_ieo_especie_objetivo_OAB <- importCsvSAPMUE("metier_ieo_especie_objetivo_
 duracion_mareas_OAB <- importCsvSAPMUE("duracion_mareas.txt")
 
 caracteristicas_lances <- importCsvSAPMUE("caracteristicas_lances.csv")
+
+origin_statistical_rectangle <- importCsvSAPMUE("origin_statistical_rectangle.csv")
+origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_rectangle$COD_ORIGEN)
+
 
 # GLOBAL VARIABLES -------------------------------------------------------------
 
@@ -222,6 +226,8 @@ check_them_all <- function(){
   ERR$hauls_speed <-  check_hauls_speed()
   
   ERR$hauls_depth <-  check_hauls_depth()
+  
+  ERR$coherence_origin_statistical_rectangle <- coherence_origin_statistical_rectangle()
   
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")

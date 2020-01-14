@@ -833,3 +833,36 @@ haul_sampled_with_empty_discard_weight <- function(){
   sampled_catches <- merge(OAB_catches, sampled_hauls, by=c("COD_MAREA", "COD"))
   
 }
+
+#' Check code: 2045
+#' Check the coherence between origin and statistical rectangle.
+#' The data is taken from the oab hauls dataset.
+#' @return Dataframe with errors.
+coherence_origin_statistical_rectangle <- function(){
+  
+  clean_hauls <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "LAT_VIR_CGS",
+                               "LON_VIR_CGS", "COD_ORIGEN", "CUADRICULA_ICES" )]
+  
+  origin_statistical_rectangle[["VALID"]] <- TRUE
+  
+  err <- merge(clean_hauls, origin_statistical_rectangle,
+               by.x = c("COD_ORIGEN", "CUADRICULA_ICES"),
+               by.y = c("COD_ORIGEN", "CUADRICULA_ICES"),
+               all.x = T )
+  
+  err <- err[is.na(err$VALID),]
+  
+  if (nrow(err) > 0){
+    
+    err <- addTypeOfError(err, "WARNING: Origin doesn't match with statistical rectangle according to master dataset.")
+    
+    err <- err[, c("COD_MAREA", "COD_LANCE", "COD_ORIGEN", "CUADRICULA_ICES",
+                   "TIPO_ERROR")]
+    
+    return(err)
+    
+  }
+  
+  
+}
+
