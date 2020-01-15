@@ -52,7 +52,7 @@ library(dplyr)
 library(devtools)
 # remove.packages("sapmuebase")
 # .rs.restartR()
-# install("F:/sap/sapmuebase")
+# install("F:/misdoc/sap/sapmuebase")
 # install_github("Eucrow/sapmuebase")
 library(sapmuebase)
 
@@ -125,6 +125,7 @@ OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
 OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
 
 OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
+
 
 
 # FILTER BY MONTH --------------------------------------------------------------
@@ -228,6 +229,8 @@ check_them_all <- function(){
   ERR$hauls_depth <-  check_hauls_depth()
   
   ERR$coherence_origin_statistical_rectangle <- coherence_origin_statistical_rectangle()
+  
+  ERR$haul_date_shooting_date <- haul_date_shooting_date()
   
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")

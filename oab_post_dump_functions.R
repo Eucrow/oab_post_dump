@@ -863,6 +863,21 @@ coherence_origin_statistical_rectangle <- function(){
     
   }
   
+}
+
+#' Check code: 2054
+#' Check if the haul date is different to shooting date
+#' @return Dataframe with errors.
+haul_date_shooting_date <- function(){
+  
+  err <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "FECHA_LAR", "FECHA_LANCE")]
+  err[["FECHA_LAR"]] <- as.POSIXct(err[["FECHA_LAR"]], format="%d/%m/%Y")
+  
+  err <- err[which (err[["FECHA_LAR"]] != err[["FECHA_LANCE"]]),]
+  
+  if (nrow(err) > 0){
+    err <- addTypeOfError(err, "ERROR: the haul date is different to the shooting date.")
+  }
   
 }
 
