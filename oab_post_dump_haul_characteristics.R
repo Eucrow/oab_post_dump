@@ -7,12 +7,16 @@
 #' @return Dataframe with erroneus data of every haul characterictics.
 check_hauls_duration <- function(){
   
-  OAB_hauls$DURACION <- OAB_hauls$FECHA_HORA_VIR - OAB_hauls$FECHA_HORA_LAR
+  # OAB_hauls$DURACION <- OAB_hauls$FECHA_HORA_VIR - OAB_hauls$FECHA_HORA_LAR
+  OAB_hauls$DURACION <- difftime(OAB_hauls$FECHA_HORA_VIR,
+                                 OAB_hauls$FECHA_HORA_LAR,
+                                 units = "mins")
   
-  df <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "DURACION")]
+  df <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "FECHA_HORA_LAR",
+                      "FECHA_HORA_VIR", "DURACION")]
   
   cl <- caracteristicas_lances[, c("METIER_IEO", "DURACION_MAX", "DURACION_MIN")]
-  
+
   errors <- merge(df, cl, by = "METIER_IEO", all.x = T)
   
   errors <- errors[which(errors[,"DURACION"] < errors[, "DURACION_MIN"] |
@@ -30,7 +34,9 @@ check_hauls_duration <- function(){
     
     errors <- as.data.frame(t(errors))
     
-    errors <- errors[,c("COD_MAREA", "METIER_IEO", "COD_LANCE", "DURACION", "TIPO_ERROR")]
+    errors <- errors[,c("COD_MAREA", "METIER_IEO", "COD_LANCE",
+                        "FECHA_HORA_LAR", "FECHA_HORA_VIR", "DURACION",
+                        "TIPO_ERROR")]
     
     return(errors)
     

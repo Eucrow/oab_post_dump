@@ -28,10 +28,11 @@
  
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAMARCO_SIN_ADRIAN.TXT"
-hauls_file <- "IEODESLANCEMARCO_SIN_ADRIAN.TXT"
-catches_file <- "IEODESCAPTURAMARCO_SIN_ADRIAN.TXT"
-lengths_file <- "IEODESTALLASMARCO_SIN_ADRIAN.TXT"
+trips_file <- "IEODESMAREAMARCO_CON_ADRIAN.TXT"
+hauls_file <- "IEODESLANCEMARCO_CON_ADRIAN.TXT"
+catches_file <- "IEODESCAPTURAMARCO_CON_ADRIAN.TXT"
+lengths_file <- "IEODESTALLASMARCO_CON_ADRIAN.TXT"
+litter_file <- "IEODESBASURASMARCO_CON_ADRIAN.TXT"
 
 MONTH <- 11
 
@@ -39,7 +40,7 @@ YEAR_DISCARD <- 2019
 
 # Suffix_id is a suffix added to filenames when they are exported both xls and
 # google drive files
-suffix_id <- "_test"
+suffix_id <- "_ADRIAN"
 
 # Only required if the file will be uploaded to google drive. It is the path
 # where in google drive will be saved.
@@ -112,7 +113,6 @@ suffix_to_export <- paste(YEAR_DISCARD, MONTH_AS_CHARACTER, suffix_id, sep = "_"
 
 # discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
                                     # path = PATH_FILES)
- 
 # OAB_trips <- discards_samples$trips
 # OAB_hauls <- discards_samples$hauls
 # OAB_catches <- discards_samples$catches
@@ -126,6 +126,8 @@ OAB_catches <- importOABCatches(catches_file, path = PATH_FILES)
 
 OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
 
+OAB_litter <- importOABLitter(litter_file, path = PATH_FILES)
+
 
 
 # FILTER BY MONTH --------------------------------------------------------------
@@ -133,6 +135,7 @@ OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
 OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH,]
 OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
 OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
+OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 
 # FILTER BY ACRONYM ------------------------------------------------------------
 
@@ -150,6 +153,14 @@ OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # OAB_trips <- OAB_trips[ grep("(DESIXA)(?!C)", OAB_trips$COD_MAREA, perl = T), ]
 # OAB_hauls <- OAB_hauls[ grep("(DESIXA)(?!C)", OAB_hauls$COD_MAREA, perl = T), ]
 # OAB_catches <- OAB_catches[ grep("(DESIXA)(?!C)", OAB_catches$COD_MAREA, perl = T), ]
+
+# FILTER BY OBSERVER -----------------------------------------------------------
+
+# ADRIAN
+OAB_trips <- OAB_trips[ which(OAB_trips[["NOMBRE_OBS"]] == "ADRIAN"), ]
+OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
+OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
+OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 
 # #### SEARCHING ERRORS ########################################################
 
@@ -212,7 +223,8 @@ check_them_all <- function(){
   
   ERR$hauls_possible_speed_outliers <- get_speed_outliers()
   
-  ERR$hauls_target_sp_with_catch <- coherence_target_sp_with_catch()
+  # Remove this check: maybe delete de master too?
+  #ERR$hauls_target_sp_with_catch <- coherence_target_sp_with_catch()
   
   ERR$hauls_coherence_target_species_metier_ieo <- coherence_target_species_metier_ieo()
   
@@ -353,7 +365,6 @@ OAB_export_list_google_sheet <- function(list, prefix = "", suffix = "", separat
 OAB_export_list_google_sheet(errors, prefix = prefix_to_export,
                         suffix = suffix_to_export,
                         separation = "_")
-
 
 
 # CHECK SPEED ------------------------------------------------------------------
