@@ -261,7 +261,7 @@ check_year_in_COD_MAREA <- function(df){
   
   errors <- errors %>%
             select(COD_MAREA, YEAR)%>%
-            addTypeOfError(paste("ERROR: el a?o del COD_MAREA en", errors.name, "no coincide con el a?o a comprobar"))
+            addTypeOfError(paste("ERROR: el año del COD_MAREA en", errors.name, "no coincide con el año a comprobar"))
   
   return(errors)
 }
@@ -880,4 +880,20 @@ haul_date_shooting_date <- function(){
   }
   
 }
+
+#' Check code: 2055
+#' Detect positive longitudes.
+#' @param var var to check (from the OAB_hauls dataframe)
+#' @return Dataframe with errors
+positive_longitude <- function(var){
+  
+  err <- OAB_hauls[OAB_hauls[[var]] > 0, c("COD_MAREA", "COD_LANCE", var)]
+  
+  err <- addTypeOfError(err, "ERROR: the longitude is positive.")
+  
+  return(err)
+  
+}
+
+
 

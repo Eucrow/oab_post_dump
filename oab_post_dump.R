@@ -33,14 +33,22 @@ hauls_file <- "IEODESLANCEMARCO_CON_ADRIAN.TXT"
 catches_file <- "IEODESCAPTURAMARCO_CON_ADRIAN.TXT"
 lengths_file <- "IEODESTALLASMARCO_CON_ADRIAN.TXT"
 litter_file <- "IEODESBASURASMARCO_CON_ADRIAN.TXT"
+accidentals_file <- "IEODESCAPTACCIDMARCO_CON_ADRIAN.TXT"
 
-MONTH <- 11
+trips_file <- "IEODESMAREAMARCO_SIN_ADRIAN.TXT"
+hauls_file <- "IEODESLANCEMARCO_SIN_ADRIAN.TXT"
+catches_file <- "IEODESCAPTURAMARCO_SIN_ADRIAN.TXT"
+lengths_file <- "IEODESTALLASMARCO_SIN_ADRIAN.TXT"
+litter_file <- "IEODESBASURASMARCO_SIN_ADRIAN.TXT"
+accidentals_file <- "IEODESCAPTACCIDMARCO_SIN_ADRIAN.TXT"
+
+MONTH <- 10
 
 YEAR_DISCARD <- 2019
 
 # Suffix_id is a suffix added to filenames when they are exported both xls and
 # google drive files
-suffix_id <- "_ADRIAN"
+suffix_id <- ""
 
 # Only required if the file will be uploaded to google drive. It is the path
 # where in google drive will be saved.
@@ -101,7 +109,6 @@ PATH_ERRORS <- file.path(PATH_FILES,"errors")
 # if the errors directory does not exists, create it:
 ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
 
-
 # month as character
 MONTH_AS_CHARACTER <- ifelse(isFALSE(MONTH), "", sprintf("%02d", MONTH))
 
@@ -112,12 +119,8 @@ suffix_to_export <- paste(YEAR_DISCARD, MONTH_AS_CHARACTER, suffix_id, sep = "_"
 # IMPORT DISCARDS FILES --------------------------------------------------------
 
 # discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
-                                    # path = PATH_FILES)
-# OAB_trips <- discards_samples$trips
-# OAB_hauls <- discards_samples$hauls
-# OAB_catches <- discards_samples$catches
-# OAB_lengths <- discards_samples$lengths
- 
+                                   # litter_file, accidentals_file, path = PATH_FILES)
+
 OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
 
 OAB_hauls <- importOABHauls(hauls_file, path = PATH_FILES)
@@ -128,7 +131,7 @@ OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
 
 OAB_litter <- importOABLitter(litter_file, path = PATH_FILES)
 
-
+OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 
 # FILTER BY MONTH --------------------------------------------------------------
 
@@ -157,10 +160,10 @@ OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # FILTER BY OBSERVER -----------------------------------------------------------
 
 # ADRIAN
-OAB_trips <- OAB_trips[ which(OAB_trips[["NOMBRE_OBS"]] == "ADRIAN"), ]
-OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
-OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
-OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+# OAB_trips <- OAB_trips[ which(OAB_trips[["NOMBRE_OBS"]] == "ADRIAN"), ]
+# OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
+# OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
+# OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 
 # #### SEARCHING ERRORS ########################################################
 
@@ -243,6 +246,10 @@ check_them_all <- function(){
   ERR$coherence_origin_statistical_rectangle <- coherence_origin_statistical_rectangle()
   
   ERR$haul_date_shooting_date <- haul_date_shooting_date()
+  
+  ERR$positive_longitude_shooting <- positive_longitude("LON_LAR_CGS")
+  
+  ERR$positive_longitude_hauling <- positive_longitude("LON_VIR_CGS")
   
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")
