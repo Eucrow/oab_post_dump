@@ -35,14 +35,14 @@ lengths_file <- "IEODESTALLASMARCO_CON_ADRIAN.TXT"
 litter_file <- "IEODESBASURASMARCO_CON_ADRIAN.TXT"
 accidentals_file <- "IEODESCAPTACCIDMARCO_CON_ADRIAN.TXT"
 
-trips_file <- "IEODESMAREAMARCO_SIN_ADRIAN.TXT"
-hauls_file <- "IEODESLANCEMARCO_SIN_ADRIAN.TXT"
-catches_file <- "IEODESCAPTURAMARCO_SIN_ADRIAN.TXT"
-lengths_file <- "IEODESTALLASMARCO_SIN_ADRIAN.TXT"
-litter_file <- "IEODESBASURASMARCO_SIN_ADRIAN.TXT"
-accidentals_file <- "IEODESCAPTACCIDMARCO_SIN_ADRIAN.TXT"
+# trips_file <- "IEODESMAREAMARCO_SIN_ADRIAN.TXT"
+# hauls_file <- "IEODESLANCEMARCO_SIN_ADRIAN.TXT"
+# catches_file <- "IEODESCAPTURAMARCO_SIN_ADRIAN.TXT"
+# lengths_file <- "IEODESTALLASMARCO_SIN_ADRIAN.TXT"
+# litter_file <- "IEODESBASURASMARCO_SIN_ADRIAN.TXT"
+# accidentals_file <- "IEODESCAPTACCIDMARCO_SIN_ADRIAN.TXT"
 
-MONTH <- 10
+MONTH <- 11
 
 YEAR_DISCARD <- 2019
 
@@ -139,6 +139,7 @@ OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH,]
 OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
 OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
 OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+
 
 # FILTER BY ACRONYM ------------------------------------------------------------
 
@@ -289,6 +290,9 @@ check_them_all <- function(){
   ERR$lengths_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_lengths)
   
   ERR$priority_species_without_lengths <- priority_species_without_lengths()
+  
+  # LITTER
+  ERR$litter_sample <- litterSample()
   
   # MIXED
   ERR$errors_date_hauls_in_date_interval_trips <- date_hauls_in_date_interval_trips(OAB_trips, OAB_hauls)

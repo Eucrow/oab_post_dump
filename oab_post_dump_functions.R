@@ -895,5 +895,24 @@ positive_longitude <- function(var){
   
 }
 
-
+#' check code: 2056
+#' The variables SOLO_MUESTRA or PORCENTAJE_OBSERVADO must be filled in this
+#' way:
+#' - When SOLO_MUESTRA is True, PORCENTAJE_OBSERVADO must be NA (or 0). If SOLO_MUESTRA
+#' is False, PORCENTAJE_OBSERVADO must be greather than 0.
+#' @return dataframe with errors
+litter_sample <- function(){
+  
+  err <- OAB_litter[
+    which( (OAB_litter[["SOLO_MUESTRA"]] == FALSE & is.na(OAB_litter[["PORCENTAJE_OBSERVADO"]])) |
+             (OAB_litter[["SOLO_MUESTRA"]] == TRUE & OAB_litter[["PORCENTAJE_OBSERVADO"]]>0)) ,
+    c("COD_MAREA", "COD_LANCE", "SOLO_MUESTRA", "PORCENTAJE_OBSERVADO")]
+  
+  err <- unique(err)
+  
+  err <- addTypeOfError(err, "ERROR: If SOLO_MUESTRA is TRUE, PORCENTAJE_OBSERVADO must be empty. If SOLO_MUESTRA is FALSE, PORCENTAJE_OBSERVADO must be greather than 0.")
+  
+  return(err)
+  
+}
 
