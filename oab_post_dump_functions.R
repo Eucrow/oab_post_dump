@@ -7,23 +7,6 @@
 ####
 #### Convention style guide: http://r-pkgs.had.co.nz/style.html
 
-#' Check code: 2001
-#' Discarded weight less than sampled discarded weight.
-#' @return dataframe with errors.
-discarded_weight_less_than_sampled_discarded_weight <- function(){
-  
-  OAB_catches[["P_DESCAR"]] <- round(OAB_catches[["P_DESCAR"]], 2)
-  OAB_catches[["P_MUE_DESCAR"]] <- round(OAB_catches[["P_MUE_DESCAR"]], 2)
-  
-  err <- OAB_catches %>%
-    select(COD_MAREA, COD_LANCE, COD_ESP, CATEGORIA, P_DESCAR, P_MUE_DESCAR) %>%
-    filter(P_DESCAR < P_MUE_DESCAR) %>%
-    addTypeOfError("ERROR: peso descartado menor que peso descartado muestreado.")
-  
-  return(err)
-  
-}
-
 #' Check code: 2002
 #' Retained weight less than sampled retained weight.
 #' 
@@ -504,7 +487,7 @@ retained_sampled_weight_when_specimens_retained <- function(df_catches){
     df_catches[["EJEM_RET"]] > 0 &
       (df_catches[["P_MUE_RET"]] <= 0 |
          is.na(df_catches[["P_MUE_RET"]]))),
-    c("COD_MAREA", "COD_ESP", "A3_ESP", "ESP", "EJEM_RET", "P_MUE_RET")
+    c("COD_MAREA", "COD_LANCE", "COD_ESP", "A3_ESP", "ESP", "EJEM_RET", "P_MUE_RET")
     ]
   
   errors <- addTypeOfError(errors, "ERROR: there are specimens retained without retained sampled weight.")
@@ -568,15 +551,18 @@ coherence_target_species_metier_ieo <- function(){
 }
 
 #' Check code: 2024
-#' Total discard weight less than subsample discard weight.
-total_discard_less_subsample_discard <- function(df){
+#' Total discarded weight less than sampled discard weight.
+discarded_weight_less_than_sampled_discarded_weight <- function(df){ 
+  
+  df[["P_DESCAR"]] <- round(df[["P_DESCAR"]], 2)
+  df[["P_MUE_DESCAR"]] <- round(df[["P_MUE_DESCAR"]], 2)
   
   errors <- df[
     df$P_DESCAR < df$P_MUE_DESCAR,
-    c("COD_MAREA", "COD_ESP", "A3_ESP", "ESP", "P_DESCAR", "P_MUE_DESCAR")
+    c("COD_MAREA", "COD_ESP", "ESP", "P_DESCAR", "P_MUE_DESCAR")
     ]
   
-  errors <- addTypeOfError(errors, "ERROR: total discard weight less than subsample discard weight.")
+  errors <- addTypeOfError(errors, "ERROR: total discarded weight less than sampled discard weight.")
   
 }
 
@@ -793,7 +779,7 @@ trip_duration <- function(){
     merge(, y = trip_hauls, all.x = T) %>%
     filter(duration_trip > DURACION_MAX) %>%
     mutate(duration_trip = round(duration_trip, 0)) %>%
-    addTypeOfError("WARNING: Duración de la marea excesivamente larga. Habría que comprobar las fechas y horas de largado y de virado de los lances.")
+    addTypeOfError("WARNING: Haul duration too long. You should check the date and time of the shoot and hauling.")
   
   # TO DO: find the haul with the erroneus date and return it 
   # duration_p95 <- OAB_hauls %>%
@@ -876,7 +862,7 @@ haul_date_shooting_date <- function(){
   err <- err[which (err[["FECHA_LAR"]] != err[["FECHA_LANCE"]]),]
   
   if (nrow(err) > 0){
-    err <- addTypeOfError(err, "ERROR: the haul date is different to the shooting date.")
+    err <- addTypeOfError(err, "ERROR: the date of the haul is different to the shooting date.")
   }
   
 }
@@ -889,11 +875,18 @@ positive_longitude <- function(var){
   
   err <- OAB_hauls[OAB_hauls[[var]] > 0, c("COD_MAREA", "COD_LANCE", var)]
   
-  err <- addTypeOfError(err, "ERROR: the longitude is positive.")
+  # ignore when var contain a NA. There are other check to detect if the
+  # variable is empty
+  err <- err[!is.na(err[[var]]),]
+  
+  if( nrow(err) > 0){
+    err <- addTypeOfError(err, "ERROR: the longitude is positive.")
+  }
   
   return(err)
   
 }
+
 
 #' check code: 2056
 #' The variables SOLO_MUESTRA or PORCENTAJE_OBSERVADO must be filled in this
@@ -916,3 +909,28 @@ litter_sample <- function(){
   
 }
 
+#' check code: 2058
+#' Fix total weight discarded in not measured hauls.
+#' When a haul is not measured, the total weight discarded must be empty (and
+#' not 0)
+#' @return dataframe with errors
+zero_discarded_weights_in_not_measured_haul <- function(){
+  
+  if (!variable_exists_in_df("MUESTREADO", OAB_hauls) ||
+      !variable_exists_in_df("P_TOT_DESCAR", OAB_hauls)){
+    
+    stop("The variable 'muestreado' and 'peso descarte' must exists in hauls
+    dataframe")
+    
+  }
+  
+  err <- OAB_hauls[which(OAB_hauls[["MUESTREADO"]] == FALSE &
+                           OAB_hauls[["P_TOT_DESCAR"]] >= 0),]
+  
+  err <- err[, c("COD_MAREA", "COD_LANCE", "MUESTREADO", "P_TOT_DESCAR")]
+  
+  err <- addTypeOfError(err, "ERROR: Total weight discarded must be empty when the haul is not measured.")
+  
+  return(err)  
+  
+}

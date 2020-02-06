@@ -108,7 +108,7 @@ check_hauls_depth <- function(){
     
     errors <- apply(errors, 1, function(x){
       
-      x[["TIPO_ERROR"]] <- paste0("WARNING: duration of haul out of range according to master (", x[["PROFUNDIDAD_MIN"]], " - " , x[["PROFUNDIDAD_MAX"]], ")")
+      x[["TIPO_ERROR"]] <- paste0("WARNING: depth of haul out of range according to master (", x[["PROFUNDIDAD_MIN"]], " - " , x[["PROFUNDIDAD_MAX"]], ")")
       
       return(x)
       

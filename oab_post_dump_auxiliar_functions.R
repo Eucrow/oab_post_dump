@@ -89,7 +89,7 @@ dby_to_dmy_date_format <- function (dates){
 #' Check code: NONE, is called by other function
 #' Check whether a date match with a given day, month and year.
 #' If dd, mm or yyyy are ommited the function check the variable given.
-#' @param x: date to check. Must be with the spanish format: dd/mm/yyyy
+#' @param x: date to check. Must have this format: dd/mm/yyyy
 #' @param dd: day
 #' @param mm: month
 #' @param yyyy: year
