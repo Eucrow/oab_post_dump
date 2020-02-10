@@ -903,7 +903,7 @@ litter_sample <- function(){
   
   err <- unique(err)
   
-  err <- addTypeOfError(err, "ERROR: If SOLO_MUESTRA is TRUE, PORCENTAJE_OBSERVADO must be empty. If SOLO_MUESTRA is FALSE, PORCENTAJE_OBSERVADO must be greather than 0.")
+  err <- addTypeOfError(err, "ERROR: If SOLO_MUESTRA is TRUE PORCENTAJE_OBSERVADO must be empty. If SOLO_MUESTRA is FALSE PORCENTAJE_OBSERVADO must be greather than 0.")
   
   return(err)
   

@@ -77,6 +77,10 @@ check_hauls_speed <- function(){
     
     errors <- errors[,c("COD_MAREA", "METIER_IEO", "COD_LANCE", "VELOCIDAD", "TIPO_ERROR")]
     
+    # all the errors variables are factor so, to avoid errors in decimal
+    # conversion, it must be converted to numeric:
+    errors[["VELOCIDAD"]] <- as.numeric(as.character(errors[["VELOCIDAD"]]))
+    
     return(errors)
     
   }

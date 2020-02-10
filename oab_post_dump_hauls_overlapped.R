@@ -15,12 +15,12 @@ hauls_overlap <- function(df, group_info){
     
     if(is.na(x[["FECHA_HORA_VIR_PREVIOUS_HAUL"]]) == FALSE &&
       x[["FECHA_HORA_LAR"]] < x[["FECHA_HORA_VIR_PREVIOUS_HAUL"]]) {
-      x[["TIPO_ERROR"]] <- "ERROR: setting time before hauling time of previous haul, so the haul overlaps in time with another in the same trip."
+      x[["TIPO_ERROR"]] <- "ERROR: setting time before hauling time of previous haul so the haul overlaps in time with another in the same trip."
     }
     
     if(is.na(x[["FECHA_HORA_LAR_NEXT_HAUL"]]) == FALSE &&
        x[["FECHA_HORA_VIR"]] > x[["FECHA_HORA_LAR_NEXT_HAUL"]]) {
-       x[["TIPO_ERROR"]] <- "ERROR: hauling time after setting time of next haul, so the haul overlaps in time with another in the same trip."
+       x[["TIPO_ERROR"]] <- "ERROR: hauling time after setting time of next haul so the haul overlaps in time with another in the same trip."
 
     }
     

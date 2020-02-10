@@ -28,11 +28,11 @@
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 trips_file <- "IEODESMAREAMARCO.TXT"
-hauls_file <- "IEODESLANCEMARCO_fixed.TXT"
-catches_file <- "IEODESCAPTURAMARCO.TXT"
-lengths_file <- "TALLAS_OAB_ICES_2019.TXT"
-litter_file <- "IEODESBASURASMARCO.TXT"
-accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
+hauls_file <- "IEODESLANCEMARCO.TXT"
+catches_file <- "IEODESCAPTURACSIRENO.TXT"
+lengths_file <- "TALLAS_OAB_ICES_2019_V3.TXT"
+litter_file <- "IEODESBASURASSIRENO.TXT"
+accidentals_file <- "IEODESCAPTACCIDSIRENO.TXT"
 
 # trips_file <- "IEODESMAREAMARCO_SIN_ADRIAN.TXT"
 # hauls_file <- "IEODESLANCEMARCO_SIN_ADRIAN.TXT"
@@ -48,7 +48,7 @@ YEAR_DISCARD <- 2019
 
 # Suffix_id is a suffix added to filenames when they are exported both xls and
 # google drive files
-suffix_id <- "annual"
+suffix_id <- "annual_2"
 
 # Only required if the file will be uploaded to google drive. It is the path
 # where in google drive will be saved.

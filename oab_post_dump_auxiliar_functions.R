@@ -86,7 +86,7 @@ dby_to_dmy_date_format <- function (dates){
   return(dates)
 }
 
-#' Check code: NONE, is called by other function
+#' Check code: NONE, is called by other functions
 #' Check whether a date match with a given day, month and year.
 #' If dd, mm or yyyy are ommited the function check the variable given.
 #' @param x: date to check. Must have this format: dd/mm/yyyy
@@ -99,19 +99,33 @@ compare_day_month_year_date <- function(x, day, month, year){
   
   tryCatch({
     
-    x <- as.POSIXlt(x, format="%d/%m/%Y") # Date-times known to be invalid will be returned as NA.
-    
-    #check if the date has the correct format
-    if( is.na( x ) ) stop( paste0("Error in date format. Be sure the format is day/month/year: ", x), call. = F)
-    
-    #check if day, month and year match with x
-    if ((!missing(day) && (x$mday != day)) || 
-        (!missing(month) && (x$mon+1 != month)) ||
-        (!missing(year) && (x$year+1900 != year))) {
-      return(FALSE) 
+    if( is.na(x) ){
+      
+      # detect if x is saved in dataframe as NA
+      warning("There is a empty date")
+      return (FALSE)
+      
+    } else {
+      
+      x <- as.POSIXlt(x, format="%d/%m/%Y") # Date-times known to be invalid will be returned as NA.
+      
+      #check if the date has the correct format
+      if( is.na( x ) ){
+        stop( paste0("Error in date format. Be sure the format is day/month/year: ", x), call. = F)      
+      } 
+      
+      #check if day, month and year match with x
+      if ((!missing(day) && (x$mday != day)) || 
+          (!missing(month) && (x$mon+1 != month)) ||
+          (!missing(year) && (x$year+1900 != year))) {
+        return(FALSE) 
+      }
+      
+      return(TRUE)
+      
     }
     
-    return(TRUE)
+
   })
 }
 
