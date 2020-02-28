@@ -291,6 +291,8 @@ check_them_all <- function(){
   
   ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
+  ERR$size_range <- checkSizeRangeOAB()
+  
   # LITTER
   ERR$litter_sample <- litterSample()
   

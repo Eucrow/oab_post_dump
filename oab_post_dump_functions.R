@@ -910,7 +910,7 @@ litter_sample <- function(){
 }
 
 #' check code: 2058
-#' Fix total weight discarded in not measured hauls.
+#' Total weight discarded in not measured hauls.
 #' When a haul is not measured, the total weight discarded must be empty (and
 #' not 0)
 #' @return dataframe with errors
@@ -934,3 +934,53 @@ zero_discarded_weights_in_not_measured_haul <- function(){
   return(err)  
   
 }
+
+#' check code:2001
+#' Check the size range of species with the rango_tallas_historico dataset.
+#' To avoid an overhelming number of warnings, the maximum length by species and
+#' sex is increased in a 20% and the minimun length is decreased in a 20%
+#' @return dataframe with warnings lengths
+checkSizeRangeOAB<- function (){
+  
+  # increase range of historical dataset
+  increased_range <- rango_tallas_historico_OAB
+  
+  increased_range$TALLA_MAX <- increased_range$TALLA_MAX + (20*increased_range$TALLA_MAX/100)
+  increased_range$TALLA_MIN <- increased_range$TALLA_MIN - (20*increased_range$TALLA_MIN/100)
+  increased_range$TALLA_MIN <- ifelse(increased_range$TALLA_MIN < 0, 0, increased_range$TALLA_MIN)
+  
+  # detect warnings
+  warningsIsRanged <- OAB_lengths%>%
+    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, SEXO, TALLA)%>%
+    merge(y = increased_range, by.x = c("COD_ESP", "SEXO"), by.y = c("COD_ESP", "SEXO"), all.x = T)%>%
+    filter(is.na(TALLA_MIN) | is.na((TALLA_MAX)))%>%
+    unique()%>%
+    addTypeOfError("WARNING: esta especie con ese sexo no se encuentra en el maestro histórico de tallas mínimas y máximas por estrato rim. Por lo tanto habría que comprobar manualmente que el tamaño es coherente.")%>%
+    select(-c(TALLA_MIN, TALLA_MAX))
+  
+  warningsOutOfRangeCatched <- OAB_lengths %>%
+    filter(TIPO_CAPTURA == "C") %>%
+    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, SEXO, TALLA)%>%
+    merge(y = increased_range, by.x = c("COD_ESP", "SEXO"), by.y = c("COD_ESP", "SEXO"), all.x = T)%>%
+    filter(TALLA < TALLA_MIN | TALLA > TALLA_MAX)%>%
+    # it's not possible use addTypeOfError here, I don't know why
+    mutate(TIPO_ERROR = paste("WARNING: Talla fuera del rango histórico de tallas (para ese sexo):", TALLA_MIN, "-", TALLA_MAX))%>%
+    select(-c(TALLA_MIN, TALLA_MAX))
+  
+  warningsOutOfRangeDiscarded <- OAB_lengths %>%
+    filter(TIPO_CAPTURA == "D") %>%
+    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, SEXO, TALLA)%>%
+    merge(y = increased_range, by.x = c("COD_ESP", "SEXO"), by.y = c("COD_ESP", "SEXO"), all.x = T)%>%
+    filter(TALLA > TALLA_MAX)%>%
+    # it's not possible use addTypeOfError here, I don't know why
+    mutate(TIPO_ERROR = paste("WARNING: Talla máxima fuera del rango histórico de tallas (para ese sexo):", TALLA_MAX))%>%
+    select(-c(TALLA_MIN, TALLA_MAX))
+  
+  # warnings <- rbind(warningsIsRanged, warningsOutOfRangeCatched)
+  warnings <- merge(warningsIsRanged, warningsOutOfRangeCatched, all = T)
+  warnings <- merge(warnings, warningsOutOfRangeDiscarded, all = T)
+  
+  return(warnings)
+  
+}
+

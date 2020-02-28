@@ -185,12 +185,7 @@ OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 check_them_all <- function(){
   
   ERR <- list()
-  
-  # ALLTOGETHER
-  # ERR$all_empty_fields_in_variable <- empty_fields_in_variables()
-  # ppp <- check_empty_variables()
-  # ppp_number <- as.data.frame(table(ppp$TIPO_ERROR))
-  
+
   # TRIPS
   ERR$trips_origen <- check_variable_with_master(OAB_trips, "COD_ORIGEN")
   
@@ -303,6 +298,8 @@ check_them_all <- function(){
   ERR$lengths_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_lengths)
   
   ERR$priority_species_without_lengths <- priority_species_without_lengths()
+  
+  ERR$size_range <- checkSizeRangeOAB()
   
   # LITTER
   ERR$litter_sample <- litter_sample()
