@@ -89,6 +89,8 @@ duracion_mareas_OAB <- importCsvSAPMUE("duracion_mareas.txt")
 
 caracteristicas_lances <- importCsvSAPMUE("caracteristicas_lances.csv")
 
+not_allowed_species_measured <- importCsvSAPMUE("not_allowed_species_measured.csv")
+
 origin_statistical_rectangle <- importCsvSAPMUE("origin_statistical_rectangle.csv")
 origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_rectangle$COD_ORIGEN)
 
@@ -290,6 +292,12 @@ check_them_all <- function(){
   
   ERR$reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
   
+  ERR$doubtful_category_species <- doubtfulCategorySpecies()
+  
+  ERR$species_not_allowed <- species_not_allowed()
+
+  ERR$doubtfull_sp_number_specimens <- doubtfull_sp_number_specimens()
+  
   # LENGTHS
   ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
   
@@ -299,7 +307,9 @@ check_them_all <- function(){
   
   ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
-  ERR$size_range <- checkSizeRangeOAB()
+  ERR$size_range <- check_size_range_OAB()
+  
+  ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
   
   # LITTER
   ERR$litter_sample <- litter_sample()

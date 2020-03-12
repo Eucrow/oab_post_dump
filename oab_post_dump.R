@@ -89,6 +89,8 @@ duracion_mareas_OAB <- importCsvSAPMUE("duracion_mareas.txt")
 
 caracteristicas_lances <- importCsvSAPMUE("caracteristicas_lances.csv")
 
+not_allowed_species_measured <- importCsvSAPMUE("not_allowed_species_measured.csv")
+
 origin_statistical_rectangle <- importCsvSAPMUE("origin_statistical_rectangle.csv")
 origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_rectangle$COD_ORIGEN)
 
@@ -267,8 +269,7 @@ check_them_all <- function(){
   
   ERR$retained_catch_less_than_sampled_retained_catch <- retained_catch_less_than_sampled_retained_catch()
   
-  ERR$discarded_weight_less_than_sampled_discarded_weight<- discarded_weight_less_than_sampled_discarded_weight()
-
+  ERR$discarded_weight_less_than_sampled_discarded_weight<- discarded_weight_less_than_sampled_discarded_weight(OAB_catches)
   
   ERR$total_discard_less_subsample_discard <- total_discard_less_subsample_discard(OAB_catches)
   
@@ -282,6 +283,10 @@ check_them_all <- function(){
   
   ERR$reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
   
+  ERR$doubtfull_sp_number_specimens <- doubtfull_sp_number_specimens()
+  
+  ERR$discarded_weigh_of_grouped_species <- discarded_weigh_of_grouped_species()
+  
   # LENGTHS
   ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
 
@@ -291,7 +296,9 @@ check_them_all <- function(){
   
   ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
-  ERR$size_range <- checkSizeRangeOAB()
+  ERR$size_range <- check_size_range_OAB()
+  
+  ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
   
   # LITTER
   ERR$litter_sample <- litterSample()

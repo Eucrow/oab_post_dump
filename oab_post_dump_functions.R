@@ -940,7 +940,7 @@ zero_discarded_weights_in_not_measured_haul <- function(){
 #' To avoid an overhelming number of warnings, the maximum length by species and
 #' sex is increased in a 20% and the minimun length is decreased in a 20%
 #' @return dataframe with warnings lengths
-checkSizeRangeOAB<- function (){
+check_size_range_OAB<- function (){
   
   # increase range of historical dataset
   increased_range <- rango_tallas_historico_OAB
@@ -980,7 +980,117 @@ checkSizeRangeOAB<- function (){
   warnings <- merge(warningsIsRanged, warningsOutOfRangeCatched, all = T)
   warnings <- merge(warnings, warningsOutOfRangeDiscarded, all = T)
   
-  return(warnings)
+  if (nrow(warnings)>0){
+    return(warnings) 
+  }
   
 }
 
+#' check code: 2059
+#' Search not allowed species. This species are spp
+#' species, which are stored in not_allowed_species_measured.csv file.
+#' The file must be previously loaded to run this function.
+#' @return dataframe with warnings.
+species_not_allowed <- function(){
+  
+  OAB_catches_clean <- OAB_catches[, c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP")]
+  
+  not_allowed_species <- not_allowed_species_measured[, "COD_ESP"]
+  
+  errors <- OAB_catches_clean[OAB_catches_clean[["COD_ESP"]] %in% not_allowed_species, ]
+  
+  errors <- errors[, c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP")]
+  
+  errors <- addTypeOfError(errors, "WARNING: not allowed species (usually 'spp' species.)")
+  
+  if (nrow(errors)>0){
+    return(errors) 
+  }
+  
+}
+
+
+#' check code:2060
+#' Search records of not allowed taxons with lengths.
+#' The not allowed species are spp, order or family taxons.
+#' @return dataframe with errors.
+lenghts_not_allowed_taxons <- function(){
+  
+  OAB_lengths_clean <- OAB_lengths[, c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "TALLA", "EJEM_MEDIDOS")]
+  
+  OAB_lengths_clean <- OAB_lengths_clean[OAB_lengths_clean[["EJEM_MEDIDOS"]] > 0, ]
+  
+  #create a dataframe with species not allowed
+  # by sufixes
+  to_check <- grep("(.+(formes$))|(.+(spp$))|(.+(sp$))|(.+(dae$))", OAB_lengths_clean$ESP)
+  # . = any single character
+  # + = one of more of previous
+  # | = or
+  
+  errors <- OAB_lengths_clean[to_check,]
+  
+  # sum all the lengths by trip, species and haul
+  errors <- errors %>%
+    group_by(COD_MAREA, COD_LANCE, COD_ESP, ESP) %>%
+    summarise(sum_ejem_medidos = sum(TALLA, na.rm = T))
+
+  errors <- addTypeOfError(errors, "ERROR: not allowed species with lengths measured.")
+  
+  if (nrow(errors)>0){
+    return(as.data.frame(errors)) 
+  }
+
+}
+
+
+#' check code: 2061
+#' Search not allowed species with retained or discarded catches but
+#' number of specimens as zero.
+#' The not allowed species are spp, order or family taxons.
+#' @return dataframe with errors.
+doubtfull_sp_number_specimens <- function(){
+  
+  OAB_catches_clean <- OAB_catches[, c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_RET", "P_DESCAR", "EJEM_RET", "EJEM_DESCAR")]
+
+  # create a dataframe with species not allowed
+  # by sufixes
+  to_check_genus <- grep("(.+(formes$))|(.+(spp$))|(.+(sp$))|(.+(dae$))", OAB_catches_clean$ESP)
+  # . = any single character
+  # + = one of more of previous
+  # | = or
+  
+  # get specimens of not allowed species
+  specimens_n_a <- OAB_catches_clean[to_check_genus,]
+
+  specimens_n_a_ret <- specimens_n_a[which(specimens_n_a[["P_RET"]] > 0 &
+                  specimens_n_a[["EJEM_RET"]] == 0), ]
+  specimens_n_a_ret <- addTypeOfError(specimens_n_a_ret, "WARNING: This species has retained weight but doesn't have number of retained specimens.")
+  
+  specimens_n_a_dis <- specimens_n_a[which(specimens_n_a[["P_DESCAR"]] > 0 &
+                  specimens_n_a[["EJEM_DESCAR"]] == 0), ]
+  specimens_n_a_dis <- addTypeOfError(specimens_n_a_dis, "WARNING: This species has discarded weight but doesn't have number of discarded specimens.")  
+  
+  errors <- rbind(specimens_n_a_ret, specimens_n_a_dis)
+
+  if (nrow(errors) > 0){
+    return(errors)
+  }  
+}
+
+
+#' check code: 2063
+#' Discarded weight of grouped species.
+#' Grouped species are only allowed in retained catches, not in discarded catches.
+#' Therefore, can't be a discarded weight of gropued species.
+#' @return dataframe with errors.
+discarded_weigh_of_grouped_species <- function(){
+  
+  to_check <- grep("(.+(formes$))|(.+(spp$))|(.+(sp$))|(.+(dae$))", OAB_catches$ESP)
+  
+  err <- OAB_catches[to_check, c("COD_MAREA", "COD_LANCE", "ESP", "P_DESCAR")]
+  
+  err <- err[err[["P_DESCAR"]]>0, ]
+  
+  err <- addTypeOfError(err, "WARNING: discarded weight of a grouped species (only retained weights are allowed to have grouped species.")
+  
+}
