@@ -269,10 +269,8 @@ check_them_all <- function(){
   
   ERR$retained_catch_less_than_sampled_retained_catch <- retained_catch_less_than_sampled_retained_catch()
   
-  ERR$discarded_weight_less_than_sampled_discarded_weight<- discarded_weight_less_than_sampled_discarded_weight(OAB_catches)
-  
-  ERR$total_discard_less_subsample_discard <- total_discard_less_subsample_discard(OAB_catches)
-  
+  ERR$discarded_weight_less_than_sampled_discarded_weight <- discarded_weight_less_than_sampled_discarded_weight(OAB_catches)
+
   ERR$sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
   
   ERR$retained_sampled_weight_when_specimens_retained <- retained_sampled_weight_when_specimens_retained(OAB_catches)
@@ -284,6 +282,8 @@ check_them_all <- function(){
   ERR$reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
   
   ERR$doubtfull_sp_number_specimens <- doubtfull_sp_number_specimens()
+  
+  ERR$species_not_allowed <- species_not_allowed()
   
   ERR$discarded_weigh_of_grouped_species <- discarded_weigh_of_grouped_species()
   

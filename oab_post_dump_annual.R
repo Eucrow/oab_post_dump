@@ -292,11 +292,11 @@ check_them_all <- function(){
   
   ERR$reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
   
-  ERR$doubtful_category_species <- doubtfulCategorySpecies()
+  ERR$doubtfull_sp_number_specimens <- doubtfull_sp_number_specimens()
   
   ERR$species_not_allowed <- species_not_allowed()
 
-  ERR$doubtfull_sp_number_specimens <- doubtfull_sp_number_specimens()
+  ERR$discarded_weigh_of_grouped_species <- discarded_weigh_of_grouped_species()
   
   # LENGTHS
   ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
