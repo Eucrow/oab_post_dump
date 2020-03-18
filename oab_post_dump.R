@@ -301,7 +301,7 @@ check_them_all <- function(){
   ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
   
   # LITTER
-  ERR$litter_sample <- litterSample()
+  ERR$litter_sample <- litter_sample()
   
   # MIXED
   ERR$errors_date_hauls_in_date_interval_trips <- date_hauls_in_date_interval_trips(OAB_trips, OAB_hauls)
