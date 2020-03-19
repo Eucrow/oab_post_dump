@@ -28,12 +28,12 @@
  
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAMARCO_CON_ADRIAN.TXT"
-hauls_file <- "IEODESLANCEMARCO_CON_ADRIAN.TXT"
-catches_file <- "IEODESCAPTURAMARCO_CON_ADRIAN.TXT"
-lengths_file <- "IEODESTALLASMARCO_CON_ADRIAN.TXT"
-litter_file <- "IEODESBASURASMARCO_CON_ADRIAN.TXT"
-accidentals_file <- "IEODESCAPTACCIDMARCO_CON_ADRIAN.TXT"
+trips_file <- "IEODESMAREAMARCO.TXT"
+hauls_file <- "IEODESLANCEMARCO.TXT"
+catches_file <- "IEODESCAPTURAMARCO.TXT"
+lengths_file <- "IEODESTALLASMARCO.TXT"
+litter_file <- "IEODESBASURASMARCO.TXT"
+accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
 # trips_file <- "IEODESMAREAMARCO_SIN_ADRIAN.TXT"
 # hauls_file <- "IEODESLANCEMARCO_SIN_ADRIAN.TXT"
@@ -42,7 +42,7 @@ accidentals_file <- "IEODESCAPTACCIDMARCO_CON_ADRIAN.TXT"
 # litter_file <- "IEODESBASURASMARCO_SIN_ADRIAN.TXT"
 # accidentals_file <- "IEODESCAPTACCIDMARCO_SIN_ADRIAN.TXT"
 
-MONTH <- 11
+MONTH <- 7
 
 YEAR_DISCARD <- 2019
 
@@ -93,6 +93,11 @@ not_allowed_species_measured <- importCsvSAPMUE("not_allowed_species_measured.cs
 
 origin_statistical_rectangle <- importCsvSAPMUE("origin_statistical_rectangle.csv")
 origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_rectangle$COD_ORIGEN)
+
+# this cephalopods master has been created using the annual OAB_catches
+# dataframe of 2019. All the species has been checked via API with WORM webpage
+# using the function check_spe_belongs_to_taxon()
+cephalopods <- importCsvSAPMUE("cephalopods.csv")
 
 
 # GLOBAL VARIABLES -------------------------------------------------------------
@@ -168,7 +173,7 @@ OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 
-# #### SEARCHING ERRORS ########################################################
+# SEARCHING ERRORS -------------------------------------------------------------
 
 check_them_all <- function(){
   
@@ -286,6 +291,8 @@ check_them_all <- function(){
   ERR$species_not_allowed <- species_not_allowed()
   
   ERR$discarded_weigh_of_grouped_species <- discarded_weigh_of_grouped_species()
+  
+  ERR$cephalopods_counted <- cephalopods_counted()
   
   # LENGTHS
   ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")

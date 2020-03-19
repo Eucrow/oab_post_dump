@@ -405,3 +405,52 @@ separate_df_by_acronym <- function(df){
   return(p)
   
 }
+
+#' Check if a species belong to a taxon
+#' Search in worms database, via API, if a species belongs to a taxon.
+#' @param specie specie to check
+#' @param taxon_to_match taxon to match
+#' @return TO DO
+check_spe_belongs_to_taxon <- function (specie, taxon_to_match){
+  # Get the AphiaID of the specie
+  # I don't use worms package because I'm interested in catch the response in case
+  # of the specie does not exists in WORMS
+  url_specie <- sprintf("http://www.marinespecies.org/rest/AphiaIDByName/%s", specie)
+  url_specie <- gsub(" ", "%20", url_specie)
+  resp <- GET(url_specie)
+  if (resp$status_code==204){
+    return("this specie does not match in WORMS")
+  }
+  if (resp$status_code==206){
+    return("multiple match in WORMS")
+  }
+  
+  AphiaID_specie <- fromJSON(url_specie)
+  
+  #Build the URL to get the data from
+  url <- sprintf("http://www.marinespecies.org/rest/AphiaClassificationByAphiaID/%d", AphiaID_specie);
+  
+  #Get the actual data from the URL
+  tryCatch({
+    classificationTree <- fromJSON(url)
+    
+    #Walk the classification tree
+    currentTreeItem = classificationTree
+    while (!is.null(currentTreeItem )) {
+      if (currentTreeItem$scientificname == taxon_to_match){
+        return(TRUE) 
+      } else {
+        #Get next item in the tree
+        currentTreeItem <- currentTreeItem$child;
+      }
+    }
+    
+    return(FALSE) 
+    
+  },
+  error = function(e){
+    return(e$message)
+  }
+  )
+  
+}

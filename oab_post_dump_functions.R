@@ -1062,19 +1062,16 @@ doubtfull_sp_number_specimens <- function(){
   # get specimens of not allowed species
   specimens_n_a <- OAB_catches_clean[to_check_genus,]
 
-  specimens_n_a_ret <- specimens_n_a[which(specimens_n_a[["P_RET"]] > 0 &
-                  specimens_n_a[["EJEM_RET"]] == 0), ]
-  specimens_n_a_ret <- addTypeOfError(specimens_n_a_ret, "WARNING: This species has retained weight but doesn't have number of retained specimens.")
-  
-  specimens_n_a_dis <- specimens_n_a[which(specimens_n_a[["P_DESCAR"]] > 0 &
-                  specimens_n_a[["EJEM_DESCAR"]] == 0), ]
-  specimens_n_a_dis <- addTypeOfError(specimens_n_a_dis, "WARNING: This species has discarded weight but doesn't have number of discarded specimens.")  
-  
-  errors <- rbind(specimens_n_a_ret, specimens_n_a_dis)
+  errors <- specimens_n_a[which( (specimens_n_a[["P_RET"]] > 0 & specimens_n_a[["EJEM_RET"]] == 0 ) |
+                                 (specimens_n_a[["P_DESCAR"]] > 0 & specimens_n_a[["EJEM_DESCAR"]] == 0) )]
 
+  errors[specimens_n_a[["P_RET"]] > 0 & specimens_n_a[["EJEM_RET"]] == 0, "TIPO_ERROR"] <- "WARNING: This species has retained weight but doesn't have number of retained specimens."
+  errors[specimens_n_a[["P_DESCAR"]] > 0 & specimens_n_a[["EJEM_DESCAR"]] == 0, "TIPO_ERROR"] <- "WARNING: This species has discarded weight but doesn't have number of discarded specimens."
+  
   if (nrow(errors) > 0){
     return(errors)
   }  
+  
 }
 
 
@@ -1094,3 +1091,53 @@ discarded_weigh_of_grouped_species <- function(){
   err <- addTypeOfError(err, "WARNING: discarded weight of a grouped species (only retained weights are allowed to have grouped species.")
   
 }
+
+
+
+#' check code: 2064
+#' Cephalopods counted.
+#' Cephalopods must be counted in DESIXA, DESSUR and DESNOR samples.
+#' @return dataframe with errors.
+cephalopods_counted <- function(){
+  
+  # filter by DESIXA, DESSUR and DESNOR
+  OAB_catches_filtered <- OAB_catches[c(grep("^DESIXA[0-9]+", OAB_catches[["COD_MAREA"]]),
+  grep("^DESNOR.+", OAB_catches[["COD_MAREA"]]),
+  grep("^DESSUR.+", OAB_catches[["COD_MAREA"]]) ), ]
+  
+  # find cephalopods
+  are_cephalopods <- cephalopods[["COD_ESP"]]
+  
+  # detect errors
+  errors <- OAB_catches_filtered[which(OAB_catches_filtered[["COD_ESP"]] %in% are_cephalopods), ]
+  
+  errors_ret <- errors[which(errors[["P_RET"]]>0 & errors[["EJEM_RET"]]==0), 
+                       c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_RET", "EJEM_RET")]
+  errors_ret <- addTypeOfError(errors_ret, "ERROR: retained weight of cephalopod without number of specimens (counted, not measured)")
+  
+  if(!("TIPO_ERROR" %in% colnames(errors_ret))){
+    errors_ret <- setNames(data.frame(matrix(ncol = 7, nrow = 0)),
+                           c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_RET", "EJEM_RET", "TIPO_ERROR"))
+  }
+  
+  errors_dis <- errors[which(errors[["P_DESCAR"]]>0 & errors[["EJEM_DESCAR"]]==0), 
+                       c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_DESCAR", "EJEM_DESCAR")]
+  errors_dis <- addTypeOfError(errors_dis, "ERROR: discarded weight of cephalopod without number of specimens (counted, not measured)")
+
+  if(!("TIPO_ERROR" %in% colnames(errors_dis))){
+    errors_dis <- setNames(data.frame(matrix(ncol = 7, nrow = 0)),
+             c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_DESCAR", "EJEM_DESCAR", "TIPO_ERROR"))
+  }
+  
+  ppp <- merge(errors_ret, errors_dis, by = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "TIPO_ERROR"), all.x = TRUE, all.y = TRUE)
+
+  if (nrow(errors) > 0){
+    return(errors)
+  }
+  
+}
+
+
+
+
+
