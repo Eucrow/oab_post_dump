@@ -1113,7 +1113,7 @@ cephalopods_counted <- function(){
   
   errors_ret <- errors[which(errors[["P_RET"]]>0 & errors[["EJEM_RET"]]==0), 
                        c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_RET", "EJEM_RET")]
-  errors_ret <- addTypeOfError(errors_ret, "ERROR: retained weight of cephalopod without number of specimens (counted, not measured)")
+  errors_ret <- addTypeOfError(errors_ret, "WARNING: retained weight of cephalopod without number of specimens (counted, not measured)")
   
   if(!("TIPO_ERROR" %in% colnames(errors_ret))){
     errors_ret <- setNames(data.frame(matrix(ncol = 7, nrow = 0)),
@@ -1122,7 +1122,7 @@ cephalopods_counted <- function(){
   
   errors_dis <- errors[which(errors[["P_DESCAR"]]>0 & errors[["EJEM_DESCAR"]]==0), 
                        c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_DESCAR", "EJEM_DESCAR")]
-  errors_dis <- addTypeOfError(errors_dis, "ERROR: discarded weight of cephalopod without number of specimens (counted, not measured)")
+  errors_dis <- addTypeOfError(errors_dis, "WARNING: discarded weight of cephalopod without number of specimens (counted, not measured)")
 
   if(!("TIPO_ERROR" %in% colnames(errors_dis))){
     errors_dis <- setNames(data.frame(matrix(ncol = 7, nrow = 0)),
