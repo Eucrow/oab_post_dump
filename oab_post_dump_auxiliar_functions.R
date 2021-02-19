@@ -156,6 +156,8 @@ check_year_in_date <- function(df, date_field, year){
   # df variable
   errors.date_field <- deparse(substitute(date_field))
   
+  errors.date_field <- as.POSIXct(errors.date_field, format="%d/%m/%Y")
+  
   errors <- addTypeOfError(errors, "ERROR: el año del campo ",
                            errors.date_field, " no coincide con el año ", year)
   
@@ -264,7 +266,14 @@ get_gear_characteristics <- function(){
 #' @return A list with a dataframe of every variable with empty values. Every
 #' dataframe contains erroneus rows.
 #' @export
-check_empty_values_in_variables <- function (df, variables){
+# ------------------------------------------------------------------------------
+#' Check if a variable or variables of a dataframe contain empty values
+#' @param variables: vector with variables to check.
+#' @param df: dataframe to check
+#' @return A list with a dataframe of every variable with empty values. Every
+#' dataframe contains erroneus rows
+#' @export
+check_empty_values_in_variables <- function (df, variables, helper_text){
   
   try(variables_in_df(df, variables))
   
@@ -273,17 +282,21 @@ check_empty_values_in_variables <- function (df, variables){
   
   variables <- as.list(variables)
   
+  if(helper_text!=""){
+    helper_text <- paste(" in ", helper_text, " screen")
+  }
+  
   errors <- lapply(variables, function(x){
     
     # Only some characteristicas must be filled according to its gear:
     if(x %in% characteristic_to_check) {
       gear_code <- gear_characteristics[gear_characteristics[["CARACTERISTICA"]]==x,]
       error <- (df[ (df[[x]]=="" | is.na(df[[x]])) & df[["COD_ARTE"]]%in%gear_code[["COD_ARTE"]],])
-      error <- addTypeOfError(error, "ERROR: ", x, " variable is empty.")
+      error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía", helper_text )
     } else {
       error <- (df[df[[x]]=="" | is.na(df[[x]]),])
       if (nrow(error)>0){
-        error <- addTypeOfError(error, "ERROR: ", x, " variable is empty.")
+        error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía", helper_text )
       }
     }
     
