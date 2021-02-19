@@ -29,9 +29,9 @@
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
 trips_file <- "IEODESMAREAMARCO.TXT"
-hauls_file <- "hauls.txt"
+hauls_file <- "IEODESLANCEMARCO.TXT"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
-# lengths_file <- "IEODESTALLASMARCO.TXT"
+lengths_file <- "IEODESTALLASMARCO.TXT"
 lengths_file <- "TALLAS_OAB_2020_ICES.TXT"
 litter_file <- "IEODESBASURASMARCO.TXT"
 accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
@@ -69,7 +69,7 @@ library(tinsel)
 
 # All the functions required in this script are located in the next files:
 source('oab_post_dump_auxiliar_functions.R')
-source_decoratees('oab_post_dump_functions.R')
+source('oab_post_dump_functions.R')
 source('oab_post_dump_hauls_overlapped.R')
 source('oab_post_dump_haul_characteristics.R')
 
@@ -282,6 +282,8 @@ check_them_all <- function(){
   
   ERR$checked_hauls <- haul_is_checked(OAB_hauls)
   
+  ERR$trip_multiple_haul_same_code <- trip_multiple_haul_same_code()
+  
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")
   
@@ -428,6 +430,8 @@ check_them_all_annual <- function(){
   ERR$positive_longitude_hauling <- positive_longitude("LON_VIR_CGS")
   
   ERR$checked_hauls <- haul_is_checked(OAB_hauls)
+  
+  ERR$trip_multiple_haul_same_code <- trip_multiple_haul_same_code()
   
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")

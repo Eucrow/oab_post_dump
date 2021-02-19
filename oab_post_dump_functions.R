@@ -1221,10 +1221,8 @@ final_date_one_day_before_hauling <- function(){
   calculate_error <- function(x){
     if(!is.na(x[["FECHA_FIN"]]) && !is.na(x[["FECHA_VIR"]]) ){
       max_dur <- max_days[max_days[["ESTRATO_RIM"]]==x[["ESTRATO_RIM"]], "max_days_haul_trip"]
-      print(max_dur)
       trip_date <- as.Date(x[["FECHA_FIN"]], format = "%Y-%m-%d")
       haul_date <- as.Date(x[["FECHA_VIR"]], format = "%Y-%m-%d")
-      print(trip_date - haul_date)
       if(trip_date - haul_date > max_dur){
         error_content <- paste("ERROR: the end date of the trip is more than",
         max_dur, "days later than last haul date.", sep=" ")
@@ -1235,6 +1233,28 @@ final_date_one_day_before_hauling <- function(){
 
   errors[["TIPO_ERROR"]] <- apply(errors, 1, calculate_error)
   errors <- errors[which(errors$TIPO_ERROR!="NULL"), ]
+  
+  if (nrow(errors) > 0){
+    return(errors)
+  }
+  
+}
+
+#' Check code: 2067
+#' Check if there are any trip with various hauls with same code.
+#' This check is required because sometimes delete a haul in SIRENO doesn't work
+#' and is possible add a new haul with the same code.
+trip_multiple_haul_same_code <- function(){
+  
+  errors <- OAB_hauls[, c("COD_MAREA", "COD_LANCE")]
+  
+  errors <- aggregate(errors$COD_LANCE, by=list(errors$COD_MAREA, errors$COD_LANCE), length)
+  
+  colnames(errors) <- c("COD_MAREA", "COD_LANCE", "num_repeated_hauls")
+  
+  errors <- errors[errors$num_repeated_hauls > 1,]
+  
+  errors <- addTypeOfError(errors, "ERROR: this trip have multiple hauls with the same haul code (COD_LANCE).")
   
   if (nrow(errors) > 0){
     return(errors)
