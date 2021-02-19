@@ -29,7 +29,7 @@
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
 trips_file <- "IEODESMAREAMARCO.TXT"
-hauls_file <- "IEODESLANCEMARCO.TXT"
+hauls_file <- "hauls.txt"
 catches_file <- "IEODESCAPTURAMARCO.TXT"
 # lengths_file <- "IEODESTALLASMARCO.TXT"
 lengths_file <- "TALLAS_OAB_2020_ICES.TXT"
@@ -110,9 +110,11 @@ if (MONTH == "annual"){
   path_text <- paste0("data/", YEAR_DISCARD, "/", YEAR_DISCARD, "_annual")
 } else {
   path_text <- paste0("data/", YEAR_DISCARD, "/", YEAR_DISCARD, "_", sprintf("%02d", MONTH))
-}
+} 
 
 PATH_FILES <- file.path(getwd(), path_text)
+
+PATH_FILES <- "C:/Users/ieoma/Desktop/sap/oab_post_dump/data/2020/2020_test"
 
 # path to the generated errors file
 PATH_ERRORS <- file.path(PATH_FILES,"errors")

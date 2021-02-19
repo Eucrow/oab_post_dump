@@ -7,15 +7,6 @@
 ####
 #### Convention style guide: http://r-pkgs.had.co.nz/style.html
 
-return_not_empty <- function(f, df){
-  
-  errors <- f(df)
-  
-  if(nrow(errors > 0)){
-    return(errors)
-  }
-  
-}
 
 #' Check code: 2004
 #' Check if the YEAR variable of the dataframe match with year to study.
@@ -762,7 +753,7 @@ date_hauls_in_date_interval_trips <- function(df_trips, df_hauls) {
 #' Check code: 2049
 #' Check total discarded weight equal to zero but with sampled discarded
 #' weight ----------------------------------------------------------------------
-#' @return Dataframe with the erroneus data. A new a variable with the type
+#' @return Dataframe with the erroneous data. A new a variable with the type
 #' of error is added.
 total_discarded_weight_zero_with_sampled_discard_weight <- function(){
   
