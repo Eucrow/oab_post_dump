@@ -284,6 +284,10 @@ check_them_all <- function(){
   
   ERR$trip_multiple_haul_same_code <- trip_multiple_haul_same_code()
   
+  ERR$zero_discarded_weights_in_not_measured_haul <- zero_discarded_weights_in_not_measured_haul()
+  
+  ERR$empty_discarded_weights_in_measured_haul <- empty_discarded_weights_in_measured_haul()
+  
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")
   
@@ -432,6 +436,10 @@ check_them_all_annual <- function(){
   ERR$checked_hauls <- haul_is_checked(OAB_hauls)
   
   ERR$trip_multiple_haul_same_code <- trip_multiple_haul_same_code()
+  
+  ERR$zero_discarded_weights_in_not_measured_haul <- zero_discarded_weights_in_not_measured_haul()
+  
+  ERR$empty_discarded_weights_in_measured_haul <- empty_discarded_weights_in_measured_haul()
   
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")

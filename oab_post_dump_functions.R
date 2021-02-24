@@ -921,19 +921,11 @@ litter_sample <- function(){
 }
 
 #' check code: 2058
-#' Total weight discarded in not measured hauls.
+#' Total weight discarded 0 or greater than 0 in not measured hauls.
 #' When a haul is not measured, the total weight discarded must be empty (and
-#' not 0)
+#' not 0).
 #' @return dataframe with errors
 zero_discarded_weights_in_not_measured_haul <- function(){
-  
-  if (!variable_exists_in_df("MUESTREADO", OAB_hauls) ||
-      !variable_exists_in_df("P_TOT_DESCAR", OAB_hauls)){
-    
-    stop("The variable 'muestreado' and 'peso descarte' must exists in hauls
-    dataframe")
-    
-  }
   
   err <- OAB_hauls[which(OAB_hauls[["MUESTREADO"]] == FALSE &
                            OAB_hauls[["P_TOT_DESCAR"]] >= 0),]
@@ -1263,6 +1255,25 @@ trip_multiple_haul_same_code <- function(){
 }
 
 
+#' check code: 2068
+#' Total weight discarded empty in measured hauls.
+#' When a haul is measured, the total weight discarded can't be empty (must be
+#' 0 o greater than 0).
+#' @return dataframe with errors
+empty_discarded_weights_in_measured_haul <- function(){
+  
+  errors <- OAB_hauls[which(OAB_hauls[["MUESTREADO"]] == TRUE &
+                           is.na(OAB_hauls[["P_TOT_DESCAR"]])),]
+  
+  errors <- errors[, c("COD_MAREA", "COD_LANCE", "MUESTREADO", "P_TOT_DESCAR")]
+  
+  errors <- addTypeOfError(errors, "ERROR: Total weight can't be empty when the haul is measured.")
+  
+  if (nrow(errors) > 0){
+    return(errors)
+  } 
+  
+}
 
 
 
