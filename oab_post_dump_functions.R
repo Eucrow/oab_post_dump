@@ -183,8 +183,8 @@ check_variable_with_master <- function (df, variable){
   }
   
   # ******************************************************************************
-  name_data_set <- tolower(variable_formatted)
-  # name_data_set <- paste0(name_data_set, "_OAB")
+  name_dataset <- tolower(variable_formatted)
+  # name_dataset <- paste0(name_dataset, "_OAB")
   
   # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********    
   # it's required  join via the variable COD_PUERTO, so a new variable is required:
@@ -195,7 +195,7 @@ check_variable_with_master <- function (df, variable){
   }
   # ****************************************************************************** 
   
-  dataframe_variable <- get(name_data_set)
+  dataframe_variable <- get(name_dataset)
   
   # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********  
   if (exists("variable_to_change")){
@@ -203,20 +203,18 @@ check_variable_with_master <- function (df, variable){
   }
   
   #search the errors in variable
-  # errors <- anti_join(df, get(name_data_set), by = variable)
+  # errors <- anti_join(df, get(name_dataset), by = variable)
   
   # ******************************************************************************
   
-  # filter dataset with only OAB information
-  data_set <- get(name_data_set)
-  data_set <- data_set[data_set[["OAB"]] == TRUE, -which(names(data_set) %in% "RIM")]
+  dataset <- get(name_dataset)
   
   #prepare to return
   if (exists("variable_to_change")){
-    errors <- anti_join(df, data_set, by = setNames(nm=variable, variable_to_change))
+    errors <- anti_join(df, dataset, by = setNames(nm=variable, variable_to_change))
     fields_to_filter <- c("COD_MAREA", variable, variable_puerto_original)
   } else {
-    errors <- anti_join(df, data_set, by = setNames(nm=variable, variable))
+    errors <- anti_join(df, dataset, by = setNames(nm=variable, variable))
     fields_to_filter <- c("COD_MAREA", variable, variable_formatted)
   }
   
@@ -226,7 +224,7 @@ check_variable_with_master <- function (df, variable){
     unique()
   
   if (nrow(errors) > 0){
-    text_type_of_error <- paste0("ERROR: ", name_data_set, " no concuerda con los maestros de SIRENO")
+    text_type_of_error <- paste0("ERROR: ", name_dataset, " no concuerda con los maestros de SIRENO")
     errors <- addTypeOfError(errors, text_type_of_error)
   
     return(errors)
@@ -259,7 +257,7 @@ check_year_in_COD_MAREA <- function(df){
 }
 
 #' Check code: 2012
-#' Coherence between rim stratrum and gear variables.
+#' Coherence between rim stratum and gear variables.
 #' @return dataframe with wrong coherence.
 coherence_rim_stratum_gear <- function(df){
   
@@ -267,16 +265,23 @@ coherence_rim_stratum_gear <- function(df){
   
   BASE_FIELDS <- c("COD_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ARTE", "ARTE")
   
-  estratorim_arte_OAB <- estratorim_arte[estratorim_arte[["OAB"]] == TRUE,
-                                         c("ESTRATO_RIM", "COD_ARTE", "OAB")]
+  estratorim_arte["VALID"] <- TRUE
   
-  errors <- df %>%
-    select(one_of(BASE_FIELDS)) %>%
-    unique() %>%
-    anti_join(y=estratorim_arte_OAB, by=c("ESTRATO_RIM", "COD_ARTE")) %>%
-    addTypeOfError("ERROR: no concuerda el estrato_rim con el arte")
-  
-  return(errors)
+  df <- df[, c(BASE_FIELDS)]
+  df <- unique(df)
+  errors <- merge(x=df, y=estratorim_arte, by=c("ESTRATO_RIM", "COD_ARTE", "ARTE"), all.x=TRUE)
+  errors <- errors[which(is.na(errors["VALID"])), ]
+  if(nrow(errors)>0){
+    errors <- addTypeOfError(errors, "ERROR: no concuerda el estrato_rim con el arte")
+    return(errors)
+  }
+  # errors <- df %>%
+  #   select(one_of(BASE_FIELDS)) %>%
+  #   unique() %>%
+  #   anti_join(y=estratorim_arte_OAB, by=c("ESTRATO_RIM", "COD_ARTE")) %>%
+  #   addTypeOfError("ERROR: no concuerda el estrato_rim con el arte")
+  # 
+  # return(errors)
   
 }
 
@@ -287,20 +292,21 @@ coherence_rim_stratum_origin <- function(df){
   
   try(variables_in_df(c("ESTRATO_RIM", "COD_ORIGEN"), df))
   
-  BASE_FIELDS <- c("COD_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
+  BASE_FIELDS <- c("COD_MAREA", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
   
-  estratorim_origen_OAB <- estratorim_origen[estratorim_origen[["OAB"]] == TRUE,
-                                             c("ESTRATO_RIM", "COD_ORIGEN", "OAB")]
+  if("COD_LANCE" %in% colnames(df)){
+    BASE_FIELDS <- c( BASE_FIELDS, "COD_LANCE")
+  }
   
-  errors <- OAB_hauls %>%
+  estratorim_origen["VALID"] <- TRUE
+  
+  errors <- df %>%
     select(one_of(BASE_FIELDS)) %>%
     unique() %>%
-    anti_join(y=estratorim_origen_OAB, by=c("ESTRATO_RIM", "COD_ORIGEN")) %>%
+    merge(y=estratorim_origen, by=c("ESTRATO_RIM", "COD_ORIGEN"), all.x=TRUE) %>%
+    filter(is.na(VALID)) %>%
     addTypeOfError("ERROR: no concuerda el estrato_rim con el origen")
-  
-  estratorim_origen_OAB <- estratorim_origen[estratorim_origen[["OAB"]] == TRUE,
-                                             c("ESTRATO_RIM", "COD_ORIGEN", "OAB")]
-  
+
   return(errors)
   
 }
@@ -1276,4 +1282,79 @@ empty_discarded_weights_in_measured_haul <- function(){
 }
 
 
+#' check code: 2069
+#' Mandatory sexed species not sexed. 
+#' Only elasmobranchii and Nephropps Norvergicus must be sexed.
+#' @return dataframe with errors
+species_not_sexed <- function(){
+  
+  # Get the elasmobranchii.csv file, which contains the elasmobranchii species.
+  elasmobranchii <- importCsvSAPMUE("elasmobranchii.csv")
+  
+  # Create not sex species dataset:
+  not_sex <- rbind(elasmobranchii, c("20194", "Nephrops norvegicus"))
+  
+  # Get errors
+  clean_lengths <- OAB_lengths[, c("COD_MAREA", "COD_LANCE", "TIPO_CAPTURA", "COD_ESP", "ESP", "SEXO")]
+  clean_lengths <- unique(clean_lengths)
+  errors <- clean_lengths[which(clean_lengths[["COD_ESP"]] %in% not_sex[["COD_ESP"]] & clean_lengths[["SEXO"]] %in% c("U")), ]
+  
+  errors <- addTypeOfError(errors, "ERROR: this species must be sexed.")
+  
+  if (nrow(errors) > 0){
+    return(errors)
+  } 
+  
+}
 
+#' Check code: ????
+#' Check if the variables "COD_PUERTO", "COD_ARTE", "COD_ORIGEN", "ESTRATO_RIM",
+#' "METIER_DCF" and "CALADERO_DCF" are coherent with OAB prescriptions.
+#' @return dataframe with errors, if there are any.
+coherenceRimMt2PrescriptionsPost <- function(df){
+  
+  vars_to_check <- colnames(prescripciones_oab_2021_coherencia)
+  
+  vars_to_check_in_df <- colnames(df)[(colnames(df) %in% vars_to_check)]
+  errors_oab_trips <- df[, c("COD_MAREA", vars_to_check_in_df)]
+
+  # OAB_trips[5:7, "ESTRATO_RIM"] <- "VOLANTA_CN"
+  # OAB_trips[15:27, "COD_ORIGEN"] <- "008"
+  errors_oab_trips <- unique(errors_oab_trips)
+  prescripciones_oab_2021_coherencia_mod <- prescripciones_oab_2021_coherencia
+  prescripciones_oab_2021_coherencia_mod$VALID <- TRUE
+  errors_oab_trips <- merge(errors_oab_trips,
+                            prescripciones_oab_2021_coherencia_mod,
+                            by=vars_to_check_in_df,
+                            all.x = TRUE)
+  if(nrow(errors_oab_trips)>0){
+    errors_oab_trips <- errors_oab_trips[is.na(errors_oab_trips[["VALID"]]), c(vars_to_check_in_df)]
+    errors_oab_trips <- addTypeOfError(errors_oab_trips, "This combination of ", paste(vars_to_check_in_df, collapse = ", "), " are not in 2021 OAB prescriptions.")
+    return (errors_oab_trips)
+  }
+  
+}
+
+# coherenceRimMt2PrescriptionsPost(OAB_accidentals)
+# 
+# vars_to_check <- c("COD_PUERTO_BASE", "COD_PUERTO_DESCARGA", "ESTRATO_RIM")
+# 
+# port_cols <- vars_to_check[grepl("((^)|(.+))COD_PUERTO(($)|(.+))", vars_to_check)]
+# 
+# pres <- prescripciones_oab_2021_coherencia
+# pres[port_cols] <- pres[["REGEX_COD_PUERTO"]]
+# 
+# errors_port <- OAB_trips[, c("COD_MAREA", port_cols)]
+# 
+# errors_port <- unique(errors_port)
+# 
+# pres$VALID <- TRUE
+# errors_oab_trips <- merge(errors_port,
+#                           pres,
+#                           by=port_cols,
+#                           all.x = TRUE)
+# # if(nrow(errors_port)>0){
+#   errors_port <- errors_port[is.na(errors_port[["VALID"]]), c(vars_to_check_in_df)]
+#   errors_port <- addTypeOfError(errors_port, "This combination of ", paste(port_cols, collapse = ", "), " are not in 2021 OAB prescriptions.")
+#   # return (errors_port)
+# # }

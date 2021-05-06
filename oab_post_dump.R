@@ -72,6 +72,7 @@ source('oab_post_dump_auxiliar_functions.R')
 source('oab_post_dump_functions.R')
 source('oab_post_dump_hauls_overlapped.R')
 source('oab_post_dump_haul_characteristics.R')
+source('create_elasmobranchii_file.R')
 
 # LOAD DATASETS ----------------------------------------------------------------
 
@@ -114,7 +115,7 @@ if (MONTH == "annual"){
 
 PATH_FILES <- file.path(getwd(), path_text)
 
-PATH_FILES <- "C:/Users/ieoma/Desktop/sap/oab_post_dump/data/2020/2020_test"
+PATH_FILES <- "C:/Users/ieoma/Desktop/sap/oab_post_dump/data/2020/2020_annual"
 
 # path to the generated errors file
 PATH_ERRORS <- file.path(PATH_FILES,"errors")
@@ -155,6 +156,7 @@ OAB_lengths <- importOABLengths(lengths_file, path = PATH_FILES)
 OAB_litter <- importOABLitter(litter_file, path = PATH_FILES)
 
 OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
+
 
 # FILTER BY MONTH --------------------------------------------------------------
 
@@ -331,21 +333,30 @@ check_them_all <- function(){
   ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
   ERR$with_historical_size_range <- check_species_in_size_range_historical()
+  
   ERR$size_range <- check_size_range()
 
   ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
+  
+  ERR$species_not_sexed <- species_not_sexed()
   
   # LITTER
   ERR$litter_sample <- litter_sample()
   
   # MIXED
   ERR$errors_date_hauls_in_date_interval_trips <- date_hauls_in_date_interval_trips(OAB_trips, OAB_hauls)
+  
   ERR$final_date_one_day_before_hauling <- final_date_one_day_before_hauling()
   
   return(ERR)
 }
 
 check_them_all_annual <- function(){
+  
+  # Create elasmobranchii file!!!!!!!!!!!!!!!!!!
+  # This file must be updated before the annual check, whith the data of the
+  # complete year. It's used to detect the species which must be sexed in OAB.
+  # create_elasmobranchii_file(OAB_catches)
   
   ERR <- list()
   
@@ -488,6 +499,8 @@ check_them_all_annual <- function(){
   
   ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
   
+  ERR$species_not_sexed <- species_not_sexed()
+  
   # LITTER
   ERR$litter_sample <- litter_sample()
   
@@ -498,8 +511,8 @@ check_them_all_annual <- function(){
   return(ERR)
 }
 
-# ERRORS <- check_them_all()
-ERRORS <- check_them_all_annual()
+ERRORS <- check_them_all()
+# ERRORS <- check_them_all_annual()
 
 # FORMAT ERRORS ----------------------------------------------------------------
 
@@ -517,9 +530,9 @@ errors <-  lapply(errors, function(x){
 # EXPORT ERRORS ----------------------------------------------------------------
 
 # Export to xls
-# exportListToXlsx(errors, prefix = prefix_to_export,
-#                  suffix = paste(suffix_to_export,"_checks"), 
-#                  separation = "_", path_export = PATH_ERRORS)
+exportListToXlsx(errors, prefix = prefix_to_export,
+                 suffix = paste(suffix_to_export,"_checks"),
+                 separation = "_", path_export = PATH_ERRORS)
 
 # Export to google drive 
 # Export the dataframes contained in a list to google drive
