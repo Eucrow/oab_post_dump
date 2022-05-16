@@ -23,7 +23,7 @@ check_spe_belongs_to_taxon <- function (species, taxon_to_match){
   # I don't use worms package because I'm interested in catch the response in case
   # of the species does not exists in WORMS
   url_species <- paste0("http://www.marinespecies.org/rest/AphiaIDByName/", species)
-  url_species <- gsub(" ", "%20", url_species)
+  url_species <- gsub(" ", "+", url_species)
   print(url_species)
   resp <- httr::GET(url_species)
   if (resp$status_code==204){

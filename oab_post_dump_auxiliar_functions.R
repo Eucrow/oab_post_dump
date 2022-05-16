@@ -150,18 +150,23 @@ check_year_in_date <- function(df, date_field, year){
   
   errors <- df[!l,]
   
-  errors <- errors[, c("COD_MAREA", "YEAR", date_field)]
-  
-  # this line add a comment to the errors dataframe wich contain the value of the
-  # df variable
-  errors.date_field <- deparse(substitute(date_field))
-  
-  errors.date_field <- as.POSIXct(errors.date_field, format="%d/%m/%Y")
-  
-  errors <- addTypeOfError(errors, "ERROR: el año del campo ",
-                           errors.date_field, " no coincide con el año ", year)
-  
-  return(errors)
+  if(nrow(errors)>0){
+    
+    errors <- errors[, c("COD_MAREA", "YEAR", date_field)]
+    
+    # this line add a comment to the errors dataframe which contain the value of the
+    # df variable
+    errors.date_field <- deparse(substitute(date_field))
+    
+    errors.date_field <- as.POSIXct(errors.date_field, format="%d/%m/%Y")
+    
+    errors <- addTypeOfError(errors, "ERROR: el año del campo ",
+                             errors.date_field, " no coincide con el año ", year)
+    
+    return(errors)
+    
+    
+  }
   
 }
 
@@ -292,11 +297,11 @@ check_empty_values_in_variables <- function (df, variables, helper_text){
     if(x %in% characteristic_to_check) {
       gear_code <- gear_characteristics[gear_characteristics[["CARACTERISTICA"]]==x,]
       error <- (df[ (df[[x]]=="" | is.na(df[[x]])) & df[["COD_ARTE"]]%in%gear_code[["COD_ARTE"]],])
-      error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía", helper_text )
+      error <- addTypeOfError(error, "ERROR: Variable ", x, " empty", helper_text )
     } else {
       error <- (df[df[[x]]=="" | is.na(df[[x]]),])
       if (nrow(error)>0){
-        error <- addTypeOfError(error, "ERROR: Variable ", x, " vacía", helper_text )
+        error <- addTypeOfError(error, "ERROR: Variable ", x, " empty", helper_text )
       }
     }
     
@@ -465,5 +470,35 @@ check_spe_belongs_to_taxon <- function (specie, taxon_to_match){
     return(e$message)
   }
   )
+  
+}
+
+#' Copy all the error files generated to a shared folder.
+copyFilesToSharedFolder <- function (){
+  
+  # test if PATH_ERRORS exists
+  ifelse(!file.exists(PATH_ERRORS), stop(paste("Folder", PATH_ERRORS, "does not exists.")), FALSE)
+  
+  # test if PATH_ERRORS have files
+  ifelse(length(list.files(PATH_ERRORS))==0, stop(paste("Folder", PATH_ERRORS, "doesn't have files.")), FALSE)
+  
+  # if the share errors directory does not exists, create it:
+  ifelse(!dir.exists(PATH_SHARE_ERRORS), dir.create(PATH_SHARE_ERRORS), FALSE)
+  
+  # test if there are files with the same name in folder. In this case,
+  # nothing is saved.
+  files_list_to <- list.files(PATH_SHARE_ERRORS)
+  
+  files_list_from <- list.files(PATH_ERRORS)
+  
+  if(any(files_list_from %in% files_list_to)){
+    ae <- which(files_list_from %in% files_list_to)
+    ae <- paste(files_list_from[ae], collapse = ", ")
+    stop(paste("The file(s)", ae, "already exist(s). Nothing has been saved" ))
+    
+  }
+  
+  files_list_from <- file.path(PATH_ERRORS, files_list_from)
+  file.copy(from=files_list_from, to=PATH_SHARE_ERRORS)  
   
 }

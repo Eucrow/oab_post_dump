@@ -45,7 +45,7 @@ server <- function(input, output, session) {
     
     # I THINK THIS DOES NOT WORK WITH BOXPLOT
     hauls_speed <- OAB_hauls %>%
-      select(ID_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
+      select(COD_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
       filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
 
     hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
@@ -56,7 +56,7 @@ server <- function(input, output, session) {
       geom_boxplot_interactive()+
       theme(axis.text.x = element_text(angle = 90, hjust = 1))
 
-    ggiraph(code = print(p), selection_type = "single")
+    ggiraph(code = print(p), hover_css = "fill:red;r:10pt;",selection_type = "single")
     
     
     # WITH THIS EXAMPLES DOESN'T WORK
@@ -80,7 +80,8 @@ server <- function(input, output, session) {
   #observe reactive values
   observe( {
     value <- get_id_marea()
-    updateTextInput(session = session, "result_marea", value = get_id_marea() )
+    textOutput(value )
+    # updateTextInput(session = session, "result_marea", value = get_id_marea() )
   })
   
 }
