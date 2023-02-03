@@ -36,8 +36,13 @@ check_them_all <- function(){
   
   ERR$days_at_sea_fishing_days <- days_at_sea_fishing_days()
   
+  ERR$ships_not_in_cfpo <- shipsNotInCFPO(OAB_trips, CFPO, SIRENO_FLEET)
+  
+  ERR$ships_not_registered <- shipsNotRegistered(OAB_trips, CFPO, SIRENO_FLEET)
+  
   # THE NEXT CHECK MUST BE DONE ONLY IN ANNUAL:
   # ERR$checked_trips <- trip_is_checked(OAB_trips)
+  
   
   # HAULS
   ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
@@ -100,6 +105,7 @@ check_them_all <- function(){
   ERR$haul_sampled_discard_sampled <- haul_sampled_discard_sampled()
   
   ERR$pinger_required <- pinger_required()
+  
   
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")

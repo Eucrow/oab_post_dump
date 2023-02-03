@@ -17,9 +17,9 @@ check_them_all_annual <- function(){
   
   ERR$trips_estrato_rim <- check_variable_with_master(OAB_trips, "ESTRATO_RIM")
   
-  ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
-  
-  ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
+  # ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
+  # 
+  # ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
   
   ERR$trips_empty_fields <- empty_fields_in_variables(OAB_trips, "OAB_TRIPS")
   
@@ -39,10 +39,14 @@ check_them_all_annual <- function(){
   
   ERR$trip_duration <- trip_duration()
   
-  ERR$checked_trips <- trip_is_checked(OAB_trips)
-  
   ERR$days_at_sea_fishing_days <- days_at_sea_fishing_days()
   
+  ERR$ships_not_in_cfpo <- shipsNotInCFPO(OAB_trips, CFPO, SIRENO_FLEET)
+  
+  ERR$ships_not_registered <- shipsNotRegistered(OAB_trips, CFPO, SIRENO_FLEET)
+  
+  # THE NEXT CHECK MUST BE DONE ONLY IN ANNUAL:
+  ERR$checked_trips <- trip_is_checked(OAB_trips)
 
   
   # HAULS
@@ -105,8 +109,7 @@ check_them_all_annual <- function(){
   
   ERR$haul_sampled_discard_sampled <- haul_sampled_discard_sampled()
   
-  # In 2021 data don't use this, uncomment in 2022:
-  # ERR$pinger_required <- pinger_required()
+  ERR$pinger_required <- pinger_required()
   
   
   # CATCHES
@@ -147,7 +150,7 @@ check_them_all_annual <- function(){
   # LENGTHS
   # In 2021 data, the computer cant manage the next error, so I use it with
   # the data splitted by acronym (didn't save the script)
-  # ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
+  ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
   
   ERR$lengths_field_year <- field_year(OAB_lengths)
   
@@ -156,6 +159,7 @@ check_them_all_annual <- function(){
   ERR$priority_species_without_lengths <- priority_species_without_lengths()
   
   # ERR$with_historical_size_range <- check_species_in_size_range_historical()
+  
   # ERR$size_range <- check_size_range()
   
   ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()

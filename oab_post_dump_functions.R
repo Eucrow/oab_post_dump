@@ -123,6 +123,7 @@ empty_fields_in_variables <- function(df,
 #       as.character(especies_objetivo_oab[especies_objetivo_oab$COD_ESP %in% sp_code,"COD_ESP_OBJ"])
 #     }
 #     
+
 #     # function to check if a COD_ESP has its COD_ESP_OBJ according to the especies_objetivo master
 #     coherence_sp_target_sp <- function(cod_esp, cod_esp_obj){
 #       possible_cod_esp_obj <- get_cod_target_specie(cod_esp)
@@ -635,8 +636,9 @@ coherence_target_species_metier_ieo <- function(){
                   all.x = TRUE,
                   by = c("METIER_IEO", "COD_ESP_OBJ"))
   
+  errors <- errors[is.na(errors[["OK"]]),]
+  
   if (nrow(errors)>0){
-    errors <- errors[is.na(errors[["OK"]]),]
     
     errors <- addTypeOfError(errors, "ERROR: the target species is not coherent with metier ieo.")
     
@@ -1494,6 +1496,72 @@ pinger_required <- function (){
   if (nrow(errors) > 0){
     errors <- addTypeOfError(errors, "ERROR: Since 1/1/2022 the field PINGER can't be NA, must be filled with true or false.")
     return(errors)
+  }
+  
+}
+
+
+#' Check code: 2077
+#' Ships not in CFPO
+#' @details Require a valid CFPO file. Due to the lack of CFR code in OAB SIRENO
+#' reports, is needed to get this code from SIRENO fleet report.
+#' @param df dataframe returned by importOABTrips, importOABHals or importOABLengths functions.
+#' @param cfpo Valid CFPO file.
+#' @return A dataframe with errors.
+shipsNotInCFPO <- function(df, cfpo = CFPO, sireno_fleet = SIRENO_FLEET){
+  
+  #First, get the CFR code from the SIRENO fleet
+  df <- merge(x = df,
+              y = SIRENO_FLEET,
+              by.x="COD_BARCO",
+              by.y="COD.BARCO",
+              all.x=TRUE)
+  
+  df <- unique(df[,c("COD_MAREA", "COD_BARCO", "BARCO", "COD.SECRETARIA")])
+  df$CFR <- sprintf("ESP%09d", df[["COD.SECRETARIA"]])
+  
+  errors <- merge(x=df, y=cfpo, by.x = "CFR", by.y = "CFR", all.x = TRUE)
+  
+  errors <- errors[is.na(errors[["ESTADO"]]),]
+  
+  if(nrow(errors)>0) {
+    text_type_of_error <- paste0("ERROR: barco no incluido en el CFPO.")
+    errors <- cbind(errors, "TIPO_ERROR" = text_type_of_error)
+    return (errors)
+  }
+  
+}
+
+
+#' Check code: 2078
+#' Ships registered in CFPO in removal state ("Baja definitiva" and "Baja
+#' Provisional").
+#' @details Require a valid CFPO file. Due to the lack of CFR code in OAB SIRENO
+#' reports, is needed to get this code from SIRENO fleet report.
+#' @param df dataframe returned by importOABTrips, importOABHals or importOABLengths functions.
+#' @param cfpo valid CFPO file.
+#' @param sireno_fleet SIRENO fleet report
+#' @return A dataframe with errors.
+shipsNotRegistered <- function(df, cfpo = CFPO, sireno_fleet = SIRENO_FLEET){
+  
+  #First, get the CFR code from the SIRENO fleet
+  df <- merge(x = df,
+              y = SIRENO_FLEET,
+              by.x="COD_BARCO",
+              by.y="COD.BARCO",
+              all.x=TRUE)
+  
+  df <- unique(df[,c("COD_MAREA", "COD_BARCO", "BARCO", "COD.SECRETARIA")])
+  df$CFR <- sprintf("ESP%09d", df[["COD.SECRETARIA"]])
+  
+  errors <- merge(x=df, y=cfpo, by.x = "CFR", by.y = "CFR", all.x = TRUE)
+  
+  errors <- errors[errors[["ESTADO"]] %in% c("Baja Definitiva", "Baja Provisional"), ]
+  
+  if(nrow(errors) > 0) {
+    text_type_of_error <- paste0("ERROR: barco en ", errors[["ESTADO"]], " en el CFPO.")
+    errors <- cbind(errors, "TIPO_ERROR" = text_type_of_error)
+    return (errors)
   }
   
 }

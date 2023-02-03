@@ -42,15 +42,22 @@ accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 # litter_file <- "IEODESBASURASSIRENO_2021_2102.TXT"
 # accidentals_file <- "IEODESCAPTACCIDSIRENO_2021_2102.TXT"
 
-# MONTH: 1 to 12 or "annual" in case of annual check.
-# MONTH <- "annual"
-MONTH <- 3
+# MONTH: 1 to 12, or vector with month in numbers
+# MONTH <- 12
+MONTH <- c(1:12)
+# In case MONTH is a vector of months, suffix to add to path:
+suffix_multiple_months <- "annual"
 
 YEAR <- 2022
 
-# Suffix_id is a suffix added to filenames when they are exported both xls and
-# google drive files
+# Suffix_id is a suffix added to file names when they are exported both xls and
+# google drive files.
 suffix_id <- ""
+
+
+# cfpo to use in the script
+# cfpo_to_use <- "CFPO_2021.csv"
+cfpo_to_use <- "Consulta al RGFP a 21_09.xlsx"
 
 # Only required if the file will be uploaded to google drive. It is the path
 # where in google drive will be saved.
@@ -66,10 +73,8 @@ library(devtools)
 # install("C:/Users/ieoma/Desktop/sap/sapmuebase")
 # install_github("Eucrow/sapmuebase")
 library(sapmuebase)
-
-# library(googledrive)
-
-# library(tinsel)
+library(ggplot2) #to use in view_speed_outliers
+library(ggiraph) #to use in view_speed_outliers
 
 
 # FUNCTIONS --------------------------------------------------------------------
@@ -107,6 +112,20 @@ origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_r
 # using the function check_spe_belongs_to_taxon()
 cephalopods <- importCsvSAPMUE("cephalopods.csv")
 
+### obtain and format the cfpo.
+library(openxlsx)
+CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), startRow = 4, detectDates=TRUE)
+CFPO <- CFPO[, c("CFR", "Nombre", "Matrícula", "Estado.actual")]
+colnames(CFPO) <- c("CFR", "NOMBRE", "MATRICULA", "ESTADO")
+
+#### obtain and format the SIRENO fleet file.
+# Required to check the ship in the CFPO
+SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", "barcos_2022_12_02.TXT"),
+                   fileEncoding = "windows-1252")
+SIRENO_FLEET$COD.BARCO <- apply(SIRENO_FLEET, 1, function(x){
+  substr(x["COD.BARCO"], 2, nchar(x["COD.BARCO"]))
+  })
+
 
 # GLOBAL VARIABLES -------------------------------------------------------------
 
@@ -116,8 +135,10 @@ ERRORS <- list()
 # path to the work files
 # PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/1_checking"
 # PATH_FILES <- "C:/Users/Marco IEO/Desktop/oab_post_dump/data/2019/1_checking"
-if (MONTH == "annual"){
+if (length(MONTH) == 1 && MONTH == "annual"){
   path_text <- paste0("data/", YEAR, "/", YEAR, "_annual")
+} else if(length(MONTH) != 1){
+  path_text <- paste0("data/", YEAR, "/", YEAR, "_", suffix_multiple_months)
 } else {
   path_text <- paste0("data/", YEAR, "/", YEAR, "_", sprintf("%02d", MONTH))
 } 
@@ -130,11 +151,16 @@ PATH_ERRORS <- file.path(PATH_FILES,"errors")
 # if the errors directory does not exists, create it:
 ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
 
+# path to store files as backup
+PATH_BACKUP <- file.path(PATH_FILES, "backup")
+
 # month as character in case of monthly check
-if (MONTH != "annual"){
+if (length(MONTH) == 1 && MONTH %in% seq(1:12)){
   MONTH_AS_CHARACTER <- ifelse(isFALSE(MONTH), "", sprintf("%02d", MONTH))
-} else {
-  MONTH_AS_CHARACTER <- MONTH
+} else if (length(MONTH) > 1 & all(MONTH %in% seq(1:12))) {
+  MONTH_AS_CHARACTER <- suffix_multiple_months
+} else if (MONTH == "annual") {
+  MONTH_AS_CHARACTER <- "annual"
 }
 
 # path to shared folder
@@ -145,11 +171,30 @@ prefix_to_export <- "OAB"
 
 suffix_to_export <- ""
 
-if (MONTH == "annual"){
-  suffix_to_export <- paste0(YEAR, "_annual", ifelse(suffix_id!="", paste0("_",suffix_id), ""))
-} else {
+if (length(MONTH) == 1 && MONTH %in% seq(1:12)) {
   suffix_to_export <- paste0(YEAR, "_", MONTH_AS_CHARACTER)
-}
+} else if (length(MONTH) > 1 & all(MONTH %in% seq(1:12))) {
+  suffix_to_export <- paste0(YEAR, "_", suffix_multiple_months)
+} else if (MONTH == "annual"){
+  suffix_to_export <- paste0(YEAR, "_annual", ifelse(suffix_id!="", paste0("_",suffix_id), ""))
+} 
+
+# files to backup
+FILES_TO_BACKUP <- c("oab_post_dump.R",
+                     "oab_post_dump_auxiliar_functions.R",
+                     "oab_post_dump_functions.R",
+                     "oab_post_dump_haul_characteristics.R",
+                     "oab_post_dump_hauls_overlapped.R",
+                     "oab_post_dump_sexed_species_functions.R",
+                     "especies_a_medir_OAB.csv",
+                     "especies_objetivo_OAB.csv",
+                     "razon_descarte_OAB.csv",
+                     "metier_ieo_especie_objetivo_OAB.csv",
+                     "duracion_mareas.txt",
+                     "caracteristicas_lances.csv",
+                     "not_allowed_species_measured.csv",
+                     "origin_statistical_rectangle.csv",
+                     "cephalopods.csv")
 
 # IMPORT DISCARDS FILES --------------------------------------------------------
 
@@ -170,13 +215,30 @@ OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 
 
 # FILTER BY MONTH --------------------------------------------------------------
+# only when one month is used.
 
-if(MONTH != "annual"){
-  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH,]
+if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
+  # WARNING!! DOES NOT WORK WITH JANUARY-DECEMBER!!!! :(
+  OAB_tripsKKK <- OAB_trips[
+    as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH |
+      (as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN)$mon +1 == MONTH)
+    ,]
   OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 }
+
+# when multiple months are used
+if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
+  # TODO: TEST USING OAB_trips$FECHA_FIN instead OAB_trips$FECHA_INI
+  # I THINK THIS DOES NOT WORK:
+  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$mon +1 %in% MONTH &
+                         (as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$year +1900) == YEAR,]
+  OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
+  OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
+  OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+}
+
 
 
 # FILTER BY ACRONYM ------------------------------------------------------------
@@ -210,8 +272,8 @@ if(MONTH != "annual"){
 
 # SEARCHING ERRORS -------------------------------------------------------------
 
-ERRORS <- check_them_all()
-# ERRORS <- check_them_all_annual()
+# ERRORS <- check_them_all()
+ERRORS <- check_them_all_annual()
 
 # FORMAT ERRORS ----------------------------------------------------------------
 
@@ -229,9 +291,71 @@ errors <-  lapply(errors, function(x){
 # EXPORT ERRORS ----------------------------------------------------------------
 
 # Export to xls
-exportListToXlsx(errors, prefix = prefix_to_export,
+# instead use sapmuebase exportListToXlsx(), use this:
+
+exportListToXlsx2 <- function (list, prefix = "", suffix = "", separation = "", path_export = getwd())
+{
+  #check if package openxlsx is instaled:
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop("Openxlsx package needed for this function to work. Please install it.",
+         call = FALSE)
+  }
+  
+  lapply(seq_along(list), function(i) {
+    if (is.data.frame(list[[i]])) {
+      
+      list_name <- names(list)[[i]]
+      if (prefix != "")
+        prefix <- paste0(prefix, separation)
+      if (suffix != "")
+        suffix <- paste0(separation, suffix)
+      filename <- paste0(path_export, "/", prefix, list_name, suffix, ".xlsx")
+      
+      # ---- Create a Workbook
+      wb <- openxlsx::createWorkbook()
+      
+      # ---- Add worksheets
+      # name_worksheet <- paste("0",MONTH,sep="")
+      name_worksheet <- paste("0",MONTH_AS_CHARACTER,sep="")
+      openxlsx::addWorksheet(wb, name_worksheet)
+      
+      # ---- Add data to the workbook
+      openxlsx::writeData(wb, name_worksheet, list[[i]])
+      
+      # ---- Useful variables
+      num_cols_df <- length(list[[i]])
+      
+      # ---- Stylize data
+      # ---- Create styles
+      head_style <- openxlsx::createStyle(fgFill = "#EEEEEE",
+                                          fontName="Calibri",
+                                          fontSize = "11",
+                                          halign = "center",
+                                          valign = "center")
+      
+      # ---- Apply styles
+      openxlsx::addStyle(wb, sheet = name_worksheet, head_style, rows = 1, cols = 1:num_cols_df)
+      
+      # ---- Column widths: I don't know why, but it dosn't work in the right way
+      openxlsx::setColWidths(wb, name_worksheet, cols = c(1:num_cols_df), widths = "auto")
+      
+      # ---- Export to excel
+      # source: https://github.com/awalker89/openxlsx/issues/111
+      Sys.setenv("R_ZIPCMD" = "C:/Rtools/bin/zip.exe") ## path to zip.exe
+      openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
+    }
+    else {
+      return(paste("This isn't a dataframe"))
+    }
+  })
+}
+
+
+exportListToXlsx2(errors, prefix = prefix_to_export,
                  suffix = suffix_to_export,
                  separation = "_", path_export = PATH_ERRORS)
+
+
 
 # Export to google sheets 
 # OAB_export_list_google_sheet(errors, prefix = prefix_to_export,
@@ -247,7 +371,15 @@ filename <- paste("speed_outliers", YEAR,  MONTH_AS_CHARACTER, sep ="_")
 printPdfGraphic(filename, view_speed_outliers)
 
 # SAVE FILES TO SHARED FOLDER ----
-copyFilesToSharedFolder()
+copyErrorsFilesToSharedFolder()
+
+# BACKUP SCRIPTS AND RELATED FILES ----
+# first save all files opened
+rstudioapi::documentSaveAll()
+# and the backup the scripts and files:
+sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
+
+
 
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
 # library(shiny)
@@ -259,8 +391,6 @@ copyFilesToSharedFolder()
 # od <- personal_onedrive()
 # od$list_items()
 # list_teams("SAP_MUE")
-
-
 
 
 # when this problem is fixed, detelte it:

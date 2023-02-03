@@ -474,7 +474,7 @@ check_spe_belongs_to_taxon <- function (specie, taxon_to_match){
 }
 
 #' Copy all the error files generated to a shared folder.
-copyFilesToSharedFolder <- function (){
+copyErrorsFilesToSharedFolder <- function (){
   
   # test if PATH_ERRORS exists
   ifelse(!file.exists(PATH_ERRORS), stop(paste("Folder", PATH_ERRORS, "does not exists.")), FALSE)
@@ -501,4 +501,21 @@ copyFilesToSharedFolder <- function (){
   files_list_from <- file.path(PATH_ERRORS, files_list_from)
   file.copy(from=files_list_from, to=PATH_SHARE_ERRORS)  
   
+}
+
+#' Export to pdf the graphic returned by a function.
+#' @param filename name of the file to export (without extension).
+#' @param fun function which return a graphic.
+#' @param ... params of 'fun' function.
+printPdfGraphic <- function(filename, func, ...){
+  
+  filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
+  
+  pdf(filename)
+  
+  g <- func(...)
+  
+  print(g)
+  
+  dev.off()
 }
