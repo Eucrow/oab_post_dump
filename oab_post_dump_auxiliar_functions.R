@@ -150,16 +150,23 @@ check_year_in_date <- function(df, date_field, year){
   
   errors <- df[!l,]
   
-  errors <- errors[, c("COD_MAREA", "YEAR", date_field)]
-  
-  # this line add a comment to the errors dataframe wich contain the value of the
-  # df variable
-  errors.date_field <- deparse(substitute(date_field))
-  
-  errors <- addTypeOfError(errors, "ERROR: el año del campo ",
-                           errors.date_field, " no coincide con el año ", year)
-  
-  return(errors)
+  if(nrow(errors)>0){
+    
+    errors <- errors[, c("COD_MAREA", "YEAR", date_field)]
+    
+    # this line add a comment to the errors dataframe which contain the value of the
+    # df variable
+    errors.date_field <- deparse(substitute(date_field))
+    
+    errors.date_field <- as.POSIXct(errors.date_field, format="%d/%m/%Y")
+    
+    errors <- addTypeOfError(errors, "ERROR: el año del campo ",
+                             errors.date_field, " no coincide con el año ", year)
+    
+    return(errors)
+    
+    
+  }
   
 }
 
@@ -264,7 +271,14 @@ get_gear_characteristics <- function(){
 #' @return A list with a dataframe of every variable with empty values. Every
 #' dataframe contains erroneus rows.
 #' @export
-check_empty_values_in_variables <- function (df, variables){
+# ------------------------------------------------------------------------------
+#' Check if a variable or variables of a dataframe contain empty values
+#' @param variables: vector with variables to check.
+#' @param df: dataframe to check
+#' @return A list with a dataframe of every variable with empty values. Every
+#' dataframe contains erroneus rows
+#' @export
+check_empty_values_in_variables <- function (df, variables, helper_text){
   
   try(variables_in_df(df, variables))
   
@@ -273,17 +287,21 @@ check_empty_values_in_variables <- function (df, variables){
   
   variables <- as.list(variables)
   
+  if(helper_text!=""){
+    helper_text <- paste(" in ", helper_text, " screen")
+  }
+  
   errors <- lapply(variables, function(x){
     
     # Only some characteristicas must be filled according to its gear:
     if(x %in% characteristic_to_check) {
       gear_code <- gear_characteristics[gear_characteristics[["CARACTERISTICA"]]==x,]
       error <- (df[ (df[[x]]=="" | is.na(df[[x]])) & df[["COD_ARTE"]]%in%gear_code[["COD_ARTE"]],])
-      error <- addTypeOfError(error, "ERROR: ", x, " variable is empty.")
+      error <- addTypeOfError(error, "ERROR: Variable ", x, " empty", helper_text )
     } else {
       error <- (df[df[[x]]=="" | is.na(df[[x]]),])
       if (nrow(error)>0){
-        error <- addTypeOfError(error, "ERROR: ", x, " variable is empty.")
+        error <- addTypeOfError(error, "ERROR: Variable ", x, " empty", helper_text )
       }
     }
     
@@ -404,4 +422,100 @@ separate_df_by_acronym <- function(df){
   
   return(p)
   
+}
+
+#' Check if a species belong to a taxon
+#' Search in worms database, via API, if a species belongs to a taxon.
+#' @param specie specie to check
+#' @param taxon_to_match taxon to match
+#' @return TO DO
+check_spe_belongs_to_taxon <- function (specie, taxon_to_match){
+  # Get the AphiaID of the specie
+  # I don't use worms package because I'm interested in catch the response in case
+  # of the specie does not exists in WORMS
+  url_specie <- sprintf("http://www.marinespecies.org/rest/AphiaIDByName/%s", specie)
+  url_specie <- gsub(" ", "%20", url_specie)
+  resp <- GET(url_specie)
+  if (resp$status_code==204){
+    return("this specie does not match in WORMS")
+  }
+  if (resp$status_code==206){
+    return("multiple match in WORMS")
+  }
+  
+  AphiaID_specie <- fromJSON(url_specie)
+  
+  #Build the URL to get the data from
+  url <- sprintf("http://www.marinespecies.org/rest/AphiaClassificationByAphiaID/%d", AphiaID_specie);
+  
+  #Get the actual data from the URL
+  tryCatch({
+    classificationTree <- fromJSON(url)
+    
+    #Walk the classification tree
+    currentTreeItem = classificationTree
+    while (!is.null(currentTreeItem )) {
+      if (currentTreeItem$scientificname == taxon_to_match){
+        return(TRUE) 
+      } else {
+        #Get next item in the tree
+        currentTreeItem <- currentTreeItem$child;
+      }
+    }
+    
+    return(FALSE) 
+    
+  },
+  error = function(e){
+    return(e$message)
+  }
+  )
+  
+}
+
+#' Copy all the error files generated to a shared folder.
+copyErrorsFilesToSharedFolder <- function (){
+  
+  # test if PATH_ERRORS exists
+  ifelse(!file.exists(PATH_ERRORS), stop(paste("Folder", PATH_ERRORS, "does not exists.")), FALSE)
+  
+  # test if PATH_ERRORS have files
+  ifelse(length(list.files(PATH_ERRORS))==0, stop(paste("Folder", PATH_ERRORS, "doesn't have files.")), FALSE)
+  
+  # if the share errors directory does not exists, create it:
+  ifelse(!dir.exists(PATH_SHARE_ERRORS), dir.create(PATH_SHARE_ERRORS), FALSE)
+  
+  # test if there are files with the same name in folder. In this case,
+  # nothing is saved.
+  files_list_to <- list.files(PATH_SHARE_ERRORS)
+  
+  files_list_from <- list.files(PATH_ERRORS)
+  
+  if(any(files_list_from %in% files_list_to)){
+    ae <- which(files_list_from %in% files_list_to)
+    ae <- paste(files_list_from[ae], collapse = ", ")
+    stop(paste("The file(s)", ae, "already exist(s). Nothing has been saved" ))
+    
+  }
+  
+  files_list_from <- file.path(PATH_ERRORS, files_list_from)
+  file.copy(from=files_list_from, to=PATH_SHARE_ERRORS)  
+  
+}
+
+#' Export to pdf the graphic returned by a function.
+#' @param filename name of the file to export (without extension).
+#' @param fun function which return a graphic.
+#' @param ... params of 'fun' function.
+printPdfGraphic <- function(filename, func, ...){
+  
+  filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
+  
+  pdf(filename)
+  
+  g <- func(...)
+  
+  print(g)
+  
+  dev.off()
 }

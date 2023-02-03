@@ -7,6 +7,27 @@
 ####
 #### Convention style guide: http://r-pkgs.had.co.nz/style.html
 
+
+#' Check code: 2004
+#' Check if the YEAR variable of the dataframe match with year to study.
+#' @param df daraframe to check the field YEAR. The dataframe must have a field
+#' called YEAR.
+#' @return df with errors.
+#' @export
+#.return_not_empty
+field_year <- function(df) {
+
+  errors <- df[df[["YEAR"]] != YEAR, ]
+  
+  if (nrow(errors) > 0){
+    errors <- errors[, c("YEAR", "COD_MAREA")]
+    errors <- unique(errors)
+    errors <- addTypeOfError(errors, "ERROR: YEAR field is not ",YEAR)
+  return(errors)
+  }
+  
+}
+
 #' Check code: 2002
 #' Retained weight less than sampled retained weight.
 #' 
@@ -17,8 +38,9 @@ retained_catch_less_than_sampled_retained_catch <- function(){
     select(COD_MAREA, COD_LANCE, COD_ESP, CATEGORIA, P_RET, P_MUE_RET) %>%
     filter(P_RET < P_MUE_RET) %>%
     addTypeOfError("ERROR: captura retenida menor que captura retenida muestreada.")
-  
-  return(err)
+  if (nrow(err)!=0){
+    return(err)
+  }
   
 }
 
@@ -36,10 +58,17 @@ retained_catch_less_than_sampled_retained_catch <- function(){
 #' OAB_HAULS, OAB_TRIPS and OAB_LENGTHS.
 #' @return A dataframe with the COD_MAREA and variables with values missing.
 #' @export
-empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_HAULS", "OAB_CATCHES", "OAB_LENGTHS")){
+empty_fields_in_variables <- function(df,
+                                      type_file = c("OAB_TRIPS", "OAB_HAULS",
+                                                    "OAB_CATCHES",
+                                                    "OAB_LENGTHS")){
   
   # Detect if the variable type_file is correct:
   match.arg(type_file)
+  
+  # Create helper_text
+  helper_text <- substr(type_file, 5, nchar(type_file))
+  helper_text <- tolower(helper_text)
   
   
   mandatory_field <- paste0(type_file, "_MANDATORY")
@@ -48,7 +77,7 @@ empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_HAULS"
                                        & formato_variables[mandatory_field] == TRUE), c("name_variable")]
   df_mandatory <- df[,mandatory]
   
-  err <- check_empty_values_in_variables(df_mandatory, mandatory)
+  err <- check_empty_values_in_variables(df_mandatory, mandatory, helper_text)
   
   # in case there aren't any errors, check_empty_values returns NULL, so:
   if (!is.null(err)){
@@ -66,79 +95,61 @@ empty_fields_in_variables <- function(df, type_file = c("OAB_TRIPS", "OAB_HAULS"
     # )
     
     return(err)
-  } else {
-    return(NULL)
   }
 }
 
-#' Check code: 2004
-#' Check if the YEAR variable of the dataframe match with year to study.
-#' @param df daraframe to check the field YEAR. The dataframe must have a field
-#' called YEAR.
-#' @return df with errors.
-#' @export
-field_year <- function(df) {
-  
-  errors <- df %>%
-    select(COD_MAREA, YEAR) %>%
-    filter(YEAR != YEAR_DISCARD) %>%
-    unique()%>%
-    addTypeOfError("ERROR: El campo YEAR no coincide con el año a comprobar: ",YEAR_DISCARD)
-  
-  return(errors)
-  
-}
-
-#' Check code: 2005
+#' Check code: Removed
 #' Target specie of the hauls is the most catched specie.
-coherence_target_sp_with_catch <- function(){
-  tryCatch({
-    COD_MAREA_with_obj <- OAB_hauls %>%
-      select(ESTRATO_RIM, COD_MAREA, COD_LANCE, COD_ESP_OBJ, ESP_OBJ) %>%
-      unique()
-    
-    catches_only_greater_catch <- OAB_catches %>%
-      select(COD_MAREA, COD_LANCE, COD_ESP, ESP, P_RET) %>%
-      #mutate(peso_total = PESO_RET + PESO_DESCAR) %>%
-      group_by(COD_MAREA, COD_LANCE)%>%
-      filter(P_RET == max(P_RET))
-    
-    colnames(catches_only_greater_catch)[colnames(catches_only_greater_catch)=="ESP"] <- "ESP_MAYOR_CAPTURA"
-    
-    catches_with_obj <- merge(catches_only_greater_catch, COD_MAREA_with_obj, by = c("COD_MAREA", "COD_LANCE"))
-    
-    
-    # function to get the possible ESP_OBJ according to COD_ESP in OAB_catches
-    # return list with COD_ESP_OBJ
-    get_cod_target_specie <- function(sp_code){
-      as.character(especies_objetivo_oab[especies_objetivo_oab$COD_ESP %in% sp_code,"COD_ESP_OBJ"])
-    }
-    
-    # function to check if a COD_ESP has its COD_ESP_OBJ according to the especies_objetivo master
-    coherence_sp_target_sp <- function(cod_esp, cod_esp_obj){
-      possible_cod_esp_obj <- get_cod_target_specie(cod_esp)
-      if (cod_esp_obj %in% possible_cod_esp_obj){
-        return(TRUE)
-      } else {
-        return(FALSE)
-      }
-    }
-    
-    catches_with_obj$co_sp_target <- apply(catches_with_obj , 1, function(x){
-      coherence_sp_target_sp(x["COD_ESP"], x["COD_ESP_OBJ"])
-    })
-    
-    err <- catches_with_obj[catches_with_obj$co_sp_target==FALSE, ] 
-    err <- err[, -which(names(err) %in% "co_sp_target")]
-    err <- addTypeOfError(err, "WARNING: la especie objetivo no coincide con la especie de mayor captura del lance. Comprobar posible error de tecleo.")
-    
-    return(err)
-  },
-  error = function(err){
-    print(err)
-  }
-  )
-}
+# coherence_target_sp_with_catch <- function(){
+#   tryCatch({
+#     COD_MAREA_with_obj <- OAB_hauls %>%
+#       select(ESTRATO_RIM, COD_MAREA, COD_LANCE, COD_ESP_OBJ, ESP_OBJ) %>%
+#       unique()
+#     
+#     catches_only_greater_catch <- OAB_catches %>%
+#       select(COD_MAREA, COD_LANCE, COD_ESP, ESP, P_RET) %>%
+#       #mutate(peso_total = PESO_RET + PESO_DESCAR) %>%
+#       group_by(COD_MAREA, COD_LANCE)%>%
+#       filter(P_RET == max(P_RET))
+#     
+#     colnames(catches_only_greater_catch)[colnames(catches_only_greater_catch)=="ESP"] <- "ESP_MAYOR_CAPTURA"
+#     
+#     catches_with_obj <- merge(catches_only_greater_catch, COD_MAREA_with_obj, by = c("COD_MAREA", "COD_LANCE"))
+#     
+#     
+#     # function to get the possible ESP_OBJ according to COD_ESP in OAB_catches
+#     # return list with COD_ESP_OBJ
+#     get_cod_target_specie <- function(sp_code){
+#       as.character(especies_objetivo_oab[especies_objetivo_oab$COD_ESP %in% sp_code,"COD_ESP_OBJ"])
+#     }
+#     
+
+#     # function to check if a COD_ESP has its COD_ESP_OBJ according to the especies_objetivo master
+#     coherence_sp_target_sp <- function(cod_esp, cod_esp_obj){
+#       possible_cod_esp_obj <- get_cod_target_specie(cod_esp)
+#       if (cod_esp_obj %in% possible_cod_esp_obj){
+#         return(TRUE)
+#       } else {
+#         return(FALSE)
+#       }
+#     }
+#     
+#     catches_with_obj$co_sp_target <- apply(catches_with_obj , 1, function(x){
+#       coherence_sp_target_sp(x["COD_ESP"], x["COD_ESP_OBJ"])
+#     })
+#     
+#     err <- catches_with_obj[catches_with_obj$co_sp_target==FALSE, ] 
+#     if (nrow(errors)!=0){
+#       err <- err[, -which(names(err) %in% "co_sp_target")]
+#       err <- addTypeOfError(err, "WARNING: la especie objetivo no coincide con la especie de mayor captura del lance. Comprobar posible error de tecleo.")
+#       return(err)
+#     }
+#   },
+#   error = function(err){
+#     print(err)
+#   }
+#   )
+# }
 
 #' Check code: 2006, 2007, 2008, 2009, 2010
 #' Check variable with master
@@ -146,10 +157,10 @@ coherence_target_sp_with_catch <- function(){
 check_variable_with_master <- function (df, variable){
   
   if(variable != "ESTRATO_RIM" &&
-     variable != "COD_PUERTO" &&
-     variable != "COD_PUERTO_BASE" &&
-     variable != "COD_PUERTO_LLEGADA" &&
-     variable != "COD_PUERTO_DESCARGA" &&
+     # variable != "COD_PUERTO" &&
+     # variable != "COD_PUERTO_BASE" &&
+     # variable != "COD_PUERTO_LLEGADA" &&
+     # variable != "COD_PUERTO_DESCARGA" &&
      variable != "COD_ORIGEN" &&
      variable != "COD_ARTE" &&
      variable != "PROCEDENCIA"){
@@ -175,8 +186,8 @@ check_variable_with_master <- function (df, variable){
   }
   
   # ******************************************************************************
-  name_data_set <- tolower(variable_formatted)
-  # name_data_set <- paste0(name_data_set, "_OAB")
+  name_dataset <- tolower(variable_formatted)
+  # name_dataset <- paste0(name_dataset, "_OAB")
   
   # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********    
   # it's required  join via the variable COD_PUERTO, so a new variable is required:
@@ -187,7 +198,7 @@ check_variable_with_master <- function (df, variable){
   }
   # ****************************************************************************** 
   
-  dataframe_variable <- get(name_data_set)
+  dataframe_variable <- get(name_dataset)
   
   # *********** CASE OF PUERTO_BASE, PUERTO_LLEGADA OR PUERTO_DESCARGA ***********  
   if (exists("variable_to_change")){
@@ -195,20 +206,18 @@ check_variable_with_master <- function (df, variable){
   }
   
   #search the errors in variable
-  # errors <- anti_join(df, get(name_data_set), by = variable)
+  # errors <- anti_join(df, get(name_dataset), by = variable)
   
   # ******************************************************************************
   
-  # filter dataset with only OAB information
-  data_set <- get(name_data_set)
-  data_set <- data_set[data_set[["OAB"]] == TRUE, -which(names(data_set) %in% "RIM")]
+  dataset <- get(name_dataset)
   
   #prepare to return
   if (exists("variable_to_change")){
-    errors <- anti_join(df, data_set, by = setNames(nm=variable, variable_to_change))
+    errors <- anti_join(df, dataset, by = setNames(nm=variable, variable_to_change))
     fields_to_filter <- c("COD_MAREA", variable, variable_puerto_original)
   } else {
-    errors <- anti_join(df, data_set, by = setNames(nm=variable, variable))
+    errors <- anti_join(df, dataset, by = setNames(nm=variable, variable))
     fields_to_filter <- c("COD_MAREA", variable, variable_formatted)
   }
   
@@ -217,12 +226,12 @@ check_variable_with_master <- function (df, variable){
     select(one_of(fields_to_filter))%>%
     unique()
   
-  
-  text_type_of_error <- paste0("ERROR: ", name_data_set, " no concuerda con los maestros de SIRENO")
-  errors <- addTypeOfError(errors, text_type_of_error)
-  
-  #return
-  return(errors)
+  if (nrow(errors) > 0){
+    text_type_of_error <- paste0("ERROR: ", name_dataset, " no concuerda con los maestros de SIRENO")
+    errors <- addTypeOfError(errors, text_type_of_error)
+    return(errors)
+  }
+
 }
 
 #' Check code: 2011
@@ -234,23 +243,28 @@ check_year_in_COD_MAREA <- function(df){
   
   COD_MAREA_split <- split_COD_MAREA(df)
 
-  errors <- which(!(COD_MAREA_split[["year"]] %in% YEAR_DISCARD))
-
+  errors <- which(!(COD_MAREA_split[["year"]] %in% YEAR))
   errors <- df[errors,]
+  if(nrow(errors)>0){
+    
+    # this line add a comment to the errors dataframe wich contain the value of the
+    # df variable
+    errors.name <- deparse(substitute(df))
+    
+    errors <- errors %>%
+      select(COD_MAREA, YEAR)%>%
+      addTypeOfError(paste("ERROR: el año del COD_MAREA en", errors.name, "no coincide con el año a comprobar"))
+    
+    if (nrow(errors)!=0){
+      return(errors)
+    }
+  }
+
   
-  # this line add a comment to the errors dataframe wich contain the value of the
-  # df variable
-  errors.name <- deparse(substitute(df))
-  
-  errors <- errors %>%
-            select(COD_MAREA, YEAR)%>%
-            addTypeOfError(paste("ERROR: el año del COD_MAREA en", errors.name, "no coincide con el año a comprobar"))
-  
-  return(errors)
 }
 
 #' Check code: 2012
-#' Coherence between rim stratrum and gear variables.
+#' Coherence between rim stratum and gear variables.
 #' @return dataframe with wrong coherence.
 coherence_rim_stratum_gear <- function(df){
   
@@ -258,17 +272,16 @@ coherence_rim_stratum_gear <- function(df){
   
   BASE_FIELDS <- c("COD_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ARTE", "ARTE")
   
-  estratorim_arte_OAB <- estratorim_arte[estratorim_arte[["OAB"]] == TRUE,
-                                         c("ESTRATO_RIM", "COD_ARTE", "OAB")]
+  estrato_rim_arte["VALID"] <- TRUE
   
-  errors <- df %>%
-    select(one_of(BASE_FIELDS)) %>%
-    unique() %>%
-    anti_join(y=estratorim_arte_OAB, by=c("ESTRATO_RIM", "COD_ARTE")) %>%
-    addTypeOfError("ERROR: no concuerda el estrato_rim con el arte")
-  
-  return(errors)
-  
+  df <- df[, c(BASE_FIELDS)]
+  df <- unique(df)
+  errors <- merge(x=df, y=estrato_rim_arte, by=c("ESTRATO_RIM", "COD_ARTE", "ARTE"), all.x=TRUE)
+  if(nrow(errors)>0){
+    errors <- errors[which(is.na(errors["VALID"])), ]
+    errors <- addTypeOfError(errors, "ERROR: no concuerda el estrato_rim con el arte")
+    return(errors)
+  }
 }
 
 #' Check code: 2013
@@ -278,22 +291,26 @@ coherence_rim_stratum_origin <- function(df){
   
   try(variables_in_df(c("ESTRATO_RIM", "COD_ORIGEN"), df))
   
-  BASE_FIELDS <- c("COD_MAREA", "COD_LANCE", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
+  BASE_FIELDS <- c("COD_MAREA", "ESTRATO_RIM", "COD_ORIGEN", "ORIGEN")
   
-  estratorim_origen_OAB <- estratorim_origen[estratorim_origen[["OAB"]] == TRUE,
-                                             c("ESTRATO_RIM", "COD_ORIGEN", "OAB")]
+  if("COD_LANCE" %in% colnames(df)){
+    BASE_FIELDS <- c( BASE_FIELDS, "COD_LANCE")
+  }
   
-  errors <- OAB_hauls %>%
-    select(one_of(BASE_FIELDS)) %>%
-    unique() %>%
-    anti_join(y=estratorim_origen_OAB, by=c("ESTRATO_RIM", "COD_ORIGEN")) %>%
-    addTypeOfError("ERROR: no concuerda el estrato_rim con el origen")
+  estrato_rim_origen["VALID"] <- TRUE
   
-  estratorim_origen_OAB <- estratorim_origen[estratorim_origen[["OAB"]] == TRUE,
-                                             c("ESTRATO_RIM", "COD_ORIGEN", "OAB")]
+  errors <- merge(x= df, y=estrato_rim_origen, by=c("ESTRATO_RIM", "COD_ORIGEN"), all.x=TRUE)
+  errors <- errors[which(is.na(errors[["VALID"]])), ]
   
-  return(errors)
+  # COMPROBAR QUE ESTO FUNCIONA BIEN!!
   
+  if(nrow(errors)>0){
+    errors <- errors[, c(BASE_FIELDS)]
+    errors <- unique(errors)
+    errors <- addTypeOfError(errors, "ERROR: no concuerda el estrato_rim con el origen")
+    return(errors)
+  }
+
 }
 
 #' Check code: 2014
@@ -303,12 +320,13 @@ discarded_sampled_weight_when_specimens_discarded <- function(df_catches){
   
   errors <- df_catches[which(
     df_catches[["EJEM_DESCAR"]] > 0 &
-      (df_catches[["P_MUE_DESCAR"]] <= 0 | is.na(df_catches[["P_MUE_DESCAR"]]))
+      (df_catches[["P_MUE_TOT_DESCAR"]] <= 0 | is.na(df_catches[["P_MUE_TOT_DESCAR"]]))
   ),
-  c("COD_MAREA", "COD_ESP", "A3_ESP", "ESP", "EJEM_DESCAR", "P_MUE_DESCAR")]
+  c("COD_MAREA", "COD_ESP", "A3_ESP", "ESP", "EJEM_DESCAR", "P_MUE_TOT_DESCAR")]
   
-  errors <- addTypeOfError(errors, "ERROR: there are specimens discarded without discarded sampled weight in catches table.")
-  
+  if (nrow(errors)!=0){
+    errors <- addTypeOfError(errors, "ERROR: there are specimens discarded without discarded sampled weight in catches table.")
+  }
 }
 
 #' Return a oulier
@@ -338,6 +356,7 @@ get_speed_outliers <- function(){
     group_by(str)%>%
     mutate(OUTLIER = ifelse(is_outlier(VELOCIDAD), VELOCIDAD, as.numeric(NA)))%>%
     filter(!is.na(OUTLIER))%>%
+    filter(VELOCIDAD!=OUTLIER)%>% #TODO: when outlier == velocidad, is returned. With this filter I change it, but it is not the west way
     addTypeOfError("WARNING: posible outlier en el campo velocidad")
 
   hauls_speed <- hauls_speed[, -which(colnames(hauls_speed) %in% c("str"))]
@@ -410,7 +429,10 @@ length_cable_1000 <- function(){
     
     war <- addTypeOfError(war, "WARNING: el cable largado es mayor que 1000m.")
     
-    return(war)
+    if(nrow(war) != 0){
+      return(war)
+    }
+    
   },
   error = function(err){
     print(err)
@@ -421,38 +443,105 @@ length_cable_1000 <- function(){
 
 #' Check code: 2018
 #' Priority species without lengths sampled.
+# priority_species_without_lengths <- function(){
+#   
+#   # get the list of priority species which must be measured
+#   species_to_measure <- especies_a_medir_OAB[,"COD_ESP"]
+#   
+#   # get Species With Catch which must be measured
+#   swc <- OAB_catches[which(OAB_catches[["COD_ESP"]]%in%species_to_measure),
+#                      c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_CAP")]
+#   swc <- unique(swc)
+#   
+#   # clean lengths
+#   lengths_clean <- OAB_lengths[, c("COD_MAREA", "COD_LANCE",
+#                                    "COD_ESP", "ESP", "EJEM_MEDIDOS")]
+#   
+#   lengths_clean <- aggregate.data.frame(lengths_clean[, c("EJEM_MEDIDOS")],
+#                                         by=list(lengths_clean$COD_MAREA,
+#                                                 lengths_clean$COD_LANCE,
+#                                                 lengths_clean$COD_ESP,
+#                                                 lengths_clean$ESP),
+#                                         sum, na.rm=TRUE)
+#   
+#   colnames(lengths_clean) <- c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "EJEM_MEDIDOS")
+#   
+#   # create errors dataframe
+#   errors <- merge(swc, 
+#                   lengths_clean, 
+#                   by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP"),
+#                   all.x = TRUE)
+#   errors <- errors[which(errors$EJEM_MEDIDOS==0 |
+#                            is.na(errors$EJEM_MEDIDOS)),]
+#   
+#   errors <- addTypeOfError(errors, "ERROR: priority species which hasn't been measured")
+#   
+# }
+
 priority_species_without_lengths <- function(){
-  
-  # get the list of priority species which must be measured
-  species_to_measure <- especies_a_medir_OAB[,"COD_ESP"]
-  
-  # get Species With Catch which must be measured
-  swc <- OAB_catches[which(OAB_catches[["COD_ESP"]]%in%species_to_measure),
-                     c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_CAP")]
-  swc <- unique(swc)
   
   # clean lengths
   lengths_clean <- OAB_lengths[, c("COD_MAREA", "COD_LANCE",
-                                   "COD_ESP", "ESP", "EJEM_MEDIDOS")]
+                                   "COD_ESP", "ESP", "TIPO_CAPTURA", "EJEM_MEDIDOS")]
   
   lengths_clean <- aggregate.data.frame(lengths_clean[, c("EJEM_MEDIDOS")],
                                         by=list(lengths_clean$COD_MAREA,
                                                 lengths_clean$COD_LANCE,
                                                 lengths_clean$COD_ESP,
-                                                lengths_clean$ESP),
+                                                lengths_clean$ESP,
+                                                lengths_clean$TIPO_CAPTURA),
                                         sum, na.rm=TRUE)
   
-  colnames(lengths_clean) <- c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "EJEM_MEDIDOS")
+  colnames(lengths_clean) <- c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "TIPO_CAPTURA", "EJEM_MEDIDOS")
   
-  # create errors dataframe
-  errors <- merge(swc, 
+  # get the list of priority species which must be measured
+  species_to_measure <- especies_a_medir_OAB[,"COD_ESP"]
+  
+  # get Species With Weight which must be measured
+  sww <- OAB_catches[which(OAB_catches[["COD_ESP"]]%in%species_to_measure),
+                     c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_RET", "P_DESCAR")]
+  sww <- unique(sww)
+  
+  #sww retain
+  sww_retain <- sww[sww[["P_RET"]] != 0 & !is.na(sww[["P_RET"]]), names(sww)!=c("P_DESCAR")]
+  sww_retain[["TIPO_CAPTURA"]] <- "C"
+  
+  errors_retain <- merge(sww_retain, 
                   lengths_clean, 
-                  by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP"),
+                  by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "TIPO_CAPTURA"),
                   all.x = TRUE)
-  errors <- errors[which(errors$EJEM_MEDIDOS==0 |
-                           is.na(errors$EJEM_MEDIDOS)),]
   
-  errors <- addTypeOfError(errors, "ERROR: priority species which hasn't been measured")
+  errors_retain <- errors_retain[which(errors_retain$EJEM_MEDIDOS==0 |
+                           is.na(errors_retain$EJEM_MEDIDOS)),]
+  
+  errors_retain <- addTypeOfError(errors_retain, "ERROR: priority retained species not measured")
+  
+  #sww discard
+  sww_discard <- sww[sww[["P_DESCAR"]] != 0 & !is.na(sww[["P_DESCAR"]]), names(sww)!=c("P_RET")]
+  sww_discard[["TIPO_CAPTURA"]] <- "D"
+  
+  errors_discard <- merge(sww_discard, 
+                         lengths_clean, 
+                         by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "TIPO_CAPTURA"))
+  errors_discard <- errors_discard[which(errors_discard$EJEM_MEDIDOS==0 |
+                                         is.na(errors_discard$EJEM_MEDIDOS)),]
+  
+  errors_discard <- addTypeOfError(errors_discard, "ERROR: priority discarded species not measured")
+
+  #merge errors
+
+  if(nrow(errors_retain)!=0 & nrow(errors_discard)!=0){
+    
+    errors <- merge(errors_retain, errors_discard, by=c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "TIPO_CAPTURA", "EJEM_MEDIDOS", "TIPO_ERROR"), all = TRUE)
+    return (errors)
+    
+  } else if (nrow(errors_retain) == 0) {
+    return (errors_discard)    
+    
+  } else if (nrow(errors_discard) == 0) {
+    return (errors_retain)    
+    
+  }
   
 }
 
@@ -468,13 +557,12 @@ reason_discard_field_filled <- function(df){
     df[["P_DESCAR"]]>0 & df[["COD_DESCAR"]] == ""),
     c("COD_MAREA", "COD_LANCE", "COD_ESP", "A3_ESP", "ESP", "P_DESCAR", "RAZON_DESCAR")]
   
-  errors <- unique(errors)
-  
-  errors <- errors[errors[["COD_ESP"]] %in% species_to_measure,]
-  
-  errors <- addTypeOfError(errors, "ERROR: this species must have the field reason discard filled but it doesn't")
-  
-  return(errors)
+  if (nrow(errors)!=0){
+    errors <- unique(errors)
+    errors <- errors[errors[["COD_ESP"]] %in% species_to_measure,]
+    errors <- addTypeOfError(errors, "ERROR: this species must have the field reason discard filled but it doesn't")
+    return(errors)
+  }
   
 }
 
@@ -490,24 +578,26 @@ retained_sampled_weight_when_specimens_retained <- function(df_catches){
     c("COD_MAREA", "COD_LANCE", "COD_ESP", "A3_ESP", "ESP", "EJEM_RET", "P_MUE_RET")
     ]
   
-  errors <- addTypeOfError(errors, "ERROR: there are specimens retained without retained sampled weight.")
-  
+  if (nrow(errors)!=0){
+    errors <- addTypeOfError(errors, "ERROR: there are specimens retained without retained sampled weight.")
+  }
 }
 
 #' Check code: 2021
 #' Sampled discard weight less than subsample discard weight.
 sampled_discard_less_subsample_discard <- function(df){
   
-  # usually the PESO_SUB_MUE_TOT is NA, so it is neccesary detect it.
+  # usually the PESO_SUB_MUE_TOT is NA, so it is necessary detect it.
   errors <- df[
-    which( !is.na(df$P_SUB_MUE_TOT) & df$P_SUB_MUE_TOT > df$P_MUE_DESCAR),
+    which( !is.na(df$P_SUB_MUE_DESCAR) & df$P_SUB_MUE_DESCAR > df$P_MUE_TOT_DESCAR),
     c("COD_MAREA", "COD_LANCE", "COD_ESP", "A3_ESP", "ESP",
-      "P_SUB_MUE_TOT", "P_MUE_DESCAR")
+      "P_SUB_MUE_DESCAR", "P_MUE_TOT_DESCAR")
     ]
   
-  errors <- addTypeOfError(errors, "ERROR: sampled discard weight of the species (in 'catches' screen of SIRENO) less than subsample discard weight.")
-  
-  return(errors)
+  if (nrow(errors)!=0){
+    errors <- addTypeOfError(errors, "ERROR: sampled discard weight of the species (in 'catches' screen of SIRENO) less than subsample discard weight.")
+    return(errors)
+  }
   
 }
 
@@ -522,8 +612,10 @@ species_without_caught_neither_discarded_weight <- function(){
     arrange(COD_MAREA)%>%
     unique() %>%
     addTypeOfError("ERROR: Especie sin peso captura ni peso descarte.")
-  
-  return(err)
+
+  if (nrow(err)!=0){
+    return(err)
+  }
   
 }
 
@@ -546,7 +638,17 @@ coherence_target_species_metier_ieo <- function(){
   
   errors <- errors[is.na(errors[["OK"]]),]
   
-  errors <- addTypeOfError(errors, "ERROR: the target species is not coherent with metier ieo.")
+  if (nrow(errors)>0){
+    
+    errors <- addTypeOfError(errors, "ERROR: the target species is not coherent with metier ieo.")
+    
+    # But, in special cases where the METIER_IEO is no filed:
+    errors[errors$METIER_IEO == "", "TIPO_ERROR"] <- "ERROR: the target species field can't be checked because the METIER_IEO is empty."
+  
+    errors <- Filter(function(x) {!all(is.na(x))}, errors)
+    
+    return(errors)
+  }
   
 }
 
@@ -554,16 +656,22 @@ coherence_target_species_metier_ieo <- function(){
 #' Total discarded weight less than sampled discard weight.
 discarded_weight_less_than_sampled_discarded_weight <- function(df){ 
   
+  # lets assume NA are equal to 0
+  
+  df[is.na(df[["P_DESCAR"]]), "P_DESCAR" ] <- 0
+  df[is.na(df[["P_MUE_TOT_DESCAR"]]), "P_MUE_TOT_DESCAR" ] <- 0
+  
   df[["P_DESCAR"]] <- round(df[["P_DESCAR"]], 2)
-  df[["P_MUE_DESCAR"]] <- round(df[["P_MUE_DESCAR"]], 2)
+  df[["P_MUE_TOT_DESCAR"]] <- round(df[["P_MUE_TOT_DESCAR"]], 2)
   
   errors <- df[
-    df$P_DESCAR < df$P_MUE_DESCAR,
-    c("COD_MAREA", "COD_ESP", "ESP", "P_DESCAR", "P_MUE_DESCAR")
+    df$P_DESCAR < df$P_MUE_TOT_DESCAR,
+    c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_DESCAR", "P_MUE_TOT_DESCAR")
     ]
   
-  errors <- addTypeOfError(errors, "ERROR: total discarded weight less than sampled discard weight.")
-  
+  if (nrow(errors)!=0){
+    errors <- addTypeOfError(errors, "ERROR: total discarded weight less than sampled discard weight.")
+  }
 }
 
 #' Check code: 2025
@@ -586,11 +694,8 @@ hauling_date_before_shooting_date <- function(){
   
   errors <- OAB_hauls[(start - end) > 0 | is.na(start - end), c("COD_MAREA", "COD_LANCE", "FECHA_LAR", "HORA_LAR", "FECHA_VIR", "HORA_VIR")]
   
-  errors <- addTypeOfError(errors, "ERROR: La fecha y hora de virada es anterior o igual a la fecha y hora de largada.")
-  
-  if (nrow(errors)==0){
-    return(NULL)
-  } else {
+  if (nrow(errors)!=0){
+    errors <- addTypeOfError(errors, "ERROR: La fecha y hora de virada es anterior o igual a la fecha y hora de largada.")
     return(errors)
   }
 }
@@ -607,10 +712,8 @@ trips_initial_date_before_final_date <- function(){
   
   errors <- OAB_trips[(start - end)>0,]
   
-  if(length(nrow(errors)==0)) {
-    return(NULL)
-  } else {
-    errors <- addTypeOfError(errors, "ERROR: la ficha final de la marea es anterior a la fecha inicial")
+  if(nrow(errors)!=0) {
+    errors <- addTypeOfError(errors, "ERROR: la fEicha final de la marea es anterior a la fecha inicial")
     return(errors)
   }
   
@@ -632,8 +735,6 @@ trips_final_date_in_COD_MAREA_GC <- function(){
       select(COD_MAREA, FECHA_FIN, TIPO_ERROR)
     
     return(errors)
-  } else {
-    return(NULL)
   }
 }
 
@@ -682,14 +783,16 @@ check_discard_reason_variable_with_master <- function (df){
   
   errors <- anti_join(df, razon_descarte_OAB, by = "COD_DESCAR")
   
-  errors <- errors %>%
-    select(one_of(c("COD_MAREA", "COD_DESCAR")))%>%
-    unique()
+  if (nrow(errors) > 0){
   
-  text_type_of_error <- paste0("ERROR: el código descarte no concuerda con los maestros de SIRENO")
-  errors <- addTypeOfError(errors, text_type_of_error)
-  
-  return(errors)
+    errors <- errors %>%
+      select(one_of(c("COD_MAREA", "COD_DESCAR")))%>%
+      unique()
+    
+    errors <- addTypeOfError(errors, "ERROR: el código descarte no concuerda con los maestros de SIRENO")
+    
+    return(errors)
+  }
   
 }
 
@@ -721,13 +824,9 @@ date_hauls_in_date_interval_trips <- function(df_trips, df_hauls) {
   # detect hauls with 
   errors <- df_dates[which(df_dates[["FECHA_LAR"]] < df_dates[["FECHA_INI_TRIP"]] |
                  df_dates[["FECHA_VIR"]] > df_dates[["FECHA_FIN_TRIP"]]),]
-  
 
   #return
-  if (nrow(errors)==0){
-    return(NULL)
-  } else {
-    
+  if (nrow(errors) > 0){
     # add error columns
     errors[which(errors[["FECHA_LAR"]] < errors[["FECHA_INI_TRIP"]]),
            "TIPO_ERROR"] <- c("ERROR: Shooting date before initial date of the trip")
@@ -744,7 +843,7 @@ date_hauls_in_date_interval_trips <- function(df_trips, df_hauls) {
 #' Check code: 2049
 #' Check total discarded weight equal to zero but with sampled discarded
 #' weight ----------------------------------------------------------------------
-#' @return Dataframe with the erroneus data. A new a variable with the type
+#' @return Dataframe with the erroneous data. A new a variable with the type
 #' of error is added.
 total_discarded_weight_zero_with_sampled_discard_weight <- function(){
   
@@ -753,9 +852,10 @@ total_discarded_weight_zero_with_sampled_discard_weight <- function(){
     c("COD_MAREA", "COD_LANCE", "P_TOT_DESCAR", "P_MUE_DESCAR")
     ]
   
-  errors <- addTypeOfError(errors, "ERROR: total discarded weight equal to 0 but with sampled discarded weight. This erroneus data can generate multiple errors which can be fixed correcting the total discarded weight.")
-  
-  return(errors)
+  if (nrow(errors) > 0){
+    errors <- addTypeOfError(errors, "ERROR: total discarded weight equal to 0 but with sampled discarded weight. This erroneus data can generate multiple errors which can be fixed correcting the total discarded weight.")
+    return(errors)
+  }
   
 }
 
@@ -770,7 +870,7 @@ trip_duration <- function(){
   
   trip_hauls <- duracion_mareas_OAB
   
-  err <- OAB_hauls %>%
+  errors <- OAB_hauls %>%
     select(COD_MAREA, COD_LANCE, ESTRATO_RIM, FECHA_HORA_LAR, FECHA_HORA_VIR) %>%
     unique() %>%
     group_by(COD_MAREA, ESTRATO_RIM) %>%
@@ -779,19 +879,12 @@ trip_duration <- function(){
     merge(, y = trip_hauls, all.x = T) %>%
     filter(duration_trip > DURACION_MAX) %>%
     mutate(duration_trip = round(duration_trip, 0)) %>%
-    addTypeOfError("WARNING: Haul duration too long. You should check the date and time of the shoot and hauling.")
+    addTypeOfError("WARNING: Trip duration too long. You should check the date and time of the shoot and hauling.")
+
+  if(nrow(errors)>0){
+    return(errors)
+  }
   
-  # TO DO: find the haul with the erroneus date and return it 
-  # duration_p95 <- OAB_hauls %>%
-  #   filter(COD_MAREA%in%err$COD_MAREA) %>%
-  #   group_by(COD_MAREA, ESTRATO_RIM) %>%
-  #   summarise('p95'=quantile(?????, probs=0.95))
-  # 
-  # error_final <- OAB_hauls %>%
-  #   filter(COD_MAREA%in%err$COD_MAREA) %>%
-  #   merge(., duration_p95, by=c("COD_MAREA", "ESTRATO_RIM"))
-  
-  return(err)
   
 }
 
@@ -801,24 +894,24 @@ trip_duration <- function(){
 # species discarded
 # THIS CHECK CAN'T BE DONE BECAUSE PESO_DESCAR IS FILLED WITH A ZERO IN THE
 # REPORT IF THE FIELD IS EMPTY IN SIRENO.
-haul_sampled_with_empty_discard_weight <- function(){
-  
-  sampled_hauls <- OAB_hauls[which(OAB_hauls["MUESTREADO"]=="S"),
-                             c("COD_MAREA", "COD_LANCE")]
-  
-  clean_catches <- OAB_catches[, c("COD_MAREA", "COD_LANCE", "P_DESCAR")]
-  clean_catches <- unique(clean_catches)
-  
-  sampled_hauls <- merge(sampled_hauls,
-                         clean_catches,
-                         by = c("COD_MAREA", "COD_LANCE"),
-                         all.x = TRUE)
-  
-  errors <- sampled_hauls[which(sampled_hauls[["P_DESCAR"]] == ""),]
-  
-  sampled_catches <- merge(OAB_catches, sampled_hauls, by=c("COD_MAREA", "COD"))
-  
-}
+# haul_sampled_with_empty_discard_weight <- function(){
+#   
+#   sampled_hauls <- OAB_hauls[which(OAB_hauls["MUESTREADO"]=="S"),
+#                              c("COD_MAREA", "COD_LANCE")]
+#   
+#   clean_catches <- OAB_catches[, c("COD_MAREA", "COD_LANCE", "P_DESCAR")]
+#   clean_catches <- unique(clean_catches)
+#   
+#   sampled_hauls <- merge(sampled_hauls,
+#                          clean_catches,
+#                          by = c("COD_MAREA", "COD_LANCE"),
+#                          all.x = TRUE)
+#   
+#   errors <- sampled_hauls[which(sampled_hauls[["P_TOT_DESCAR"]] == ""),]
+#   
+#   sampled_catches <- merge(OAB_catches, sampled_hauls, by=c("COD_MAREA", "COD"))
+#   
+# }
 
 #' Check code: 2045
 #' Check the coherence between origin and statistical rectangle.
@@ -839,12 +932,9 @@ coherence_origin_statistical_rectangle <- function(){
   err <- err[is.na(err$VALID),]
   
   if (nrow(err) > 0){
-    
     err <- addTypeOfError(err, "WARNING: Origin doesn't match with statistical rectangle according to master dataset.")
-    
     err <- err[, c("COD_MAREA", "COD_LANCE", "COD_ORIGEN", "CUADRICULA_ICES",
                    "TIPO_ERROR")]
-    
     return(err)
     
   }
@@ -852,7 +942,9 @@ coherence_origin_statistical_rectangle <- function(){
 }
 
 #' Check code: 2054
-#' Check if the haul date is different to shooting date
+#' Check if the haul date is different to shooting date.
+#' This is a warning because the haul date of 'rasco' gear is taken when the
+#' gear is hauling.
 #' @return Dataframe with errors.
 haul_date_shooting_date <- function(){
   
@@ -862,7 +954,7 @@ haul_date_shooting_date <- function(){
   err <- err[which (err[["FECHA_LAR"]] != err[["FECHA_LANCE"]]),]
   
   if (nrow(err) > 0){
-    err <- addTypeOfError(err, "ERROR: the date of the haul is different to the shooting date.")
+    err <- addTypeOfError(err, "WARNING: the date of the haul is different to the shooting date.")
   }
   
 }
@@ -881,9 +973,9 @@ positive_longitude <- function(var){
   
   if( nrow(err) > 0){
     err <- addTypeOfError(err, "ERROR: the longitude is positive.")
+    return(err)
   }
   
-  return(err)
   
 }
 
@@ -901,84 +993,97 @@ litter_sample <- function(){
              (OAB_litter[["SOLO_MUESTRA"]] == TRUE & OAB_litter[["PORCENTAJE_OBSERVADO"]]>0)) ,
     c("COD_MAREA", "COD_LANCE", "SOLO_MUESTRA", "PORCENTAJE_OBSERVADO")]
   
-  err <- unique(err)
   
-  err <- addTypeOfError(err, "ERROR: If SOLO_MUESTRA is TRUE PORCENTAJE_OBSERVADO must be empty. If SOLO_MUESTRA is FALSE PORCENTAJE_OBSERVADO must be greather than 0.")
-  
-  return(err)
+  if (nrow(err) > 0){
+    err <- unique(err)
+    err <- addTypeOfError(err, "ERROR: If SOLO_MUESTRA is TRUE PORCENTAJE_OBSERVADO must be empty. If SOLO_MUESTRA is FALSE PORCENTAJE_OBSERVADO must be greather than 0.")
+    return(err)
+  }
   
 }
 
 #' check code: 2058
-#' Total weight discarded in not measured hauls.
+#' Total weight discarded 0 or greater than 0 in not measured hauls.
 #' When a haul is not measured, the total weight discarded must be empty (and
-#' not 0)
+#' not 0).
 #' @return dataframe with errors
 zero_discarded_weights_in_not_measured_haul <- function(){
-  
-  if (!variable_exists_in_df("MUESTREADO", OAB_hauls) ||
-      !variable_exists_in_df("P_TOT_DESCAR", OAB_hauls)){
-    
-    stop("The variable 'muestreado' and 'peso descarte' must exists in hauls
-    dataframe")
-    
-  }
   
   err <- OAB_hauls[which(OAB_hauls[["MUESTREADO"]] == FALSE &
                            OAB_hauls[["P_TOT_DESCAR"]] >= 0),]
   
   err <- err[, c("COD_MAREA", "COD_LANCE", "MUESTREADO", "P_TOT_DESCAR")]
   
-  err <- addTypeOfError(err, "ERROR: Total weight discarded must be empty when the haul is not measured.")
-  
-  return(err)  
+  if (nrow(err) > 0){
+    err <- addTypeOfError(err, "ERROR: Total weight discarded must be empty when the haul is not measured.")
+    return(err)  
+  }
   
 }
 
 #' check code:2001
-#' Check the size range of species with the rango_tallas_historico dataset.
-#' To avoid an overhelming number of warnings, the maximum length by species and
-#' sex is increased in a 20% and the minimun length is decreased in a 20%
+#' Check the size range of species with the rango_tallas_historico_caladero dataset.
+#' In case of discarded lengths, only maximum size is considered.
 #' @return dataframe with warnings lengths
-check_size_range_OAB<- function (){
+check_size_range<- function (){
   
-  # increase range of historical dataset
-  increased_range <- rango_tallas_historico_OAB
-  
-  increased_range$TALLA_MAX <- increased_range$TALLA_MAX + (20*increased_range$TALLA_MAX/100)
-  increased_range$TALLA_MIN <- increased_range$TALLA_MIN - (20*increased_range$TALLA_MIN/100)
-  increased_range$TALLA_MIN <- ifelse(increased_range$TALLA_MIN < 0, 0, increased_range$TALLA_MIN)
-  
-  # detect warnings
-  warningsIsRanged <- OAB_lengths%>%
-    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, SEXO, TALLA)%>%
-    merge(y = increased_range, by.x = c("COD_ESP", "SEXO"), by.y = c("COD_ESP", "SEXO"), all.x = T)%>%
-    filter(is.na(TALLA_MIN) | is.na((TALLA_MAX)))%>%
-    unique()%>%
-    addTypeOfError("WARNING: esta especie con ese sexo no se encuentra en el maestro histórico de tallas mínimas y máximas por estrato rim. Por lo tanto habría que comprobar manualmente que el tamaño es coherente.")%>%
-    select(-c(TALLA_MIN, TALLA_MAX))
-  
+  OAB_lengths <- merge(x = OAB_lengths,
+                        y = sapmuebase::caladero_origen[,c("CALADERO", "COD_ORIGEN")],
+                        all.x = T,
+                        by="COD_ORIGEN")
+
   warningsOutOfRangeCatched <- OAB_lengths %>%
     filter(TIPO_CAPTURA == "C") %>%
-    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, SEXO, TALLA)%>%
-    merge(y = increased_range, by.x = c("COD_ESP", "SEXO"), by.y = c("COD_ESP", "SEXO"), all.x = T)%>%
+    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, TALLA, CALADERO)%>%
+    merge(y = rango_tallas_historico_caladero,
+          by.x = c("COD_ESP", "CALADERO"),
+          by.y = c("COD_ESP", "CALADERO"),
+          all.x = T)%>%
     filter(TALLA < TALLA_MIN | TALLA > TALLA_MAX)%>%
     # it's not possible use addTypeOfError here, I don't know why
-    mutate(TIPO_ERROR = paste("WARNING: Talla fuera del rango histórico de tallas (para ese sexo):", TALLA_MIN, "-", TALLA_MAX))%>%
+    mutate(TIPO_ERROR = paste("WARNING: Talla fuera del rango histórico de tallas por caladero:", TALLA_MIN, "-", TALLA_MAX))%>%
     select(-c(TALLA_MIN, TALLA_MAX))
   
   warningsOutOfRangeDiscarded <- OAB_lengths %>%
     filter(TIPO_CAPTURA == "D") %>%
-    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, SEXO, TALLA)%>%
-    merge(y = increased_range, by.x = c("COD_ESP", "SEXO"), by.y = c("COD_ESP", "SEXO"), all.x = T)%>%
+    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CATEGORIA, TALLA, CALADERO)%>%
+    merge(y = rango_tallas_historico_caladero,
+          by.x = c("COD_ESP", "CALADERO"),
+          by.y = c("COD_ESP", "CALADERO"),
+          all.x = T)%>%
     filter(TALLA > TALLA_MAX)%>%
     # it's not possible use addTypeOfError here, I don't know why
-    mutate(TIPO_ERROR = paste("WARNING: Talla máxima fuera del rango histórico de tallas (para ese sexo):", TALLA_MAX))%>%
+    mutate(TIPO_ERROR = paste("WARNING: Talla máxima fuera del rango histórico de tallas por caladero:", TALLA_MAX))%>%
     select(-c(TALLA_MIN, TALLA_MAX))
   
-  # warnings <- rbind(warningsIsRanged, warningsOutOfRangeCatched)
-  warnings <- merge(warningsIsRanged, warningsOutOfRangeCatched, all = T)
-  warnings <- merge(warnings, warningsOutOfRangeDiscarded, all = T)
+  warnings <- merge(warningsOutOfRangeCatched, warningsOutOfRangeDiscarded, all = T)
+  
+  if (nrow(warnings)>0){
+    return(warnings) 
+  }
+  
+}
+
+#' check code:2005
+#' Check species included in size range by fishing ground dataset.
+#' @return dataframe with warnings lengths
+check_species_in_size_range_historical <- function (){
+  
+  OAB_lengths <- merge(x = OAB_lengths,
+                       y = sapmuebase::caladero_origen[,c("CALADERO", "COD_ORIGEN")],
+                       all.x = T,
+                       by="COD_ORIGEN")
+  
+  warnings <- OAB_lengths%>%
+    select(COD_MAREA, COD_LANCE, ESP, COD_ESP, TIPO_CAPTURA, CALADERO)%>%
+    merge(y = rango_tallas_historico_caladero,
+          by.x = c("COD_ESP", "CALADERO"),
+          by.y = c("COD_ESP", "CALADERO"),
+          all.x = T)%>%
+    filter(is.na(TALLA_MIN) | is.na((TALLA_MAX)))%>%
+    unique()%>%
+    addTypeOfError("WARNING: esta especie no se encuentra en el maestro histórico por caladero de tallas mínimas y máximas por estrato rim. Por lo tanto habría que comprobar manualmente que el tamaño es coherente.")%>%
+    select(-c(TALLA_MIN, TALLA_MAX))
   
   if (nrow(warnings)>0){
     return(warnings) 
@@ -987,7 +1092,7 @@ check_size_range_OAB<- function (){
 }
 
 #' check code: 2059
-#' Search not allowed species. This species are spp
+#' Search not allowed species. This species are spp (and others)
 #' species, which are stored in not_allowed_species_measured.csv file.
 #' The file must be previously loaded to run this function.
 #' @return dataframe with warnings.
@@ -1001,9 +1106,8 @@ species_not_allowed <- function(){
   
   errors <- errors[, c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP")]
   
-  errors <- addTypeOfError(errors, "WARNING: not allowed species (usually 'spp' species.)")
-  
   if (nrow(errors)>0){
+    errors <- addTypeOfError(errors, "WARNING: not allowed species (usually 'spp' species.)")
     return(errors) 
   }
   
@@ -1062,35 +1166,403 @@ doubtfull_sp_number_specimens <- function(){
   # get specimens of not allowed species
   specimens_n_a <- OAB_catches_clean[to_check_genus,]
 
-  specimens_n_a_ret <- specimens_n_a[which(specimens_n_a[["P_RET"]] > 0 &
-                  specimens_n_a[["EJEM_RET"]] == 0), ]
-  specimens_n_a_ret <- addTypeOfError(specimens_n_a_ret, "WARNING: This species has retained weight but doesn't have number of retained specimens.")
-  
-  specimens_n_a_dis <- specimens_n_a[which(specimens_n_a[["P_DESCAR"]] > 0 &
-                  specimens_n_a[["EJEM_DESCAR"]] == 0), ]
-  specimens_n_a_dis <- addTypeOfError(specimens_n_a_dis, "WARNING: This species has discarded weight but doesn't have number of discarded specimens.")  
-  
-  errors <- rbind(specimens_n_a_ret, specimens_n_a_dis)
+  errors <- specimens_n_a[which( (specimens_n_a[["P_RET"]] > 0 & specimens_n_a[["EJEM_RET"]] == 0 ) |
+                                 (specimens_n_a[["P_DESCAR"]] > 0 & specimens_n_a[["EJEM_DESCAR"]] == 0) ), ]
 
   if (nrow(errors) > 0){
+    
+    errors[["TIPO_ERROR"]] <- ""
+    errors[which(errors[["P_RET"]] > 0 & errors[["EJEM_RET"]] == 0), "TIPO_ERROR"] <- "WARNING: This species has retained weight but doesn't have number of retained specimens."
+    errors[which(errors[["P_DESCAR"]] > 0 & errors[["EJEM_DESCAR"]] == 0), "TIPO_ERROR"] <- "WARNING: This species has discarded weight but doesn't have number of discarded specimens."
+    
     return(errors)
   }  
+  
 }
 
 
 #' check code: 2063
-#' Discarded weight of grouped species.
-#' Grouped species are only allowed in retained catches, not in discarded catches.
-#' Therefore, can't be a discarded weight of gropued species.
+#' PREVIOUS CHECKING DELETED
+
+
+
+#' check code: 2064
+#' Cephalopods counted.
+#' Cephalopods must be counted in DESIXA, DESSUR and DESNOR samples.
 #' @return dataframe with errors.
-discarded_weigh_of_grouped_species <- function(){
+cephalopods_counted <- function(){
   
-  to_check <- grep("(.+(formes$))|(.+(spp$))|(.+(sp$))|(.+(dae$))", OAB_catches$ESP)
+  # filter by DESIXA, DESSUR and DESNOR
+  OAB_catches_filtered <- OAB_catches[c(grep("^DESIXA[0-9]+", OAB_catches[["COD_MAREA"]]),
+  grep("^DESNOR.+", OAB_catches[["COD_MAREA"]]),
+  grep("^DESSUR.+", OAB_catches[["COD_MAREA"]]) ), ]
   
-  err <- OAB_catches[to_check, c("COD_MAREA", "COD_LANCE", "ESP", "P_DESCAR")]
+  # find cephalopods
+  are_cephalopods <- cephalopods[["COD_ESP"]]
   
-  err <- err[err[["P_DESCAR"]]>0, ]
+  # detect errors
+  errors <- OAB_catches_filtered[which(OAB_catches_filtered[["COD_ESP"]] %in% are_cephalopods), ]
   
-  err <- addTypeOfError(err, "WARNING: discarded weight of a grouped species (only retained weights are allowed to have grouped species.")
+  errors_ret <- errors[which(errors[["P_RET"]]>0 & errors[["EJEM_RET"]]==0), 
+                       c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_RET", "EJEM_RET")]
+  errors_ret <- addTypeOfError(errors_ret, "WARNING: retained weight of cephalopod without number of specimens (counted, not measured)")
+  
+  if(!("TIPO_ERROR" %in% colnames(errors_ret))){
+    errors_ret <- setNames(data.frame(matrix(ncol = 7, nrow = 0)),
+                           c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_RET", "EJEM_RET", "TIPO_ERROR"))
+  }
+  
+  errors_dis <- errors[which(errors[["P_DESCAR"]]>0 & errors[["EJEM_DESCAR"]]==0), 
+                       c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_DESCAR", "EJEM_DESCAR")]
+  errors_dis <- addTypeOfError(errors_dis, "WARNING: discarded weight of cephalopod without number of specimens (counted, not measured)")
+
+  if(!("TIPO_ERROR" %in% colnames(errors_dis))){
+    errors_dis <- setNames(data.frame(matrix(ncol = 7, nrow = 0)),
+             c("COD_MAREA", "COD_LANCE", "ESP", "COD_ESP", "P_DESCAR", "EJEM_DESCAR", "TIPO_ERROR"))
+  }
+  
+  errors <- merge(errors_ret, errors_dis, by = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "TIPO_ERROR"), all.x = TRUE, all.y = TRUE)
+
+  if (nrow(errors) > 0){
+    return(errors)
+  }
   
 }
+
+#' check code: 2063
+#' Check if the haul is checked.
+#' @return dataframe with errors.
+haul_is_checked <- function(df){
+  
+  errors <- df[df["CHEQUEADO"]==FALSE,]
+  errors <- errors[, c("COD_MAREA", "COD_LANCE", "CHEQUEADO")]
+  
+  if (nrow(errors) > 0){
+    errors <- addTypeOfError(errors, "ERROR: haul not checked.")
+    return(errors)
+  }
+  
+}
+
+#' check code: 2065
+#' Check if the trip is checked.
+#' @return dataframe with errors.
+trip_is_checked <- function(df){
+
+  errors <- df[which(df["CHEQUEADO"]==FALSE | is.na(df["CHEQUEADO"])),]
+  
+  
+  if (nrow(errors) > 0){
+    errors <- errors[, c("COD_MAREA", "CHEQUEADO")]
+    errors <- addTypeOfError(errors, "ERROR: trip not checked.")
+    return(errors)
+  }
+  
+}
+
+
+#' check code: 2066
+#' Check if the final date of the trip is one day after the hauling of the
+#' last haul. In case of BACA_AC, this period can be 3 days.
+#' @return dataframe with errors.
+final_date_one_day_before_hauling <- function(){
+  
+  #get the maximum days between final trip date and final date of last haul of the trip.
+  max_days <- duracion_mareas_OAB[, c("ESTRATO_RIM", "max_days_haul_trip")]
+  
+  # get the final date of every trips by rim stratum
+  final_date_trip <- OAB_trips[, c("COD_MAREA", "FECHA_FIN", "ESTRATO_RIM")]
+  final_date_trip <- unique(final_date_trip)
+  final_date_trip$FECHA_FIN <- as.Date(final_date_trip$FECHA_FIN, format = "%d/%m/%Y")
+  final_date_trip <- by(final_date_trip, final_date_trip$COD_MAREA, function(x){
+    x[which.max(x$FECHA_FIN), ]
+  })
+  final_date_trip <- do.call(rbind, final_date_trip)
+
+  # get the final date of hauls by rim stratum
+  final_date_haul <- OAB_hauls[, c("COD_MAREA", "FECHA_VIR", "ESTRATO_RIM")]
+  final_date_haul <- unique(final_date_haul)
+  final_date_haul$FECHA_VIR <- as.Date(final_date_haul$FECHA_VIR, format = "%d/%m/%Y")
+  final_date_haul <- by(final_date_haul, final_date_haul$COD_MAREA, function(x){
+    x[which.max(x$FECHA_VIR), ]
+  })
+  final_date_haul <- do.call(rbind, final_date_haul)
+
+  # merge trip and hauls dataframe
+  errors <- merge(final_date_trip,
+                 final_date_haul,
+                 by=c("COD_MAREA", "ESTRATO_RIM"),
+                 all = T)
+
+  calculate_error <- function(x){
+    if(!is.na(x[["FECHA_FIN"]]) && !is.na(x[["FECHA_VIR"]]) ){
+      max_dur <- max_days[max_days[["ESTRATO_RIM"]]==x[["ESTRATO_RIM"]], "max_days_haul_trip"]
+      trip_date <- as.Date(x[["FECHA_FIN"]], format = "%Y-%m-%d")
+      haul_date <- as.Date(x[["FECHA_VIR"]], format = "%Y-%m-%d")
+      
+      if(length(max_dur)==0){
+        error_content <- "ERROR: the ESTRATO_RIM is not in the duracion_mareas_OAB master. Check it and check manually the initial date trip and final date trip."
+        return(error_content)
+      }
+      if(trip_date - haul_date > max_dur){
+        error_content <- paste("ERROR: the end date of the trip is more than",
+        max_dur, "days later than last haul date.", sep=" ")
+        return(error_content)
+      }
+    }
+  }
+
+  errors[["TIPO_ERROR"]] <- apply(errors, 1, calculate_error)
+  errors <- errors[which(errors$TIPO_ERROR!="NULL"), ]
+  
+  if (nrow(errors) > 0){
+    return(errors)
+  }
+  
+}
+
+#' Check code: 2067
+#' Check if there are any trip with various hauls with same code.
+#' This check is required because sometimes delete a haul in SIRENO doesn't work
+#' and is possible add a new haul with the same code.
+trip_multiple_haul_same_code <- function(){
+  
+  errors <- OAB_hauls[, c("COD_MAREA", "COD_LANCE")]
+  
+  errors <- aggregate(errors$COD_LANCE, by=list(errors$COD_MAREA, errors$COD_LANCE), length)
+  
+  colnames(errors) <- c("COD_MAREA", "COD_LANCE", "num_repeated_hauls")
+  
+  errors <- errors[errors$num_repeated_hauls > 1,]
+  
+  errors <- addTypeOfError(errors, "ERROR: this trip have multiple hauls with the same haul code (COD_LANCE).")
+  
+  if (nrow(errors) > 0){
+    return(errors)
+  }
+  
+}
+
+
+#' check code: 2068
+#' Total weight discarded empty in measured hauls.
+#' When a haul is measured, the total weight discarded can't be empty (must be
+#' 0 o greater than 0).
+#' @return dataframe with errors
+empty_discarded_weights_in_measured_haul <- function(){
+  
+  errors <- OAB_hauls[which(OAB_hauls[["MUESTREADO"]] == TRUE &
+                           is.na(OAB_hauls[["P_TOT_DESCAR"]])),]
+  
+  errors <- errors[, c("COD_MAREA", "COD_LANCE", "MUESTREADO", "P_TOT_DESCAR")]
+  
+  errors <- addTypeOfError(errors, "ERROR: Total weight can't be empty when the haul is measured.")
+  
+  if (nrow(errors) > 0){
+    return(errors)
+  } 
+  
+}
+
+
+#' check code: 2069
+#' Mandatory sexed species not sexed. 
+#' Only elasmobranchii and Nephropps Norvergicus must be sexed.
+#' @return dataframe with errors
+species_not_sexed <- function(){
+  
+  # Get the elasmobranchii.csv file, which contains the elasmobranchii species.
+  elasmobranchii <- importCsvSAPMUE("elasmobranchii.csv")
+  
+  # Create not sex species dataset:
+  not_sex <- rbind(elasmobranchii, c("20194", "Nephrops norvegicus"))
+  
+  # Get errors
+  clean_lengths <- OAB_lengths[, c("COD_MAREA", "COD_LANCE", "TIPO_CAPTURA", "COD_ESP", "ESP", "SEXO")]
+  clean_lengths <- unique(clean_lengths)
+  errors <- clean_lengths[which(clean_lengths[["COD_ESP"]] %in% not_sex[["COD_ESP"]] & clean_lengths[["SEXO"]] %in% c("U")), ]
+  
+  errors <- addTypeOfError(errors, "ERROR: this species must be sexed.")
+  
+  if (nrow(errors) > 0){
+    return(errors)
+  } 
+  
+}
+
+#' Check code: ????
+#' Check if the variables "COD_PUERTO", "COD_ARTE", "COD_ORIGEN", "ESTRATO_RIM",
+#' "METIER_DCF" and "CALADERO_DCF" are coherent with OAB prescriptions.
+#' @return dataframe with errors, if there are any.
+coherenceRimMt2PrescriptionsPost <- function(df){
+  
+  vars_to_check <- colnames(prescripciones_oab_2021_coherencia)
+  
+  vars_to_check_in_df <- colnames(df)[(colnames(df) %in% vars_to_check)]
+  errors_oab_trips <- df[, c("COD_MAREA", vars_to_check_in_df)]
+
+  # OAB_trips[5:7, "ESTRATO_RIM"] <- "VOLANTA_CN"
+  # OAB_trips[15:27, "COD_ORIGEN"] <- "008"
+  errors_oab_trips <- unique(errors_oab_trips)
+  prescripciones_oab_2021_coherencia_mod <- prescripciones_oab_2021_coherencia
+  prescripciones_oab_2021_coherencia_mod$VALID <- TRUE
+  errors_oab_trips <- merge(errors_oab_trips,
+                            prescripciones_oab_2021_coherencia_mod,
+                            by=vars_to_check_in_df,
+                            all.x = TRUE)
+  if(nrow(errors_oab_trips)>0){
+    errors_oab_trips <- errors_oab_trips[is.na(errors_oab_trips[["VALID"]]), c(vars_to_check_in_df)]
+    errors_oab_trips <- addTypeOfError(errors_oab_trips, "This combination of ", paste(vars_to_check_in_df, collapse = ", "), " are not in 2021 OAB prescriptions.")
+    return (errors_oab_trips)
+  }
+  
+}
+
+# coherenceRimMt2PrescriptionsPost(OAB_accidentals)
+# 
+# vars_to_check <- c("COD_PUERTO_BASE", "COD_PUERTO_DESCARGA", "ESTRATO_RIM")
+# 
+# port_cols <- vars_to_check[grepl("((^)|(.+))COD_PUERTO(($)|(.+))", vars_to_check)]
+# 
+# pres <- prescripciones_oab_2021_coherencia
+# pres[port_cols] <- pres[["REGEX_COD_PUERTO"]]
+# 
+# errors_port <- OAB_trips[, c("COD_MAREA", port_cols)]
+# 
+# errors_port <- unique(errors_port)
+# 
+# pres$VALID <- TRUE
+# errors_oab_trips <- merge(errors_port,
+#                           pres,
+#                           by=port_cols,
+#                           all.x = TRUE)
+# # if(nrow(errors_port)>0){
+#   errors_port <- errors_port[is.na(errors_port[["VALID"]]), c(vars_to_check_in_df)]
+#   errors_port <- addTypeOfError(errors_port, "This combination of ", paste(port_cols, collapse = ", "), " are not in 2021 OAB prescriptions.")
+#   # return (errors_port)
+# # }
+
+
+#' check code: 2072
+#' Discard Sampled Checkbox must be equal to Haul Sampled Checkbox
+#' @return dataframe with errors
+haul_sampled_discard_sampled <- function(){
+  
+  errors <- OAB_hauls[OAB_hauls$MUESTREADO != OAB_hauls$DESCARTE_MUESTREADO,
+                      c("COD_MAREA", "COD_LANCE")]
+  if (nrow(errors) > 0){
+    errors <- addTypeOfError(errors, "ERROR: Haul with Discard Sampled variable different to Sampled variable.")
+    return(errors)
+  } 
+  
+}
+
+#' check code: 2073
+#' Days at sea must be equal or greater than fishing days.
+#' @return dataframe with errors
+days_at_sea_fishing_days <- function() {
+  errors <- OAB_trips[OAB_trips[["DIAS_PESCA"]] > OAB_trips[["DIAS_MAR"]],
+                   c("COD_MAREA", "DIAS_MAR", "DIAS_PESCA")]
+  if (nrow(errors) > 0){
+    errors <- addTypeOfError(errors, "ERROR: Days at see must be greater or equal than fishing days. Both fields are calculated, so the problem must be in date and times of the trips or hauls.")
+    return(errors)
+  } 
+  
+}
+
+
+#' check code: 2074
+#' Detect when only one specimen has been measured but the retained weight is
+#' greater than the retained sampled weight.
+#' @return dataframe with errors
+retained_weight_one_specimen_measured <- function() {
+  errors <- OAB_catches[OAB_catches[["P_RET"]] > OAB_catches[["P_MUE_RET"]] & OAB_catches[["EJEM_RET"]]==1,
+                      c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_RET", "P_MUE_RET", "EJEM_RET")]
+  if (nrow(errors) > 0){
+    errors <- addTypeOfError(errors, "WARNING: One specimen has been measured but the retained weight is
+#' greather than the retained sampled weight.")
+    return(errors)
+  } 
+  
+}
+
+#' check code: 2075
+#' Since 1/1/2022 the field PINGER can't be NA, must be filled with true or false
+#' @return dataframe with errors
+pinger_required <- function (){
+  errors <- OAB_hauls[!(OAB_hauls[["PINGER"]] %in% c(TRUE, FALSE)),
+                      c("COD_MAREA", "COD_LANCE", "PINGER")]
+  
+  if (nrow(errors) > 0){
+    errors <- addTypeOfError(errors, "ERROR: Since 1/1/2022 the field PINGER can't be NA, must be filled with true or false.")
+    return(errors)
+  }
+  
+}
+
+
+#' Check code: 2077
+#' Ships not in CFPO
+#' @details Require a valid CFPO file. Due to the lack of CFR code in OAB SIRENO
+#' reports, is needed to get this code from SIRENO fleet report.
+#' @param df dataframe returned by importOABTrips, importOABHals or importOABLengths functions.
+#' @param cfpo Valid CFPO file.
+#' @return A dataframe with errors.
+shipsNotInCFPO <- function(df, cfpo = CFPO, sireno_fleet = SIRENO_FLEET){
+  
+  #First, get the CFR code from the SIRENO fleet
+  df <- merge(x = df,
+              y = SIRENO_FLEET,
+              by.x="COD_BARCO",
+              by.y="COD.BARCO",
+              all.x=TRUE)
+  
+  df <- unique(df[,c("COD_MAREA", "COD_BARCO", "BARCO", "COD.SECRETARIA")])
+  df$CFR <- sprintf("ESP%09d", df[["COD.SECRETARIA"]])
+  
+  errors <- merge(x=df, y=cfpo, by.x = "CFR", by.y = "CFR", all.x = TRUE)
+  
+  errors <- errors[is.na(errors[["ESTADO"]]),]
+  
+  if(nrow(errors)>0) {
+    text_type_of_error <- paste0("ERROR: barco no incluido en el CFPO.")
+    errors <- cbind(errors, "TIPO_ERROR" = text_type_of_error)
+    return (errors)
+  }
+  
+}
+
+
+#' Check code: 2078
+#' Ships registered in CFPO in removal state ("Baja definitiva" and "Baja
+#' Provisional").
+#' @details Require a valid CFPO file. Due to the lack of CFR code in OAB SIRENO
+#' reports, is needed to get this code from SIRENO fleet report.
+#' @param df dataframe returned by importOABTrips, importOABHals or importOABLengths functions.
+#' @param cfpo valid CFPO file.
+#' @param sireno_fleet SIRENO fleet report
+#' @return A dataframe with errors.
+shipsNotRegistered <- function(df, cfpo = CFPO, sireno_fleet = SIRENO_FLEET){
+  
+  #First, get the CFR code from the SIRENO fleet
+  df <- merge(x = df,
+              y = SIRENO_FLEET,
+              by.x="COD_BARCO",
+              by.y="COD.BARCO",
+              all.x=TRUE)
+  
+  df <- unique(df[,c("COD_MAREA", "COD_BARCO", "BARCO", "COD.SECRETARIA")])
+  df$CFR <- sprintf("ESP%09d", df[["COD.SECRETARIA"]])
+  
+  errors <- merge(x=df, y=cfpo, by.x = "CFR", by.y = "CFR", all.x = TRUE)
+  
+  errors <- errors[errors[["ESTADO"]] %in% c("Baja Definitiva", "Baja Provisional"), ]
+  
+  if(nrow(errors) > 0) {
+    text_type_of_error <- paste0("ERROR: barco en ", errors[["ESTADO"]], " en el CFPO.")
+    errors <- cbind(errors, "TIPO_ERROR" = text_type_of_error)
+    return (errors)
+  }
+  
+}
+

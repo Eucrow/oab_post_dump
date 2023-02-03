@@ -15,44 +15,53 @@
 # script.
 # - Make sure report files of discards from SIRENO are in a path like
 # /data/YYYY/YYYY_MM.
-# - Choose the way to export in the "EXPORT ERRORS" section of this script. 
-# Uncomment the interested way. It's available by a xlsx file or upload directly
+# - Choose the way to export in the "EXPORT ERRORS" section of this script.
+# Uncomment??? the interested way. It's available by a xlsx file or upload directly
 # to google drive. In this case an account and password is required, and a token
 # is automatically generated.
-# - If xlsx option is choosen, the errors file must be created in the directory
-# /data/YYYY/YYYY_MM/errors. If the "errors" directorory does not exists, it's
+# - If xlsx option is chosen, the errors file must be created in the directory
+# /data/YYYY/YYYY_MM/errors. If the "errors" directory does not exists, it's
 # created automatically.
 # - TODO: explain speed graphics
 # - A file by acronym type (DESIXA, DESSUR...) is generated in "errors"
 # directory.
- 
+
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAMARCO_CON_ADRIAN.TXT"
-hauls_file <- "IEODESLANCEMARCO_CON_ADRIAN.TXT"
-catches_file <- "IEODESCAPTURAMARCO_CON_ADRIAN.TXT"
-lengths_file <- "IEODESTALLASMARCO_CON_ADRIAN.TXT"
-litter_file <- "IEODESBASURASMARCO_CON_ADRIAN.TXT"
-accidentals_file <- "IEODESCAPTACCIDMARCO_CON_ADRIAN.TXT"
+trips_file <- "IEODESMAREAMARCO.TXT"
+hauls_file <- "IEODESLANCEMARCO.TXT"
+catches_file <- "IEODESCAPTURAMARCO.TXT"
+lengths_file <- "IEODESTALLASMARCO.TXT"
+litter_file <- "IEODESBASURASMARCO.TXT"
+accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
-# trips_file <- "IEODESMAREAMARCO_SIN_ADRIAN.TXT"
-# hauls_file <- "IEODESLANCEMARCO_SIN_ADRIAN.TXT"
-# catches_file <- "IEODESCAPTURAMARCO_SIN_ADRIAN.TXT"
-# lengths_file <- "IEODESTALLASMARCO_SIN_ADRIAN.TXT"
-# litter_file <- "IEODESBASURASMARCO_SIN_ADRIAN.TXT"
-# accidentals_file <- "IEODESCAPTACCIDMARCO_SIN_ADRIAN.TXT"
+# trips_file <- "IEODESMAREASIRENO_2021_2102.TXT"
+# hauls_file <- "IEODESLANCESIRENO_2021_2102.TXT"
+# catches_file <- "IEODESCAPTURASIRENO_2021_2102.TXT"
+# lengths_file <- "IEODESTALLASSIRENO_2021_2102.TXT"
+# litter_file <- "IEODESBASURASSIRENO_2021_2102.TXT"
+# accidentals_file <- "IEODESCAPTACCIDSIRENO_2021_2102.TXT"
 
-MONTH <- 11
+# MONTH: 1 to 12, or vector with month in numbers
+# MONTH <- 12
+MONTH <- c(1:12)
+# In case MONTH is a vector of months, suffix to add to path:
+suffix_multiple_months <- "annual"
 
-YEAR_DISCARD <- 2019
+YEAR <- 2022
 
-# Suffix_id is a suffix added to filenames when they are exported both xls and
-# google drive files
+# Suffix_id is a suffix added to file names when they are exported both xls and
+# google drive files.
 suffix_id <- ""
+
+
+# cfpo to use in the script
+# cfpo_to_use <- "CFPO_2021.csv"
+cfpo_to_use <- "Consulta al RGFP a 21_09.xlsx"
 
 # Only required if the file will be uploaded to google drive. It is the path
 # where in google drive will be saved.
-GOOGLE_DRIVE_PATH <- file.path("/equipo muestreos/oab_post_dump/2019/errors/")
+# GOOGLE_DRIVE_PATH <- file.path("/equipo muestreos/review_oab/2020/errors/")
 
 # PACKAGES ---------------------------------------------------------------------
 
@@ -61,11 +70,12 @@ library(dplyr)
 library(devtools)
 # remove.packages("sapmuebase")
 # .rs.restartR()
-# install("F:/misdoc/sap/sapmuebase")
+# install("C:/Users/ieoma/Desktop/sap/sapmuebase")
 # install_github("Eucrow/sapmuebase")
 library(sapmuebase)
+library(ggplot2) #to use in view_speed_outliers
+library(ggiraph) #to use in view_speed_outliers
 
-library(googledrive)
 
 # FUNCTIONS --------------------------------------------------------------------
 
@@ -74,6 +84,9 @@ source('oab_post_dump_auxiliar_functions.R')
 source('oab_post_dump_functions.R')
 source('oab_post_dump_hauls_overlapped.R')
 source('oab_post_dump_haul_characteristics.R')
+source('create_elasmobranchii_file.R')
+source('check_them_all.R')
+source('check_them_all_annual.R')
 
 # LOAD DATASETS ----------------------------------------------------------------
 
@@ -94,6 +107,25 @@ not_allowed_species_measured <- importCsvSAPMUE("not_allowed_species_measured.cs
 origin_statistical_rectangle <- importCsvSAPMUE("origin_statistical_rectangle.csv")
 origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_rectangle$COD_ORIGEN)
 
+# this cephalopods master has been created using the annual OAB_catches
+# dataframe of 2019. All the species has been checked via API with WORM webpage
+# using the function check_spe_belongs_to_taxon()
+cephalopods <- importCsvSAPMUE("cephalopods.csv")
+
+### obtain and format the cfpo.
+library(openxlsx)
+CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), startRow = 4, detectDates=TRUE)
+CFPO <- CFPO[, c("CFR", "Nombre", "Matrícula", "Estado.actual")]
+colnames(CFPO) <- c("CFR", "NOMBRE", "MATRICULA", "ESTADO")
+
+#### obtain and format the SIRENO fleet file.
+# Required to check the ship in the CFPO
+SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", "barcos_2022_12_02.TXT"),
+                   fileEncoding = "windows-1252")
+SIRENO_FLEET$COD.BARCO <- apply(SIRENO_FLEET, 1, function(x){
+  substr(x["COD.BARCO"], 2, nchar(x["COD.BARCO"]))
+  })
+
 
 # GLOBAL VARIABLES -------------------------------------------------------------
 
@@ -103,20 +135,66 @@ ERRORS <- list()
 # path to the work files
 # PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/1_checking"
 # PATH_FILES <- "C:/Users/Marco IEO/Desktop/oab_post_dump/data/2019/1_checking"
-path_text <- paste0("data/", YEAR_DISCARD, "/", YEAR_DISCARD, "_", sprintf("%02d", MONTH))
+if (length(MONTH) == 1 && MONTH == "annual"){
+  path_text <- paste0("data/", YEAR, "/", YEAR, "_annual")
+} else if(length(MONTH) != 1){
+  path_text <- paste0("data/", YEAR, "/", YEAR, "_", suffix_multiple_months)
+} else {
+  path_text <- paste0("data/", YEAR, "/", YEAR, "_", sprintf("%02d", MONTH))
+} 
+
 PATH_FILES <- file.path(getwd(), path_text)
+
 
 # path to the generated errors file
 PATH_ERRORS <- file.path(PATH_FILES,"errors")
 # if the errors directory does not exists, create it:
 ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
 
-# month as character
-MONTH_AS_CHARACTER <- ifelse(isFALSE(MONTH), "", sprintf("%02d", MONTH))
+# path to store files as backup
+PATH_BACKUP <- file.path(PATH_FILES, "backup")
+
+# month as character in case of monthly check
+if (length(MONTH) == 1 && MONTH %in% seq(1:12)){
+  MONTH_AS_CHARACTER <- ifelse(isFALSE(MONTH), "", sprintf("%02d", MONTH))
+} else if (length(MONTH) > 1 & all(MONTH %in% seq(1:12))) {
+  MONTH_AS_CHARACTER <- suffix_multiple_months
+} else if (MONTH == "annual") {
+  MONTH_AS_CHARACTER <- "annual"
+}
+
+# path to shared folder
+PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review - Revisión_datos", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
 
 # names to export
 prefix_to_export <- "OAB"
-suffix_to_export <- paste(YEAR_DISCARD, MONTH_AS_CHARACTER, suffix_id, sep = "_")
+
+suffix_to_export <- ""
+
+if (length(MONTH) == 1 && MONTH %in% seq(1:12)) {
+  suffix_to_export <- paste0(YEAR, "_", MONTH_AS_CHARACTER)
+} else if (length(MONTH) > 1 & all(MONTH %in% seq(1:12))) {
+  suffix_to_export <- paste0(YEAR, "_", suffix_multiple_months)
+} else if (MONTH == "annual"){
+  suffix_to_export <- paste0(YEAR, "_annual", ifelse(suffix_id!="", paste0("_",suffix_id), ""))
+} 
+
+# files to backup
+FILES_TO_BACKUP <- c("oab_post_dump.R",
+                     "oab_post_dump_auxiliar_functions.R",
+                     "oab_post_dump_functions.R",
+                     "oab_post_dump_haul_characteristics.R",
+                     "oab_post_dump_hauls_overlapped.R",
+                     "oab_post_dump_sexed_species_functions.R",
+                     "especies_a_medir_OAB.csv",
+                     "especies_objetivo_OAB.csv",
+                     "razon_descarte_OAB.csv",
+                     "metier_ieo_especie_objetivo_OAB.csv",
+                     "duracion_mareas.txt",
+                     "caracteristicas_lances.csv",
+                     "not_allowed_species_measured.csv",
+                     "origin_statistical_rectangle.csv",
+                     "cephalopods.csv")
 
 # IMPORT DISCARDS FILES --------------------------------------------------------
 
@@ -135,12 +213,32 @@ OAB_litter <- importOABLitter(litter_file, path = PATH_FILES)
 
 OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 
-# FILTER BY MONTH --------------------------------------------------------------
 
-OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH,]
-OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
-OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
-OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+# FILTER BY MONTH --------------------------------------------------------------
+# only when one month is used.
+
+if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
+  # WARNING!! DOES NOT WORK WITH JANUARY-DECEMBER!!!! :(
+  OAB_tripsKKK <- OAB_trips[
+    as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH |
+      (as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN)$mon +1 == MONTH)
+    ,]
+  OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
+  OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
+  OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+}
+
+# when multiple months are used
+if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
+  # TODO: TEST USING OAB_trips$FECHA_FIN instead OAB_trips$FECHA_INI
+  # I THINK THIS DOES NOT WORK:
+  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$mon +1 %in% MONTH &
+                         (as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$year +1900) == YEAR,]
+  OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
+  OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
+  OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+}
+
 
 
 # FILTER BY ACRONYM ------------------------------------------------------------
@@ -149,16 +247,19 @@ OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # OAB_trips <- OAB_trips[ grep("DESNOR", OAB_trips$COD_MAREA), ]
 # OAB_hauls <- OAB_hauls[ grep("DESNOR", OAB_hauls$COD_MAREA), ]
 # OAB_catches <- OAB_catches[ grep("DESNOR", OAB_catches$COD_MAREA), ]
+# OAB_lengths <- OAB_lengths[ grep("DESNOR", OAB_lengths$COD_MAREA), ]
 
 # DESSUR
 # OAB_trips <- OAB_trips[ grep("DESSUR", OAB_trips$COD_MAREA), ]
 # OAB_hauls <- OAB_hauls[ grep("DESSUR", OAB_hauls$COD_MAREA), ]
 # OAB_catches <- OAB_catches[ grep("DESSUR", OAB_catches$COD_MAREA), ]
+# OAB_lengths <- OAB_lengths[ grep("DESSUR", OAB_lengths$COD_MAREA), ]
 
 # DESIXA
 # OAB_trips <- OAB_trips[ grep("(DESIXA)(?!C)", OAB_trips$COD_MAREA, perl = T), ]
 # OAB_hauls <- OAB_hauls[ grep("(DESIXA)(?!C)", OAB_hauls$COD_MAREA, perl = T), ]
 # OAB_catches <- OAB_catches[ grep("(DESIXA)(?!C)", OAB_catches$COD_MAREA, perl = T), ]
+# OAB_lengths <- OAB_lengths[ grep("(DESIXA)(?!C)", OAB_lengths$COD_MAREA, perl = T), ]
 
 # FILTER BY OBSERVER -----------------------------------------------------------
 
@@ -168,148 +269,11 @@ OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
 # OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
 
-# #### SEARCHING ERRORS ########################################################
 
-check_them_all <- function(){
-  
-  ERR <- list()
-  
-  # ALLTOGETHER
-    # ERR$all_empty_fields_in_variable <- empty_fields_in_variables()
-    # ppp <- check_empty_variables()
-    # ppp_number <- as.data.frame(table(ppp$TIPO_ERROR))
-  
-  # TRIPS
-  ERR$trips_origen <- check_variable_with_master(OAB_trips, "COD_ORIGEN")
-  
-  ERR$trips_estrato_rim <- check_variable_with_master(OAB_trips, "ESTRATO_RIM")
-  
-  ERR$trips_puerto_llegada <- check_variable_with_master(OAB_trips, "COD_PUERTO_LLEGADA")
-  
-  ERR$trips_puerto_descarga <- check_variable_with_master(OAB_trips, "COD_PUERTO_DESCARGA")
-  
-  ERR$trips_empty_fields <- empty_fields_in_variables(OAB_trips, "OAB_TRIPS")
-  
-  ERR$trips_field_year <- field_year(OAB_trips)
-  
-  ERR$trips_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_trips)
-  
-  ERR$trips_year_in_initial_date <- check_year_in_date(OAB_trips, "FECHA_INI", YEAR_DISCARD)
-  
-  ERR$trips_year_in_final_date <- check_year_in_date(OAB_trips, "FECHA_FIN", YEAR_DISCARD)
-  
-  ERR$trips_final_date_in_COD_MAREA_GC <- trips_final_date_in_COD_MAREA_GC()
-  
-  ERR$trips_initial_date_before_final_date <- trips_initial_date_before_final_date()
+# SEARCHING ERRORS -------------------------------------------------------------
 
-  ERR$coherencia_estrato_rim_origin <- coherence_rim_stratum_origin(OAB_trips)
-  
-  ERR$trip_duration <- trip_duration()
-  
-  # HAULS
-  ERR$hauls_arte <- check_variable_with_master(OAB_hauls, "COD_ARTE")
-  
-  ERR$hauls_empty_fields <- empty_fields_in_variables(OAB_hauls, "OAB_HAULS")
-  
-  ERR$hauls_field_year <- field_year(OAB_hauls)
-  
-  ERR$hauls_year_in_COD_MAREA_hauls <- check_year_in_COD_MAREA(OAB_hauls)
-  
-  ERR$hauls_year_in_shotting_date <- check_year_in_date(OAB_hauls, "FECHA_LAR", YEAR_DISCARD)
-  
-  ERR$hauls_year_in_hauling_date <- check_year_in_date(OAB_hauls, "FECHA_VIR", YEAR_DISCARD)
-  
-  ERR$hauling_date_before_shooting_date <- hauling_date_before_shooting_date()
-  
-  ERR$hauls_coherence_estrato_rim_origin <- coherence_rim_stratum_origin(OAB_hauls)
-
-  ERR$hauls_coherence_estrato_rim_gear <- coherence_rim_stratum_gear(OAB_hauls)
-
-  ERR$hauls_sampled_with_catch_weights <- hauls_sampled_with_catch_weights()
-  
-  ERR$hauls_possible_speed_outliers <- get_speed_outliers()
-  
-  # Remove this check: maybe delete de master too?
-  #ERR$hauls_target_sp_with_catch <- coherence_target_sp_with_catch()
-  
-  ERR$hauls_coherence_target_species_metier_ieo <- coherence_target_species_metier_ieo()
-  
-  ERR$hauls_length_cable_1000 <- length_cable_1000()
-  
-  ERR$hauls_overlapped <- hauls_overlapped()
-  
-  ERR$total_discarded_weight_zero_with_sampled_discard_weight <- total_discarded_weight_zero_with_sampled_discard_weight()
-  
-  ERR$hauls_duration <- check_hauls_duration()
-  
-  ERR$hauls_speed <-  check_hauls_speed()
-  
-  ERR$hauls_depth <-  check_hauls_depth()
-  
-  ERR$coherence_origin_statistical_rectangle <- coherence_origin_statistical_rectangle()
-  
-  ERR$haul_date_shooting_date <- haul_date_shooting_date()
-  
-  ERR$positive_longitude_shooting <- positive_longitude("LON_LAR_CGS")
-  
-  ERR$positive_longitude_hauling <- positive_longitude("LON_VIR_CGS")
-  
-  # CATCHES
-  ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")
-  
-  ERR$catches_discard_reason <- check_discard_reason_variable_with_master(OAB_catches)
-  
-  ERR$catches_field_year <- field_year(OAB_catches)
-  
-  ERR$catches_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_catches)
-  
-  ERR$species_without_caught_neither_discarded_weight <- species_without_caught_neither_discarded_weight()
-  
-  #ERR$catches_reason_discard_field_empty <- catches_reason_discard_field_empty()
-  
-  ERR$retained_catch_less_than_sampled_retained_catch <- retained_catch_less_than_sampled_retained_catch()
-  
-  ERR$discarded_weight_less_than_sampled_discarded_weight <- discarded_weight_less_than_sampled_discarded_weight(OAB_catches)
-
-  ERR$sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
-  
-  ERR$retained_sampled_weight_when_specimens_retained <- retained_sampled_weight_when_specimens_retained(OAB_catches)
-  
-  ERR$discarded_sampled_weight_when_specimens_discarded <- discarded_sampled_weight_when_specimens_discarded(OAB_catches)
-  
-  ERR$discarded_species_with_total_discarded_weight <- discarded_species_with_total_discarded_weight(OAB_lengths, OAB_hauls)
-  
-  ERR$reason_discard_field_filled <- reason_discard_field_filled(OAB_catches)
-  
-  ERR$doubtfull_sp_number_specimens <- doubtfull_sp_number_specimens()
-  
-  ERR$species_not_allowed <- species_not_allowed()
-  
-  ERR$discarded_weigh_of_grouped_species <- discarded_weigh_of_grouped_species()
-  
-  # LENGTHS
-  ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
-
-  ERR$lengths_field_year <- field_year(OAB_lengths)
-
-  ERR$lengths_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_lengths)
-  
-  ERR$priority_species_without_lengths <- priority_species_without_lengths()
-  
-  ERR$size_range <- check_size_range_OAB()
-  
-  ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
-  
-  # LITTER
-  ERR$litter_sample <- litter_sample()
-  
-  # MIXED
-  ERR$errors_date_hauls_in_date_interval_trips <- date_hauls_in_date_interval_trips(OAB_trips, OAB_hauls)
-
-  return(ERR)
-}
-
-ERRORS <- check_them_all()
+# ERRORS <- check_them_all()
+ERRORS <- check_them_all_annual()
 
 # FORMAT ERRORS ----------------------------------------------------------------
 
@@ -327,88 +291,123 @@ errors <-  lapply(errors, function(x){
 # EXPORT ERRORS ----------------------------------------------------------------
 
 # Export to xls
-exportListToXlsx(errors, prefix = prefix_to_export,
-                 suffix = suffix_to_export, 
-                 separation = "_", path_export = PATH_ERRORS)
+# instead use sapmuebase exportListToXlsx(), use this:
 
-# Export to google drive 
-# Export the dataframes contained in a list to google drive
-OAB_export_list_google_sheet <- function(list, prefix = "", suffix = "", separation = ""){
-  
+exportListToXlsx2 <- function (list, prefix = "", suffix = "", separation = "", path_export = getwd())
+{
   #check if package openxlsx is instaled:
-  if (!requireNamespace("googlesheets", quietly = TRUE)) {
-    stop("Googlesheets package needed for this function to work. Please install it.",
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop("Openxlsx package needed for this function to work. Please install it.",
          call = FALSE)
   }
   
-  # sep_along(list): generate regular sequences. With a list, generates
-  # the sequence 1, 2, ..., length(from). Return a integer vector.
-  lapply(seq_along(list), function(i){
-    
-    
-    if(is.data.frame(list[[i]])){
+  lapply(seq_along(list), function(i) {
+    if (is.data.frame(list[[i]])) {
       
       list_name <- names(list)[[i]]
+      if (prefix != "")
+        prefix <- paste0(prefix, separation)
+      if (suffix != "")
+        suffix <- paste0(separation, suffix)
+      filename <- paste0(path_export, "/", prefix, list_name, suffix, ".xlsx")
       
-      if (prefix != "") prefix <- paste0(prefix, separation)
+      # ---- Create a Workbook
+      wb <- openxlsx::createWorkbook()
       
-      if (suffix != "") suffix <- paste0(separation, suffix)
+      # ---- Add worksheets
+      # name_worksheet <- paste("0",MONTH,sep="")
+      name_worksheet <- paste("0",MONTH_AS_CHARACTER,sep="")
+      openxlsx::addWorksheet(wb, name_worksheet)
       
-      # Before export to google drive, is mandatory export file to csv in local:
-      # When the googlesheet4 packages have the oauth implemented, we can
-      # use it instead of googledrive package
-      filename <- paste0(PATH_ERRORS, "/", prefix, list_name, suffix, '.csv')
+      # ---- Add data to the workbook
+      openxlsx::writeData(wb, name_worksheet, list[[i]])
       
-      write.table(
-        list[[i]], 
-        file = filename, 
-        quote = FALSE, 
-        sep = ",", 
-        dec = ".", 
-        row.names = FALSE,
-        na = "")
+      # ---- Useful variables
+      num_cols_df <- length(list[[i]])
       
-      # export to google drive
-      drive_upload(
-        media = filename,
-        path = as_dribble(GOOGLE_DRIVE_PATH),
-        type = "spreadsheet"
-      )
+      # ---- Stylize data
+      # ---- Create styles
+      head_style <- openxlsx::createStyle(fgFill = "#EEEEEE",
+                                          fontName="Calibri",
+                                          fontSize = "11",
+                                          halign = "center",
+                                          valign = "center")
       
-    } else {
+      # ---- Apply styles
+      openxlsx::addStyle(wb, sheet = name_worksheet, head_style, rows = 1, cols = 1:num_cols_df)
+      
+      # ---- Column widths: I don't know why, but it dosn't work in the right way
+      openxlsx::setColWidths(wb, name_worksheet, cols = c(1:num_cols_df), widths = "auto")
+      
+      # ---- Export to excel
+      # source: https://github.com/awalker89/openxlsx/issues/111
+      Sys.setenv("R_ZIPCMD" = "C:/Rtools/bin/zip.exe") ## path to zip.exe
+      openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
+    }
+    else {
       return(paste("This isn't a dataframe"))
     }
-    
   })
 }
 
-OAB_export_list_google_sheet(errors, prefix = prefix_to_export,
-                        suffix = suffix_to_export,
-                        separation = "_")
+
+exportListToXlsx2(errors, prefix = prefix_to_export,
+                 suffix = suffix_to_export,
+                 separation = "_", path_export = PATH_ERRORS)
+
+
+
+# Export to google sheets 
+# OAB_export_list_google_sheet(errors, prefix = prefix_to_export,
+#                         suffix = suffix_to_export,
+#                         separation = "_")
 
 
 # CHECK SPEED ------------------------------------------------------------------
-# print_pdf_graphic <- function(filename, func, ...){
-#   
-#   filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
-#   
-#   pdf(filename)
-#   
-#   g <- func(...)
-#   
-#   print(g)
-#   
-#   dev.off()
-# }
-# 
-# view_speed_outliers()
-# filename <- paste("speed_outliers", YEAR_DISCARD,  MONTH_AS_CHARACTER, sep ="_")
-# print_pdf_graphic(filename, view_speed_outliers)
+
+
+view_speed_outliers()
+filename <- paste("speed_outliers", YEAR,  MONTH_AS_CHARACTER, sep ="_")
+printPdfGraphic(filename, view_speed_outliers)
+
+# SAVE FILES TO SHARED FOLDER ----
+copyErrorsFilesToSharedFolder()
+
+# BACKUP SCRIPTS AND RELATED FILES ----
+# first save all files opened
+rstudioapi::documentSaveAll()
+# and the backup the scripts and files:
+sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
+
+
 
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
 # library(shiny)
 # runApp("speed", display.mode = "showcase")
 
 
+# test upload files to Teams
+# library("Microsoft365R")
+# od <- personal_onedrive()
+# od$list_items()
+# list_teams("SAP_MUE")
 
+
+# when this problem is fixed, detelte it:
+# sampled_discard_less_subsample_discard_FIXED <- function(df){
+#   
+#   # usually the PESO_SUB_MUE_TOT is NA, so it is necessary detect it.
+#   errors <- df[
+#     which( !is.na(df$P_SUB_MUE_TOT) & df$P_SUB_MUE_TOT < df$P_MUE_DESCAR),
+#     c("COD_MAREA", "COD_LANCE", "COD_ESP", "A3_ESP", "ESP",
+#       "P_SUB_MUE_TOT", "P_MUE_DESCAR")
+#   ]
+#   
+#   errors <- addTypeOfError(errors, "ERROR: sampled discard weight of the species (in 'catches' screen of SIRENO) less than subsample discard weight.")
+#   
+#   return(errors)
+#   
+# }
+# error_sampled_discard_less_subsample_discard_FIXED <- sampled_discard_less_subsample_discard_FIXED(OAB_catches)
+# error_sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
 

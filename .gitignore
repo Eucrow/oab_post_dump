@@ -4,7 +4,6 @@
 .Ruserdata
 .tmp.drivedownload
 .httr-oauth
-data/
 *.xls
 *.xlsx
 areas/
@@ -12,4 +11,5 @@ estrato_rim_description/
 speed/
 novale/
 data/
-reports
+data-raw/
+reports/
