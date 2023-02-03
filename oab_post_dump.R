@@ -1,8 +1,9 @@
 #### Check discards from SIRENO
+#### Return xls files with errors detected by acronym type.
 ####
 #### author: Marco A. Amez Fernandez
 #### email: ieo.marco.a.amez@gmail.com
-####
+#### version: 1.0
 
 # INSTRUCTIONS -----------------------------------------------------------------
 
@@ -13,17 +14,17 @@
 # Make sure they are located in the same directory that this file.
 # - Change variables in "YOU HAVE ONLY TO CHANGE THIS VARIABLES" section of this
 # script.
-# - Make sure report files of discards from SIRENO are in a path like
+# - Make sure report files of discards from SIRENO are in path 
 # /data/YYYY/YYYY_MM.
 # - Choose the way to export in the "EXPORT ERRORS" section of this script.
-# Uncomment??? the interested way. It's available by a xlsx file or upload directly
+# Uncomment the interested way. It's available by a xlsx file or upload directly
 # to google drive. In this case an account and password is required, and a token
 # is automatically generated.
 # - If xlsx option is chosen, the errors file must be created in the directory
-# /data/YYYY/YYYY_MM/errors. If the "errors" directory does not exists, it's
+# /data/YYYY/YYYY_MM/errors. If this directory does not exists, it's
 # created automatically.
 # - TODO: explain speed graphics
-# - A file by acronym type (DESIXA, DESSUR...) is generated in "errors"
+# - A file by acronym type (DESIXA, DESSUR...) is generated in errors
 # directory.
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
@@ -410,8 +411,4 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 # }
 # error_sampled_discard_less_subsample_discard_FIXED <- sampled_discard_less_subsample_discard_FIXED(OAB_catches)
 # error_sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
-
-
-
-
 
