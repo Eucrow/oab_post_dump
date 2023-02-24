@@ -443,41 +443,6 @@ length_cable_1000 <- function(){
 
 #' Check code: 2018
 #' Priority species without lengths sampled.
-# priority_species_without_lengths <- function(){
-#   
-#   # get the list of priority species which must be measured
-#   species_to_measure <- especies_a_medir_OAB[,"COD_ESP"]
-#   
-#   # get Species With Catch which must be measured
-#   swc <- OAB_catches[which(OAB_catches[["COD_ESP"]]%in%species_to_measure),
-#                      c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_CAP")]
-#   swc <- unique(swc)
-#   
-#   # clean lengths
-#   lengths_clean <- OAB_lengths[, c("COD_MAREA", "COD_LANCE",
-#                                    "COD_ESP", "ESP", "EJEM_MEDIDOS")]
-#   
-#   lengths_clean <- aggregate.data.frame(lengths_clean[, c("EJEM_MEDIDOS")],
-#                                         by=list(lengths_clean$COD_MAREA,
-#                                                 lengths_clean$COD_LANCE,
-#                                                 lengths_clean$COD_ESP,
-#                                                 lengths_clean$ESP),
-#                                         sum, na.rm=TRUE)
-#   
-#   colnames(lengths_clean) <- c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "EJEM_MEDIDOS")
-#   
-#   # create errors dataframe
-#   errors <- merge(swc, 
-#                   lengths_clean, 
-#                   by.x = c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP"),
-#                   all.x = TRUE)
-#   errors <- errors[which(errors$EJEM_MEDIDOS==0 |
-#                            is.na(errors$EJEM_MEDIDOS)),]
-#   
-#   errors <- addTypeOfError(errors, "ERROR: priority species which hasn't been measured")
-#   
-# }
-
 priority_species_without_lengths <- function(){
   
   # clean lengths
@@ -567,7 +532,7 @@ reason_discard_field_filled <- function(df){
 }
 
 #' Check code: 2020
-#' Retained sampled weigth less than zero (or NA) when there are any specimens
+#' Retained sampled weight less than zero (or NA) when there are any specimens
 # retained
 retained_sampled_weight_when_specimens_retained <- function(df_catches){
   
