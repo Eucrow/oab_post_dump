@@ -45,7 +45,7 @@ accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
-MONTH <- c(1:12)
+MONTH <- c(2)
 # In case MONTH is a vector of months, suffix to add to path:
 suffix_multiple_months <- "annual"
 
@@ -134,18 +134,7 @@ SIRENO_FLEET$COD.BARCO <- apply(SIRENO_FLEET, 1, function(x){
 ERRORS <- list()
 
 # path to the work files
-# PATH_FILES <- "F:/misdoc/sap/oab_post_dump/data/2019/1_checking"
-# PATH_FILES <- "C:/Users/Marco IEO/Desktop/oab_post_dump/data/2019/1_checking"
-if (length(MONTH) == 1 && MONTH == "annual"){
-  path_text <- paste0("data/", YEAR, "/", YEAR, "_annual")
-} else if(length(MONTH) != 1){
-  path_text <- paste0("data/", YEAR, "/", YEAR, "_", suffix_multiple_months)
-} else {
-  path_text <- paste0("data/", YEAR, "/", YEAR, "_", sprintf("%02d", MONTH))
-} 
-
-PATH_FILES <- file.path(getwd(), path_text)
-
+PATH_FILES <- createPathFiles(MONTH, YEAR, suffix_multiple_months)
 
 # path to the generated errors file
 PATH_ERRORS <- file.path(PATH_FILES,"errors")
@@ -156,31 +145,14 @@ ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
 PATH_BACKUP <- file.path(PATH_FILES, "backup")
 
 # month as character in case of monthly check
-if (length(MONTH) == 1 && MONTH %in% seq(1:12)){
-  MONTH_AS_CHARACTER <- ifelse(isFALSE(MONTH), "", sprintf("%02d", MONTH))
-} else if (length(MONTH) > 1 & all(MONTH %in% seq(1:12))) {
-  MONTH_AS_CHARACTER <- suffix_multiple_months
-} else if (MONTH == "annual") {
-  MONTH_AS_CHARACTER <- "annual"
-} else {
-  stop("Is there any error in the MONTH variable?")
-}
+MONTH_AS_CHARACTER <- createMonthAsCharacter()
 
 # path to shared folder
 PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review - Revisión_datos", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
 
 # names to export
-prefix_to_export <- "OAB"
-
-suffix_to_export <- ""
-
-if (length(MONTH) == 1 && MONTH %in% seq(1:12)) {
-  suffix_to_export <- paste0(YEAR, "_", MONTH_AS_CHARACTER)
-} else if (length(MONTH) > 1 & all(MONTH %in% seq(1:12))) {
-  suffix_to_export <- paste0(YEAR, "_", suffix_multiple_months)
-} else if (MONTH == "annual"){
-  suffix_to_export <- paste0(YEAR, "_annual", ifelse(suffix_id!="", paste0("_",suffix_id), ""))
-} 
+PREFIX_TO_EXPORT <- "OAB"
+SUFFIX_TO_EXPORT <- createSuffixToExport()
 
 # files to backup
 FILES_TO_BACKUP <- c("oab_post_dump.R",
@@ -222,7 +194,7 @@ OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 
 if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
   # WARNING!! DOES NOT WORK WITH JANUARY-DECEMBER!!!! :(
-  OAB_tripsKKK <- OAB_trips[
+  OAB_trips <- OAB_trips[
     as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH |
       (as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN)$mon +1 == MONTH)
     ,]
@@ -294,75 +266,15 @@ errors <-  lapply(errors, function(x){
 # EXPORT ERRORS ----------------------------------------------------------------
 
 # Export to xls
-# instead use sapmuebase exportListToXlsx(), use this:
-
-exportListToXlsx2 <- function (list, prefix = "", suffix = "", separation = "", path_export = getwd())
-{
-  #check if package openxlsx is instaled:
-  if (!requireNamespace("openxlsx", quietly = TRUE)) {
-    stop("Openxlsx package needed for this function to work. Please install it.",
-         call = FALSE)
-  }
-  
-  lapply(seq_along(list), function(i) {
-    if (is.data.frame(list[[i]])) {
-      
-      list_name <- names(list)[[i]]
-      if (prefix != "")
-        prefix <- paste0(prefix, separation)
-      if (suffix != "")
-        suffix <- paste0(separation, suffix)
-      filename <- paste0(path_export, "/", prefix, list_name, suffix, ".xlsx")
-      
-      # ---- Create a Workbook
-      wb <- openxlsx::createWorkbook()
-      
-      # ---- Add worksheets
-      # name_worksheet <- paste("0",MONTH,sep="")
-      name_worksheet <- paste("0",MONTH_AS_CHARACTER,sep="")
-      openxlsx::addWorksheet(wb, name_worksheet)
-      
-      # ---- Add data to the workbook
-      openxlsx::writeData(wb, name_worksheet, list[[i]])
-      
-      # ---- Useful variables
-      num_cols_df <- length(list[[i]])
-      
-      # ---- Stylize data
-      # ---- Create styles
-      head_style <- openxlsx::createStyle(fgFill = "#EEEEEE",
-                                          fontName="Calibri",
-                                          fontSize = "11",
-                                          halign = "center",
-                                          valign = "center")
-      
-      # ---- Apply styles
-      openxlsx::addStyle(wb, sheet = name_worksheet, head_style, rows = 1, cols = 1:num_cols_df)
-      
-      # ---- Column widths: I don't know why, but it doesn't work in the right way
-      openxlsx::setColWidths(wb, name_worksheet, cols = c(1:num_cols_df), widths = "auto")
-      
-      # ---- Export to excel
-      # source: https://github.com/awalker89/openxlsx/issues/111
-      Sys.setenv("R_ZIPCMD" = "C:/Rtools/bin/zip.exe") ## path to zip.exe
-      openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
-    }
-    else {
-      return(paste("This isn't a dataframe"))
-    }
-  })
-}
-
-
-exportListToXlsx2(errors, prefix = prefix_to_export,
-                 suffix = suffix_to_export,
+exportErrorsListToXlsx2(errors, prefix = PREFIX_TO_EXPORT,
+                 suffix = SUFFIX_TO_EXPORT,
                  separation = "_", path_export = PATH_ERRORS)
 
 
 
 # Export to google sheets 
-# OAB_export_list_google_sheet(errors, prefix = prefix_to_export,
-#                         suffix = suffix_to_export,
+# OAB_export_list_google_sheet(errors, prefix = PREFIX_TO_EXPORT,
+#                         suffix = SUFFIX_TO_EXPORT,
 #                         separation = "_")
 
 

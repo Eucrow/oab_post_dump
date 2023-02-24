@@ -265,19 +265,11 @@ get_gear_characteristics <- function(){
 #' in file caracteristicas_arte.csv. This variables are checked only if they are
 #' in this file.
 #' TODO: split this in two functions: one for the rest of variables and the other
-#' one fot the mandatory variables by gear.
+#' one for the mandatory variables by gear.
 #' @param df: dataframe to check
 #' @param variables: vector with variables to check.
 #' @return A list with a dataframe of every variable with empty values. Every
-#' dataframe contains erroneus rows.
-#' @export
-# ------------------------------------------------------------------------------
-#' Check if a variable or variables of a dataframe contain empty values
-#' @param variables: vector with variables to check.
-#' @param df: dataframe to check
-#' @return A list with a dataframe of every variable with empty values. Every
-#' dataframe contains erroneus rows
-#' @export
+#' dataframe contains erroneous rows.
 check_empty_values_in_variables <- function (df, variables, helper_text){
   
   try(variables_in_df(df, variables))
@@ -506,7 +498,7 @@ copyErrorsFilesToSharedFolder <- function (){
 #' Export to pdf the graphic returned by a function.
 #' @param filename name of the file to export (without extension).
 #' @param fun function which return a graphic.
-#' @param ... params of 'fun' function.
+#' @param ... parameters of 'fun' function.
 printPdfGraphic <- function(filename, func, ...){
   
   filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
@@ -518,4 +510,123 @@ printPdfGraphic <- function(filename, func, ...){
   print(g)
   
   dev.off()
+}
+
+#' Create path files from the MONTH, YEAR and suffix_multiple_months.
+#' @param month month or months used.
+#' @param year year.
+#' @param suffix_multiple_month Suffix used when multiple months are used.
+createPathFiles <- function (month = MONTH, year = YEAR, suffix_multiple_months = suffix_multiple_months){
+  
+  if (length(month) == 1 && month == "annual"){
+    path_text <- paste0("data/", year, "/", year, "_annual")
+  } else if(length(month) != 1){
+    path_text <- paste0("data/", year, "/", year, "_", suffix_multiple_months)
+  } else {
+    path_text <- paste0("data/", year, "/", year, "_", sprintf("%02d", month))
+  } 
+  
+  return(file.path(getwd(), path_text))
+  
+}
+
+#' Create character with month, months, or any other tag to name the months used
+#' in the names of files.
+#' @param month month or months used.
+#' @param suffix_multiple_month Suffix used when multiple months are used.
+createMonthAsCharacter <- function(month = MONTH, suffix_multiple_months = suffix_multiple_months){
+  
+  if (length(month) == 1 && month %in% seq(1:12)){
+    return(sprintf("%02d", month))
+  } else if (length(month) > 1 & all(month %in% seq(1:12))) {
+    return(suffix_multiple_months)
+  } else {
+    stop("Is there any error in the MONTH variable?")
+  }
+  
+}
+
+#' Create suffix with month, months, or any other tag to name the months used
+#' in the names of files.
+#' @param month month or months used.
+#' @param suffix_multiple_month Suffix used when multiple months are used.
+createSuffixToExport <- function(month=MONTH,
+                                 year=YEAR,
+                                 month_as_character = MONTH_AS_CHARACTER,
+                                 suffix_multiple_months = suffix_multiple_months){
+  
+  if (length(month) == 1 && month %in% seq(1:12)) {
+    return(paste0(year, "_", month_as_character))
+  } else if (length(month) > 1 & all(month %in% seq(1:12))) {
+    return(paste0(year, "_", suffix_multiple_months))
+  }
+  
+}
+
+
+#' Create a xlsx file for each dataframe in a list of dataframes. The name of
+#' every created file contains the name of its corresponding dataframe. This
+#' function is based in exportListToXlsx from sapmuebase library and adapted to
+#' this oab_post_dump script.
+#' @param list list of dataframes.
+#' @param prefix character string to add at the begining of the file name.
+#' @param suffix character string to add at the end of the filename.
+#' @param separation character string to separate the terms.
+#' @param path_export path to save the file.
+exportErrorsListToXlsx2 <- function (list, prefix = "", suffix = "", separation = "",
+                               path_export = getwd())
+{
+  #check if package openxlsx is installed:
+  if (!requireNamespace("openxlsx", quietly = TRUE)) {
+    stop("Openxlsx package needed for this function to work. Please install it.",
+         call = FALSE)
+  }
+  
+  lapply(seq_along(list), function(i) {
+    if (is.data.frame(list[[i]])) {
+      
+      list_name <- names(list)[[i]]
+      if (prefix != "")
+        prefix <- paste0(prefix, separation)
+      if (suffix != "")
+        suffix <- paste0(separation, suffix)
+      filename <- paste0(path_export, "/", prefix, list_name, suffix, ".xlsx")
+      
+      # ---- Create a Workbook
+      wb <- openxlsx::createWorkbook()
+      
+      # ---- Add worksheets
+      # name_worksheet <- paste("0",MONTH,sep="")
+      name_worksheet <- paste("0",MONTH_AS_CHARACTER,sep="")
+      openxlsx::addWorksheet(wb, name_worksheet)
+      
+      # ---- Add data to the workbook
+      openxlsx::writeData(wb, name_worksheet, list[[i]])
+      
+      # ---- Useful variables
+      num_cols_df <- length(list[[i]])
+      
+      # ---- Stylize data
+      # ---- Create styles
+      head_style <- openxlsx::createStyle(fgFill = "#EEEEEE",
+                                          fontName="Calibri",
+                                          fontSize = "11",
+                                          halign = "center",
+                                          valign = "center")
+      
+      # ---- Apply styles
+      openxlsx::addStyle(wb, sheet = name_worksheet, head_style, rows = 1, cols = 1:num_cols_df)
+      
+      # ---- Column widths: I don't know why, but it doesn't work in the right way
+      openxlsx::setColWidths(wb, name_worksheet, cols = c(1:num_cols_df), widths = "auto")
+      
+      # ---- Export to excel
+      # source: https://github.com/awalker89/openxlsx/issues/111
+      Sys.setenv("R_ZIPCMD" = "C:/Rtools/bin/zip.exe") ## path to zip.exe
+      openxlsx::saveWorkbook(wb, filename, overwrite = TRUE)
+    }
+    else {
+      return(paste("This isn't a dataframe"))
+    }
+  })
 }
