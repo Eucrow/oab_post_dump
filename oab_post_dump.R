@@ -162,6 +162,8 @@ if (length(MONTH) == 1 && MONTH %in% seq(1:12)){
   MONTH_AS_CHARACTER <- suffix_multiple_months
 } else if (MONTH == "annual") {
   MONTH_AS_CHARACTER <- "annual"
+} else {
+  stop("Is there any error in the MONTH variable?")
 }
 
 # path to shared folder
@@ -337,7 +339,7 @@ exportListToXlsx2 <- function (list, prefix = "", suffix = "", separation = "", 
       # ---- Apply styles
       openxlsx::addStyle(wb, sheet = name_worksheet, head_style, rows = 1, cols = 1:num_cols_df)
       
-      # ---- Column widths: I don't know why, but it dosn't work in the right way
+      # ---- Column widths: I don't know why, but it doesn't work in the right way
       openxlsx::setColWidths(wb, name_worksheet, cols = c(1:num_cols_df), widths = "auto")
       
       # ---- Export to excel
