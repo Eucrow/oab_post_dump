@@ -14,7 +14,7 @@
 # Make sure they are located in the same directory that this file.
 # - Change variables in "YOU HAVE ONLY TO CHANGE THIS VARIABLES" section of this
 # script.
-# - Make sure report files of discards from SIRENO are in path 
+# - Make sure report files of discards from SIRENO are in path
 # /data/YYYY/YYYY_MM.
 # - Choose the way to export in the "EXPORT ERRORS" section of this script.
 # Uncomment the interested way. It's available by a xlsx file or upload directly
@@ -247,7 +247,7 @@ if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
 
 # SEARCHING ERRORS -------------------------------------------------------------
 
-# ERRORS <- check_them_all()
+ERRORS <- check_them_all()
 ERRORS <- check_them_all_annual()
 
 # FORMAT ERRORS ----------------------------------------------------------------
@@ -272,7 +272,7 @@ exportErrorsListToXlsx2(errors, prefix = PREFIX_TO_EXPORT,
 
 
 
-# Export to google sheets 
+# Export to google sheets
 # OAB_export_list_google_sheet(errors, prefix = PREFIX_TO_EXPORT,
 #                         suffix = SUFFIX_TO_EXPORT,
 #                         separation = "_")
@@ -310,18 +310,18 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 
 # when this problem is fixed, detelte it:
 # sampled_discard_less_subsample_discard_FIXED <- function(df){
-#   
+#
 #   # usually the PESO_SUB_MUE_TOT is NA, so it is necessary detect it.
 #   errors <- df[
 #     which( !is.na(df$P_SUB_MUE_TOT) & df$P_SUB_MUE_TOT < df$P_MUE_DESCAR),
 #     c("COD_MAREA", "COD_LANCE", "COD_ESP", "A3_ESP", "ESP",
 #       "P_SUB_MUE_TOT", "P_MUE_DESCAR")
 #   ]
-#   
+#
 #   errors <- addTypeOfError(errors, "ERROR: sampled discard weight of the species (in 'catches' screen of SIRENO) less than subsample discard weight.")
-#   
+#
 #   return(errors)
-#   
+#
 # }
 # error_sampled_discard_less_subsample_discard_FIXED <- sampled_discard_less_subsample_discard_FIXED(OAB_catches)
 # error_sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
