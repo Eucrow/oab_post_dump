@@ -72,6 +72,10 @@ check_them_all_annual <- function(){
   
   ERR$hauls_possible_speed_outliers <- get_speed_outliers()
   
+  ERR$hauls_sampled_without_discard_weight <- hauls_sampled_without_discard_weight(OAB_hauls)
+  
+  ERR$hauls_unsampled_with_discard_weight <- hauls_unsampled_with_discard_weight(OAB_hauls)
+  
   # Remove this check: maybe delete the master too?
   #ERR$hauls_target_sp_with_catch <- coherence_target_sp_with_catch()
   
@@ -165,6 +169,8 @@ check_them_all_annual <- function(){
   ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
   
   ERR$species_not_sexed <- species_not_sexed()
+  
+  ERR$discarded_retained_weigth_zero<-discarded_retained_weigth_zero(OAB_lengths)
   
   # LITTER
   ERR$litter_sample <- litter_sample()

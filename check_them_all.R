@@ -84,6 +84,10 @@ check_them_all <- function(){
   
   ERR$hauls_depth <-  check_hauls_depth()
   
+  ERR$hauls_sampled_without_discard_weight <- hauls_sampled_without_discard_weight(OAB_hauls)
+  
+  ERR$hauls_unsampled_with_discard_weight <- hauls_unsampled_with_discard_weight(OAB_hauls)
+  
   # the next one commented temporally:
   # ERR$coherence_origin_statistical_rectangle <- coherence_origin_statistical_rectangle()
   
@@ -158,6 +162,8 @@ check_them_all <- function(){
   ERR$lenghts_not_allowed_taxons <- lenghts_not_allowed_taxons()
   
   ERR$species_not_sexed <- species_not_sexed()
+  
+  ERR$discarded_retained_weigth_zero<-discarded_retained_weigth_zero(OAB_lengths)
   
   # LITTER
   ERR$litter_sample <- litter_sample()

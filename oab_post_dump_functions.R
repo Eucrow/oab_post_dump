@@ -634,7 +634,7 @@ discarded_weight_less_than_sampled_discarded_weight <- function(df){
     c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_DESCAR", "P_MUE_TOT_DESCAR")
     ]
   
-  if (nrow(errors)!=0){
+  if (nrow(errors)>0){
     errors <- addTypeOfError(errors, "ERROR: total discarded weight less than sampled discard weight.")
   }
 }
@@ -1532,4 +1532,53 @@ shipsNotRegistered <- function(df, cfpo = CFPO, sireno_fleet = SIRENO_FLEET){
   }
   
 }
+
+
+#' Check code: XXXX
+#' Check if all species with lengths have retained or discarded weights.
+#' @param df dataframe returned by importOABLengths().
+#' @return dataframe with errors.
+discarded_retained_weigth_zero <- function(df){
+  errors <- df[,c("YEAR","COD_MAREA", "COD_LANCE","COD_ESP", "ESP","TIPO_CAPTURA","SEXO","P_MUE_RET")]
+  errors <- errors[errors$P_MUE_RET==0,]
+  errors <- unique(errors)
+  if(nrow(errors)> 0){ 
+    errors <- addTypeOfError(errors, "ERROR: Specie with lenghts retained or discarded but without weights.")
+    return(errors) 
+  }
+  return(errors)
+}
+
+
+#' Check code: XXXXX
+#' Check hauls sampled without discard weight.
+#' @param df dataframe returned by importOABHauls(). 
+#' @return dataframe with errors.
+hauls_sampled_without_discard_weight <- function (df){
+  errors <- df[,c("YEAR","COD_MAREA","COD_LANCE","MUESTREADO","P_TOT_DESCAR" )]
+  errors <- errors [errors$MUESTREADO=="TRUE" & is.na(errors$P_TOT_DESCAR), ]
+  errors <- unique(errors)
+  if(nrow(errors) > 0){ 
+    errors <- addTypeOfError(errors, "ERROR: Hauls sampled without discard weight.")
+    return(errors) 
+  }
+} 
+
+
+#' Check code: XXXXXX
+#' Check  hauls marked as unsampled with discarded weight.
+#' @param dfdataframe returned by importOABHauls().
+#' @return dataframe with errors.
+hauls_unsampled_with_discard_weight <- function(df){
+  errors <- df[,c("YEAR","COD_MAREA","COD_LANCE","MUESTREADO","P_TOT_DESCAR" )]
+  errors <- subset(errors, MUESTREADO=="FALSE"&  errors$P_TOT_DESCAR>=0)
+  errors <- unique(errors)
+  if(nrow(errors) > 0){ 
+    errors <- addTypeOfError(errors, "ERROR: Hauls unsampled with discard weight.")
+    return(errors) 
+  }
+} 
+
+
+
 
