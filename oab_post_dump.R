@@ -36,20 +36,13 @@ lengths_file <- "IEODESTALLASMARCO.TXT"
 litter_file <- "IEODESBASURASMARCO.TXT"
 accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
-# trips_file <- "IEODESMAREASIRENO_2021_2102.TXT"
-# hauls_file <- "IEODESLANCESIRENO_2021_2102.TXT"
-# catches_file <- "IEODESCAPTURASIRENO_2021_2102.TXT"
-# lengths_file <- "IEODESTALLASSIRENO_2021_2102.TXT"
-# litter_file <- "IEODESBASURASSIRENO_2021_2102.TXT"
-# accidentals_file <- "IEODESCAPTACCIDSIRENO_2021_2102.TXT"
-
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
-MONTH <- c(2)
-# In case MONTH is a vector of months, suffix to add to path:
-suffix_multiple_months <- "annual"
+MONTH <- c(1)
+# Use in case MONTH is a vector of months: suffix to add to path:
+suffix_multiple_months <- ""
 
-YEAR <- 2022
+YEAR <- 2023
 
 # Suffix_id is a suffix added to file names when they are exported both xls and
 # google drive files.
@@ -248,7 +241,7 @@ if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
 # SEARCHING ERRORS -------------------------------------------------------------
 
 ERRORS <- check_them_all()
-ERRORS <- check_them_all_annual()
+# ERRORS <- check_them_all_annual()
 
 # FORMAT ERRORS ----------------------------------------------------------------
 

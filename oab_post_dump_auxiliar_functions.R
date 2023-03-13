@@ -8,14 +8,16 @@ addTypeOfError <- function(df, ...){
 
   arguments <- list(...)
 
-  type <- paste(arguments, collapse = '', sep = " ")
-
+  tx <- paste(arguments, collapse = '', sep = " ")
+  # escape new lines and tabs: only using \s works, I don't know excactly why :/
+  tx <- gsub("\\s+", " ", tx)
+  
   if(nrow(df)!=0){
-    df[["TIPO_ERROR"]] <- type
-    # df <- df %>% mutate(TIPO_ERROR = type)
+    df[["TIPO_ERROR"]] <- tx
   }
   return(df)
 }
+
 
 #' Split COD_MAREA field.
 #' Split COD_MAREA field in its components: identifier, year, month, day and
@@ -523,9 +525,7 @@ printPdfGraphic <- function(filename, func, ...){
 #' @param suffix_multiple_month Suffix used when multiple months are used.
 createPathFiles <- function (month = MONTH, year = YEAR, suffix_multiple_months = suffix_multiple_months){
 
-  if (length(month) == 1 && month == "annual"){
-    path_text <- paste0("data/", year, "/", year, "_annual")
-  } else if(length(month) != 1){
+  if(length(month) != 1){
     path_text <- paste0("data/", year, "/", year, "_", suffix_multiple_months)
   } else {
     path_text <- paste0("data/", year, "/", year, "_", sprintf("%02d", month))

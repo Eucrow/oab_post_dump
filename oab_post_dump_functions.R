@@ -1047,7 +1047,9 @@ check_species_in_size_range_historical <- function (){
           all.x = T)%>%
     filter(is.na(TALLA_MIN) | is.na((TALLA_MAX)))%>%
     unique()%>%
-    addTypeOfError("WARNING: esta especie no se encuentra en el maestro histórico por caladero de tallas mínimas y máximas por estrato rim. Por lo tanto habría que comprobar manualmente que el tamaño es coherente.")%>%
+    addTypeOfError("WARNING: esta especie no se encuentra en el 
+                   
+                   maestro histórico por caladero de tallas     mínimas y máximas por estrato rim. Por lo tanto habría que comprobar manualmente que el tamaño es coherente.")%>%
     select(-c(TALLA_MIN, TALLA_MAX))
   
   if (nrow(warnings)>0){
@@ -1444,8 +1446,8 @@ retained_weight_one_specimen_measured <- function() {
   errors <- OAB_catches[OAB_catches[["P_RET"]] > OAB_catches[["P_MUE_RET"]] & OAB_catches[["EJEM_RET"]]==1,
                       c("COD_MAREA", "COD_LANCE", "COD_ESP", "ESP", "P_RET", "P_MUE_RET", "EJEM_RET")]
   if (nrow(errors) > 0){
-    errors <- addTypeOfError(errors, "WARNING: One specimen has been measured but the retained weight is
-#' greather than the retained sampled weight.")
+    errors <- addTypeOfError(errors, "WARNING: One specimen has been measured but
+                             the retained weight is greather than the retained sampled weight.")
     return(errors)
   } 
   
