@@ -1534,7 +1534,7 @@ shipsNotRegistered <- function(df, cfpo = CFPO, sireno_fleet = SIRENO_FLEET){
 }
 
 
-#' Check code: XXXX
+#' Check code: 2079
 #' Check if all species with lengths have retained or discarded weights.
 #' @param df dataframe returned by importOABLengths().
 #' @return dataframe with errors.
@@ -1550,7 +1550,7 @@ discarded_retained_weigth_zero <- function(df){
 }
 
 
-#' Check code: XXXXX
+#' Check code: 2080
 #' Check hauls sampled without discard weight.
 #' @param df dataframe returned by importOABHauls(). 
 #' @return dataframe with errors.
@@ -1565,8 +1565,8 @@ hauls_sampled_without_discard_weight <- function (df){
 } 
 
 
-#' Check code: XXXXXX
-#' Check  hauls marked as unsampled with discarded weight.
+#' Check code: 2081
+#' Check hauls marked as unsampled with discarded weight.
 #' @param dfdataframe returned by importOABHauls().
 #' @return dataframe with errors.
 hauls_unsampled_with_discard_weight <- function(df){

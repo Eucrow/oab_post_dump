@@ -635,3 +635,55 @@ exportErrorsListToXlsx2 <- function (list, prefix = "", suffix = "", separation 
     }
   })
 }
+
+# Export to google drive.
+# Not in use.
+# Export the dataframes contained in a list to google drive
+OAB_export_list_google_sheet <- function(list, prefix = "", suffix = "", separation = ""){
+
+  #check if package openxlsx is instaled:
+  if (!requireNamespace("googlesheets", quietly = TRUE)) {
+    stop("Googlesheets package needed for this function to work. Please install it.",
+         call = FALSE)
+  }
+
+  # sep_along(list): generate regular sequences. With a list, generates
+  # the sequence 1, 2, ..., length(from). Return a integer vector.
+  lapply(seq_along(list), function(i){
+
+
+    if(is.data.frame(list[[i]])){
+
+      list_name <- names(list)[[i]]
+
+      if (prefix != "") prefix <- paste0(prefix, separation)
+
+      if (suffix != "") suffix <- paste0(separation, suffix)
+
+      # Before export to google drive, is mandatory export file to csv in local:
+      # When the googlesheet4 packages have the oauth implemented, we can
+      # use it instead of googledrive package
+      filename <- paste0(PATH_ERRORS, "/", prefix, list_name, suffix, '.csv')
+
+      write.table(
+        list[[i]],
+        file = filename,
+        quote = FALSE,
+        sep = ",",
+        dec = ".",
+        row.names = FALSE,
+        na = "")
+
+      # export to google drive
+      drive_upload(
+        media = filename,
+        path = as_dribble(GOOGLE_DRIVE_PATH),
+        type = "spreadsheet"
+      )
+
+    } else {
+      return(paste("This isn't a dataframe"))
+    }
+
+  })
+}
