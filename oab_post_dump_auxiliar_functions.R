@@ -8,14 +8,16 @@ addTypeOfError <- function(df, ...){
 
   arguments <- list(...)
 
-  type <- paste(arguments, collapse = '', sep = " ")
-
+  tx <- paste(arguments, collapse = '', sep = " ")
+  # escape new lines and tabs: only using \s works, I don't know excactly why :/
+  tx <- gsub("\\s+", " ", tx)
+  
   if(nrow(df)!=0){
-    df[["TIPO_ERROR"]] <- type
-    # df <- df %>% mutate(TIPO_ERROR = type)
+    df[["TIPO_ERROR"]] <- tx
   }
   return(df)
 }
+
 
 #' Split COD_MAREA field.
 #' Split COD_MAREA field in its components: identifier, year, month, day and
@@ -523,9 +525,7 @@ printPdfGraphic <- function(filename, func, ...){
 #' @param suffix_multiple_month Suffix used when multiple months are used.
 createPathFiles <- function (month = MONTH, year = YEAR, suffix_multiple_months = suffix_multiple_months){
 
-  if (length(month) == 1 && month == "annual"){
-    path_text <- paste0("data/", year, "/", year, "_annual")
-  } else if(length(month) != 1){
+  if(length(month) != 1){
     path_text <- paste0("data/", year, "/", year, "_", suffix_multiple_months)
   } else {
     path_text <- paste0("data/", year, "/", year, "_", sprintf("%02d", month))
@@ -633,5 +633,57 @@ exportErrorsListToXlsx2 <- function (list, prefix = "", suffix = "", separation 
     else {
       return(paste("This isn't a dataframe"))
     }
+  })
+}
+
+# Export to google drive.
+# Not in use.
+# Export the dataframes contained in a list to google drive
+OAB_export_list_google_sheet <- function(list, prefix = "", suffix = "", separation = ""){
+
+  #check if package openxlsx is instaled:
+  if (!requireNamespace("googlesheets", quietly = TRUE)) {
+    stop("Googlesheets package needed for this function to work. Please install it.",
+         call = FALSE)
+  }
+
+  # sep_along(list): generate regular sequences. With a list, generates
+  # the sequence 1, 2, ..., length(from). Return a integer vector.
+  lapply(seq_along(list), function(i){
+
+
+    if(is.data.frame(list[[i]])){
+
+      list_name <- names(list)[[i]]
+
+      if (prefix != "") prefix <- paste0(prefix, separation)
+
+      if (suffix != "") suffix <- paste0(separation, suffix)
+
+      # Before export to google drive, is mandatory export file to csv in local:
+      # When the googlesheet4 packages have the oauth implemented, we can
+      # use it instead of googledrive package
+      filename <- paste0(PATH_ERRORS, "/", prefix, list_name, suffix, '.csv')
+
+      write.table(
+        list[[i]],
+        file = filename,
+        quote = FALSE,
+        sep = ",",
+        dec = ".",
+        row.names = FALSE,
+        na = "")
+
+      # export to google drive
+      drive_upload(
+        media = filename,
+        path = as_dribble(GOOGLE_DRIVE_PATH),
+        type = "spreadsheet"
+      )
+
+    } else {
+      return(paste("This isn't a dataframe"))
+    }
+
   })
 }

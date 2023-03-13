@@ -16,16 +16,17 @@
 # script.
 # - Make sure report files of discards from SIRENO are in path
 # /data/YYYY/YYYY_MM.
-# - Choose the way to export in the "EXPORT ERRORS" section of this script.
-# Uncomment the interested way. It's available by a xlsx file or upload directly
-# to google drive. In this case an account and password is required, and a token
-# is automatically generated.
-# - If xlsx option is chosen, the errors file must be created in the directory
+# - The xlsx errors file will be created in the directory
 # /data/YYYY/YYYY_MM/errors. If this directory does not exists, it's
 # created automatically.
+# - A errors are exported in files with name as its related acronym type
+# (DESIXA, DESSUR...).
+# - A function to export and upload the errors file in google drive is stored in
+# oab_post_dump_auxiliar_functions.R. It is not use in this script right now.
+# At the end of the script, a backup of R the files used in the script are save
+# in /data/YYYY/YYYY_MM/backup.
 # - TODO: explain speed graphics
-# - A file by acronym type (DESIXA, DESSUR...) is generated in errors
-# directory.
+
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
@@ -36,20 +37,13 @@ lengths_file <- "IEODESTALLASMARCO.TXT"
 litter_file <- "IEODESBASURASMARCO.TXT"
 accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
-# trips_file <- "IEODESMAREASIRENO_2021_2102.TXT"
-# hauls_file <- "IEODESLANCESIRENO_2021_2102.TXT"
-# catches_file <- "IEODESCAPTURASIRENO_2021_2102.TXT"
-# lengths_file <- "IEODESTALLASSIRENO_2021_2102.TXT"
-# litter_file <- "IEODESBASURASSIRENO_2021_2102.TXT"
-# accidentals_file <- "IEODESCAPTACCIDSIRENO_2021_2102.TXT"
-
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
-MONTH <- c(2)
-# In case MONTH is a vector of months, suffix to add to path:
-suffix_multiple_months <- "annual"
+MONTH <- c(1)
+# Use in case MONTH is a vector of months: suffix to add to path:
+suffix_multiple_months <- ""
 
-YEAR <- 2022
+YEAR <- 2023
 
 # Suffix_id is a suffix added to file names when they are exported both xls and
 # google drive files.
@@ -248,7 +242,7 @@ if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
 # SEARCHING ERRORS -------------------------------------------------------------
 
 ERRORS <- check_them_all()
-ERRORS <- check_them_all_annual()
+# ERRORS <- check_them_all_annual()
 
 # FORMAT ERRORS ----------------------------------------------------------------
 
@@ -270,17 +264,7 @@ exportErrorsListToXlsx2(errors, prefix = PREFIX_TO_EXPORT,
                  suffix = SUFFIX_TO_EXPORT,
                  separation = "_", path_export = PATH_ERRORS)
 
-
-
-# Export to google sheets
-# OAB_export_list_google_sheet(errors, prefix = PREFIX_TO_EXPORT,
-#                         suffix = SUFFIX_TO_EXPORT,
-#                         separation = "_")
-
-
 # CHECK SPEED ------------------------------------------------------------------
-
-
 view_speed_outliers()
 filename <- paste("speed_outliers", YEAR,  MONTH_AS_CHARACTER, sep ="_")
 printPdfGraphic(filename, view_speed_outliers)
@@ -300,12 +284,6 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 # library(shiny)
 # runApp("speed", display.mode = "showcase")
 
-
-# test upload files to Teams
-# library("Microsoft365R")
-# od <- personal_onedrive()
-# od$list_items()
-# list_teams("SAP_MUE")
 
 
 # when this problem is fixed, detelte it:
