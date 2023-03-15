@@ -3,7 +3,7 @@
 ####
 #### author: Marco A. Amez Fernandez
 #### email: ieo.marco.a.amez@gmail.com
-#### version: 1.0
+#### version: 1.1
 
 # INSTRUCTIONS -----------------------------------------------------------------
 
@@ -40,14 +40,16 @@ accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
 MONTH <- c(1)
-# Use in case MONTH is a vector of months: suffix to add to path:
+# Suffix to add to path. Use only in case MONTH is a vector of months. This
+# suffix will be added to the end of the path with a "_" as separation.
 suffix_multiple_months <- ""
 
 YEAR <- 2023
 
-# Suffix_id is a suffix added to file names when they are exported both xls and
-# google drive files.
-suffix_id <- ""
+# TODO: STILL NOT IMPLEMENTED. TRY TO STANDARIZE WITH RIM_POST_DUMP.
+# Suffix to add at the end of the export filename. This suffix will be added to
+# the end of the file name with a "_" as separation.
+# suffix <- ""
 
 
 # cfpo to use in the script
@@ -146,7 +148,8 @@ PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review
 
 # names to export
 PREFIX_TO_EXPORT <- "OAB"
-SUFFIX_TO_EXPORT <- createSuffixToExport()
+
+SUFFIX_TO_EXPORT <- createSuffixToExport(MONTH,YEAR,MONTH_AS_CHARACTER,suffix)
 
 # files to backup
 FILES_TO_BACKUP <- c("oab_post_dump.R",

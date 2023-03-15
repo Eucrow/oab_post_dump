@@ -11,7 +11,7 @@ addTypeOfError <- function(df, ...){
   tx <- paste(arguments, collapse = '', sep = " ")
   # escape new lines and tabs: only using \s works, I don't know excactly why :/
   tx <- gsub("\\s+", " ", tx)
-  
+
   if(nrow(df)!=0){
     df[["TIPO_ERROR"]] <- tx
   }
@@ -555,10 +555,10 @@ createMonthAsCharacter <- function(month = MONTH, suffix_multiple_months = suffi
 #' in the names of files.
 #' @param month month or months used.
 #' @param suffix_multiple_month Suffix used when multiple months are used.
-createSuffixToExport <- function(month=MONTH,
-                                 year=YEAR,
-                                 month_as_character = MONTH_AS_CHARACTER,
-                                 suffix_multiple_months = suffix_multiple_months){
+createSuffixToExport <- function(month,
+                                 year,
+                                 month_as_character,
+                                 suffix_multiple_months){
 
   if (length(month) == 1 && month %in% seq(1:12)) {
     return(paste0(year, "_", month_as_character))
