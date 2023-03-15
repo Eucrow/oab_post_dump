@@ -567,22 +567,19 @@ sampled_discard_less_subsample_discard <- function(df){
 }
 
 #' Check code: 2022
-#' Species without weight caught neither weight discarded.
-#' @return dataframe with COD_MAREA with errors.
-species_without_caught_neither_discarded_weight <- function(){
-
-  err <- OAB_catches %>%
-    filter(P_CAP == 0 & P_DESCAR == 0) %>%
-    select(COD_MAREA, COD_LANCE, COD_ESP, ESP, P_CAP, P_DESCAR) %>%
-    arrange(COD_MAREA)%>%
-    unique() %>%
-    addTypeOfError("ERROR: Especie sin peso captura ni peso descarte.")
-
-  if (nrow(err)!=0){
-    return(err)
+#' Check species without retained and discarded weights.
+#' @param df dataframe returned by importOABCatches().
+#' @return dataframe with errors.
+species_without_retained_and_discarded_weight <- function(df){
+  errors <- df[,c("YEAR","COD_MAREA","COD_LANCE","COD_ESP","ESP", "P_RET","P_DESCAR" )]
+  errors <- errors[errors$P_RET==0 & errors$P_DESCAR==0, ]
+  errors <- unique(errors)
+  if(nrow(errors) > 0){
+    errors <- addTypeOfError(errors,"ERROR: species without retained and discarded weights")
+    return(errors) 
   }
-  
-}
+} 
+
 
 #' Check code: 2023
 #' Coherence target species with metier ieo.
