@@ -1,5 +1,6 @@
 # Post-dump revision of discard data saved in SIRENO
-#### v. 1.1
+
+#### v. 1.2
 
 The SAP project from the Spanish Institute of Oceanography (IEO) obtains,
 analyzes and prepare the necessary information to monitor the fishery activity
@@ -24,4 +25,5 @@ fixed it when it is necessary.
 The errors detected can be found in https://saco.csic.es/index.php/s/R3iFaWF84GFXTsr
 
 ### Warning:
+
 Due to privacy concerns, some minor functions can not work properly.
