@@ -192,8 +192,8 @@ OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
   # WARNING!! DOES NOT WORK WITH JANUARY-DECEMBER!!!! :(
   OAB_trips <- OAB_trips[
-    as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH |
-      (as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN)$mon +1 == MONTH)
+    as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon +1 == MONTH |
+      (as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN_MAREA)$mon +1 == MONTH)
     ,]
   OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
@@ -202,10 +202,10 @@ if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
 
 # when multiple months are used
 if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
-  # TODO: TEST USING OAB_trips$FECHA_FIN instead OAB_trips$FECHA_INI
+  # TODO: TEST USING OAB_trips$FECHA_FIN_MAREA instead OAB_trips$FECHA_INI_MAREA
   # I THINK THIS DOES NOT WORK:
-  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$mon +1 %in% MONTH &
-                         (as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$year +1900) == YEAR,]
+  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$mon +1 %in% MONTH &
+                         (as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$year +1900) == YEAR,]
   OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
