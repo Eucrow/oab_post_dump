@@ -3,7 +3,7 @@
 ####
 #### author: Marco A. Amez Fernandez
 #### email: ieo.marco.a.amez@gmail.com
-#### version: 1.0
+#### version: 1.1
 
 # INSTRUCTIONS -----------------------------------------------------------------
 
@@ -40,14 +40,16 @@ accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
 MONTH <- c(1)
-# Use in case MONTH is a vector of months: suffix to add to path:
+# Suffix to add to path. Use only in case MONTH is a vector of months. This
+# suffix will be added to the end of the path with a "_" as separation.
 suffix_multiple_months <- ""
 
 YEAR <- 2023
 
-# Suffix_id is a suffix added to file names when they are exported both xls and
-# google drive files.
-suffix_id <- ""
+# TODO: STILL NOT IMPLEMENTED. TRY TO STANDARIZE WITH RIM_POST_DUMP.
+# Suffix to add at the end of the export filename. This suffix will be added to
+# the end of the file name with a "_" as separation.
+# suffix <- ""
 
 
 # cfpo to use in the script
@@ -146,7 +148,8 @@ PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review
 
 # names to export
 PREFIX_TO_EXPORT <- "OAB"
-SUFFIX_TO_EXPORT <- createSuffixToExport()
+
+SUFFIX_TO_EXPORT <- createSuffixToExport(MONTH,YEAR,MONTH_AS_CHARACTER,suffix)
 
 # files to backup
 FILES_TO_BACKUP <- c("oab_post_dump.R",
@@ -189,8 +192,8 @@ OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
   # WARNING!! DOES NOT WORK WITH JANUARY-DECEMBER!!!! :(
   OAB_trips <- OAB_trips[
-    as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH |
-      (as.POSIXlt(OAB_trips$FECHA_INI)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN)$mon +1 == MONTH)
+    as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon +1 == MONTH |
+      (as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN_MAREA)$mon +1 == MONTH)
     ,]
   OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
@@ -199,10 +202,10 @@ if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
 
 # when multiple months are used
 if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
-  # TODO: TEST USING OAB_trips$FECHA_FIN instead OAB_trips$FECHA_INI
+  # TODO: TEST USING OAB_trips$FECHA_FIN_MAREA instead OAB_trips$FECHA_INI_MAREA
   # I THINK THIS DOES NOT WORK:
-  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$mon +1 %in% MONTH &
-                         (as.POSIXlt(OAB_trips$FECHA_FIN, format = "%d/%m/%Y")$year +1900) == YEAR,]
+  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$mon +1 %in% MONTH &
+                         (as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$year +1900) == YEAR,]
   OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
   OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]

@@ -15,3 +15,6 @@ data/
 data-raw/
 reports/
 statistical_rectangles/
+
+# Visual Studio Code files to ignore
+*.code-workspace

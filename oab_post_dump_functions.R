@@ -567,22 +567,19 @@ sampled_discard_less_subsample_discard <- function(df){
 }
 
 #' Check code: 2022
-#' Species without weight caught neither weight discarded.
-#' @return dataframe with COD_MAREA with errors.
-species_without_caught_neither_discarded_weight <- function(){
-
-  err <- OAB_catches %>%
-    filter(P_CAP == 0 & P_DESCAR == 0) %>%
-    select(COD_MAREA, COD_LANCE, COD_ESP, ESP, P_CAP, P_DESCAR) %>%
-    arrange(COD_MAREA)%>%
-    unique() %>%
-    addTypeOfError("ERROR: Especie sin peso captura ni peso descarte.")
-
-  if (nrow(err)!=0){
-    return(err)
+#' Check species without retained and discarded weights.
+#' @param df dataframe returned by importOABCatches().
+#' @return dataframe with errors.
+species_without_retained_and_discarded_weight <- function(df){
+  errors <- df[,c("YEAR","COD_MAREA","COD_LANCE","COD_ESP","ESP", "P_RET","P_DESCAR" )]
+  errors <- errors[errors$P_RET==0 & errors$P_DESCAR==0, ]
+  errors <- unique(errors)
+  if(nrow(errors) > 0){
+    errors <- addTypeOfError(errors,"ERROR: species without retained and discarded weights")
+    return(errors) 
   }
-  
-}
+} 
+
 
 #' Check code: 2023
 #' Coherence target species with metier ieo.
@@ -672,8 +669,8 @@ hauling_date_before_shooting_date <- function(){
 #' @export
 trips_initial_date_before_final_date <- function(){
   
-  start <- as.POSIXlt(OAB_trips$FECHA_INI, format="%d/%m/%Y")
-  end <- as.POSIXlt(OAB_trips$FECHA_FIN, format="%d/%m/%Y") 
+  start <- as.POSIXlt(OAB_trips$FECHA_INI_MAREA, format="%d/%m/%Y")
+  end <- as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format="%d/%m/%Y") 
   
   errors <- OAB_trips[(start - end)>0,]
   
@@ -693,11 +690,11 @@ trips_initial_date_before_final_date <- function(){
 trips_final_date_in_COD_MAREA_GC <- function(){
   errors <- OAB_trips %>%
     filter(ESTRATO_RIM=="BACA_GC" | ESTRATO_RIM == "CERCO_GC")%>%
-    check_date_with_COD_MAREA("FECHA_FIN")
+    check_date_with_COD_MAREA("FECHA_FIN_MAREA")
   
   if (!is.null(errors)) {
     errors <- errors %>%
-      select(COD_MAREA, FECHA_FIN, TIPO_ERROR)
+      select(COD_MAREA, FECHA_FIN_MAREA, TIPO_ERROR)
     
     return(errors)
   }
@@ -778,25 +775,25 @@ date_hauls_in_date_interval_trips <- function(df_trips, df_hauls) {
   df_hauls_simplyfied$FECHA_VIR <- as.POSIXlt(df_hauls_simplyfied$FECHA_VIR, format="%d-%b-%y")
   
   # get date trips
-  df_trips_simplyfied <- unique(df_trips[, c("COD_MAREA", "FECHA_INI", "FECHA_FIN")])
-  df_trips_simplyfied$FECHA_INI <- as.POSIXlt(df_trips_simplyfied$FECHA_INI, format="%d/%m/%Y")
-  df_trips_simplyfied$FECHA_FIN <- as.POSIXlt(df_trips_simplyfied$FECHA_FIN, format="%d/%m/%Y")
-  colnames(df_trips_simplyfied) <- c("COD_MAREA", "FECHA_INI_TRIP", "FECHA_FIN_TRIP")
+  df_trips_simplyfied <- unique(df_trips[, c("COD_MAREA", "FECHA_INI_MAREA", "FECHA_FIN_MAREA")])
+  df_trips_simplyfied$FECHA_INI_MAREA <- as.POSIXlt(df_trips_simplyfied$FECHA_INI_MAREA, format="%d/%m/%Y")
+  df_trips_simplyfied$FECHA_FIN_MAREA <- as.POSIXlt(df_trips_simplyfied$FECHA_FIN_MAREA, format="%d/%m/%Y")
+  colnames(df_trips_simplyfied) <- c("COD_MAREA", "FECHA_INI_MAREA_TRIP", "FECHA_FIN_MAREA_TRIP")
   
   # merge hauls with trips
   df_dates <- merge(df_hauls_simplyfied, df_trips_simplyfied, by="COD_MAREA", all.x = T)
   
   # detect hauls with 
-  errors <- df_dates[which(df_dates[["FECHA_LAR"]] < df_dates[["FECHA_INI_TRIP"]] |
-                 df_dates[["FECHA_VIR"]] > df_dates[["FECHA_FIN_TRIP"]]),]
+  errors <- df_dates[which(df_dates[["FECHA_LAR"]] < df_dates[["FECHA_INI_MAREA_TRIP"]] |
+                 df_dates[["FECHA_VIR"]] > df_dates[["FECHA_FIN_MAREA_TRIP"]]),]
 
   #return
   if (nrow(errors) > 0){
     # add error columns
-    errors[which(errors[["FECHA_LAR"]] < errors[["FECHA_INI_TRIP"]]),
+    errors[which(errors[["FECHA_LAR"]] < errors[["FECHA_INI_MAREA_TRIP"]]),
            "TIPO_ERROR"] <- c("ERROR: Shooting date before initial date of the trip")
     
-    errors[which(errors[["FECHA_VIR"]] > errors[["FECHA_FIN_TRIP"]]),
+    errors[which(errors[["FECHA_VIR"]] > errors[["FECHA_FIN_MAREA_TRIP"]]),
            "TIPO_ERROR"] <- c("ERROR: Hauling date after final date of the trip")
     
     return(errors)
@@ -1238,11 +1235,11 @@ final_date_one_day_before_hauling <- function(){
   max_days <- duracion_mareas_OAB[, c("ESTRATO_RIM", "max_days_haul_trip")]
   
   # get the final date of every trips by rim stratum
-  final_date_trip <- OAB_trips[, c("COD_MAREA", "FECHA_FIN", "ESTRATO_RIM")]
+  final_date_trip <- OAB_trips[, c("COD_MAREA", "FECHA_FIN_MAREA", "ESTRATO_RIM")]
   final_date_trip <- unique(final_date_trip)
-  final_date_trip$FECHA_FIN <- as.Date(final_date_trip$FECHA_FIN, format = "%d/%m/%Y")
+  final_date_trip$FECHA_FIN_MAREA <- as.Date(final_date_trip$FECHA_FIN_MAREA, format = "%d/%m/%Y")
   final_date_trip <- by(final_date_trip, final_date_trip$COD_MAREA, function(x){
-    x[which.max(x$FECHA_FIN), ]
+    x[which.max(x$FECHA_FIN_MAREA), ]
   })
   final_date_trip <- do.call(rbind, final_date_trip)
 
@@ -1262,9 +1259,9 @@ final_date_one_day_before_hauling <- function(){
                  all = T)
 
   calculate_error <- function(x){
-    if(!is.na(x[["FECHA_FIN"]]) && !is.na(x[["FECHA_VIR"]]) ){
+    if(!is.na(x[["FECHA_FIN_MAREA"]]) && !is.na(x[["FECHA_VIR"]]) ){
       max_dur <- max_days[max_days[["ESTRATO_RIM"]]==x[["ESTRATO_RIM"]], "max_days_haul_trip"]
-      trip_date <- as.Date(x[["FECHA_FIN"]], format = "%Y-%m-%d")
+      trip_date <- as.Date(x[["FECHA_FIN_MAREA"]], format = "%Y-%m-%d")
       haul_date <- as.Date(x[["FECHA_VIR"]], format = "%Y-%m-%d")
       
       if(length(max_dur)==0){

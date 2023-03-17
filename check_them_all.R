@@ -22,9 +22,9 @@ check_them_all <- function(){
   
   ERR$trips_year_in_COD_MAREA <- check_year_in_COD_MAREA(OAB_trips)
   
-  ERR$trips_year_in_initial_date <- check_year_in_date(OAB_trips, "FECHA_INI", YEAR)
+  ERR$trips_year_in_initial_date <- check_year_in_date(OAB_trips, "FECHA_INI_MAREA", YEAR)
   
-  ERR$trips_year_in_final_date <- check_year_in_date(OAB_trips, "FECHA_FIN", YEAR)
+  ERR$trips_year_in_final_date <- check_year_in_date(OAB_trips, "FECHA_FIN_MAREA", YEAR)
   
   ERR$trips_final_date_in_COD_MAREA_GC <- trips_final_date_in_COD_MAREA_GC()
   
@@ -145,6 +145,8 @@ check_them_all <- function(){
   ERR$cephalopods_counted <- cephalopods_counted()
   
   ERR$retained_weight_one_specimen_measured <- retained_weight_one_specimen_measured()
+  
+  ERR$species_without_retained_and_discarded_weight <- species_without_retained_and_discarded_weight(OAB_catches)
   
   # LENGTHS
   ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
