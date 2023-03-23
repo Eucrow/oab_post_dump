@@ -45,14 +45,13 @@ check_hauls_duration <- function(){
 }
 
 #' Check code: 2051
-#' Check the speed of the hauls are within the parameters of maximum and minimum speed
-#' collected in "caracteristicas_lances.csv" dataset.
-#' @param df dataframe returned by importOABHauls().
+#' Check the speed of the hauls are within the parameters of maximum and minimum speed.
+#' @param  dataframe returned by importOABHauls().
+#' @param  dataframe returned by importCsvSAPMUE ().
 #' @return dataframe with errors.
-check_hauls_speed <- function(df){ 
-  df <- df[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "VELOCIDAD")]
-  cl <- read.csv("caracteristicas_lances.csv", sep = ";", header = TRUE, na=NA)
-  cl <- cl[, c("METIER_IEO", "VELOCIDAD_MAX", "VELOCIDAD_MIN")]
+check_hauls_speed <- function(){ 
+  df <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "VELOCIDAD")]
+  cl <- caracteristicas_lances[, c("METIER_IEO", "VELOCIDAD_MAX", "VELOCIDAD_MIN")]
   errors <- merge(df,cl,by="METIER_IEO", all.x = T)
   errors <- subset(errors,errors$VELOCIDAD>errors$VELOCIDAD_MAX | errors$VELOCIDAD<errors$VELOCIDAD_MIN, )
   errors <- unique(errors)
