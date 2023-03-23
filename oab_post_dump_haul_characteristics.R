@@ -44,49 +44,24 @@ check_hauls_duration <- function(){
   
 }
 
-
 #' Check code: 2051
-#' Check speed of the hauls.
-#' The maximun and minimun speeds are collected in 'caracteristicas_lances' 
-#' dataset.
-#' @note If the METIER_IEO is NA, this haul is ignored and doesn't return the
-#' error.
-#' @return Dataframe with erroneus data of every haul characterictics.
-check_hauls_speed <- function(){
-  
-  df <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "VELOCIDAD")]
-  
-  cl <- caracteristicas_lances[, c("METIER_IEO", "VELOCIDAD_MAX", "VELOCIDAD_MIN")]
-  
-  errors <- merge(df, cl, by = "METIER_IEO", all.x = T)
-  
-  errors <- errors[which(errors[,"VELOCIDAD"] < errors[, "VELOCIDAD_MIN"] |
-                           errors[,"VELOCIDAD"] > errors[, "VELOCIDAD_MAX"]),]
-  
-  if (nrow(errors)>0){
-    
-    errors <- apply(errors, 1, function(x){
-      
-      x[["TIPO_ERROR"]] <- paste0("WARNING: speed of haul out of range according to master (", x[["VELOCIDAD_MIN"]], " - " , x[["VELOCIDAD_MAX"]], ")")
-      
-      return(x)
-      
-    })
-    
-    errors <- as.data.frame(t(errors))
-    
-    errors <- errors[,c("COD_MAREA", "METIER_IEO", "COD_LANCE", "VELOCIDAD", "TIPO_ERROR")]
-    
-    # all the errors variables are factor so, to avoid errors in decimal
-    # conversion, it must be converted to numeric:
-    errors[["VELOCIDAD"]] <- as.numeric(as.character(errors[["VELOCIDAD"]]))
-    
+#' Check the speed of the hauls are within the parameters of maximum and minimum speed
+#' collected in "caracteristicas_lances.csv" dataset.
+#' @param df dataframe returned by importOABHauls().
+#' @return dataframe with errors.
+check_hauls_speed <- function(df){ 
+  df <- df[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "VELOCIDAD")]
+  cl <- read.csv("caracteristicas_lances.csv", sep = ";", header = TRUE, na=NA)
+  cl <- cl[, c("METIER_IEO", "VELOCIDAD_MAX", "VELOCIDAD_MIN")]
+  errors <- merge(df,cl,by="METIER_IEO", all.x = T)
+  errors <- subset(errors,errors$VELOCIDAD>errors$VELOCIDAD_MAX | errors$VELOCIDAD<errors$VELOCIDAD_MIN, )
+  errors <- unique(errors)
+  errors <- errors[, c("METIER_IEO","COD_MAREA","COD_LANCE","VELOCIDAD")]
+  if(nrow(errors) > 0){
+    errors <- addTypeOfError(errors, "WARNING: speed of haul out of range according to master")
     return(errors)
-    
   }
-  
 }
-
 
 #' Check code: 2052
 #' Check depth of the hauls.

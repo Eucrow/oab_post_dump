@@ -1543,7 +1543,6 @@ discarded_retained_weigth_zero <- function(df){
     errors <- addTypeOfError(errors, "ERROR: Specie with lenghts retained or discarded but without weights.")
     return(errors) 
   }
-  return(errors)
 }
 
 
