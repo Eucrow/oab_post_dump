@@ -39,7 +39,7 @@ accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
-MONTH <- c(1)
+MONTH <- c(5)
 # Suffix to add to path. Use only in case MONTH is a vector of months. This
 # suffix will be added to the end of the path with a "_" as separation.
 suffix_multiple_months <- ""
@@ -117,7 +117,7 @@ colnames(CFPO) <- c("CFR", "NOMBRE", "MATRICULA", "ESTADO")
 
 #### obtain and format the SIRENO fleet file.
 # Required to check the ship in the CFPO
-SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", "barcos_2022_12_02.TXT"),
+SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", "barcos_2023_07_06.TXT"),
                    fileEncoding = "windows-1252")
 SIRENO_FLEET$COD.BARCO <- apply(SIRENO_FLEET, 1, function(x){
   substr(x["COD.BARCO"], 2, nchar(x["COD.BARCO"]))
@@ -144,7 +144,8 @@ PATH_BACKUP <- file.path(PATH_FILES, "backup")
 MONTH_AS_CHARACTER <- createMonthAsCharacter()
 
 # path to shared folder
-PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review - Revisión_datos", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
+# PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review - Revisión_datos", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
+PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
 
 # names to export
 PREFIX_TO_EXPORT <- "OAB"

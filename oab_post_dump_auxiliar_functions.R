@@ -163,12 +163,12 @@ check_year_in_date <- function(df, date_field, year){
 
     # this line add a comment to the errors dataframe which contain the value of the
     # df variable
-    errors.date_field <- deparse(substitute(date_field))
+    date_field <- deparse(substitute(date_field))
 
-    errors.date_field <- as.POSIXct(errors.date_field, format="%d/%m/%Y")
+    # date_field <- as.POSIXct(date_field, format="%d/%m/%Y")
 
     errors <- addTypeOfError(errors, "ERROR: el año del campo ",
-                             errors.date_field, " no coincide con el año ", year)
+                             date_field, " no coincide con el año ", year, " o está vacío.")
 
     return(errors)
 
@@ -473,6 +473,7 @@ check_spe_belongs_to_taxon <- function (specie, taxon_to_match){
 }
 
 #' Copy all the error files generated to a shared folder.
+#' If the folder doesn't exists, create it.
 copyErrorsFilesToSharedFolder <- function (){
 
   # test if PATH_ERRORS exists
@@ -498,6 +499,7 @@ copyErrorsFilesToSharedFolder <- function (){
   }
 
   files_list_from <- file.path(PATH_ERRORS, files_list_from)
+
   file.copy(from=files_list_from, to=PATH_SHARE_ERRORS)
 
 }
