@@ -30,16 +30,16 @@
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAMARCO.TXT"
-hauls_file <- "IEODESLANCEMARCO.TXT"
-catches_file <- "IEODESCAPTURAMARCO.TXT"
-lengths_file <- "IEODESTALLASMARCO.TXT"
-litter_file <- "IEODESBASURASMARCO.TXT"
-accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
+trips_file <- "IEODESMAREAACANDELARIO.TXT"
+hauls_file <- "IEODESLANCEACANDELARIO.TXT"
+catches_file <- "IEODESCAPTURAACANDELARIO.TXT"
+lengths_file <- "IEODESTALLASACANDELARIO.TXT"
+litter_file <- "IEODESBASURASACANDELARIO.TXT"
+accidentals_file <- "IEODESCAPTACCIDACANDELARIO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
-MONTH <- c(5)
+MONTH <- c(6)
 # Suffix to add to path. Use only in case MONTH is a vector of months. This
 # suffix will be added to the end of the path with a "_" as separation.
 suffix_multiple_months <- ""
