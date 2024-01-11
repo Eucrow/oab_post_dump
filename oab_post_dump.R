@@ -39,18 +39,20 @@ accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
 # MONTH <- 12
-MONTH <- c(5)
+MONTH <- c(11)
+
+# Suffix to path folder (useful when the data of the same month is received
+# in different files). If it is not necessary, use NULL, NA or "".
+# FOLDER_SUFFIX <- "b"
+FOLDER_SUFFIX <- NA
+
 # Suffix to add to path. Use only in case MONTH is a vector of months. This
 # suffix will be added to the end of the path with a "_" as separation.
 suffix_multiple_months <- ""
 
 YEAR <- 2023
 
-# TODO: STILL NOT IMPLEMENTED. TRY TO STANDARIZE WITH RIM_POST_DUMP.
-# Suffix to add at the end of the export filename. This suffix will be added to
-# the end of the file name with a "_" as separation.
-# suffix <- ""
-
+PATH_SHARED_FOLDER <- "C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review"
 
 # cfpo to use in the script
 # cfpo_to_use <- "CFPO_2021.csv"
@@ -84,6 +86,63 @@ source('oab_post_dump_haul_characteristics.R')
 source('create_elasmobranchii_file.R')
 source('check_them_all.R')
 source('check_them_all_annual.R')
+
+# GLOBAL VARIABLES -------------------------------------------------------------
+
+# list with all errors found in dataframes:
+ERRORS <- list()
+
+# path to the work files
+PATH_FILES <- createPathFiles(MONTH, YEAR, suffix_multiple_months, FOLDER_SUFFIX)
+
+# path to the generated errors file
+PATH_ERRORS <- file.path(PATH_FILES,"errors")
+# if the errors directory does not exists, create it:
+ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
+
+# Name of the folder where are stored private files with sensitive information.
+PRIVATE_FOLDER_NAME <- "private"
+
+# Path where private files are stored.
+PATH_PRIVATE_FILES <- file.path(getwd(), PRIVATE_FOLDER_NAME)
+
+# path to store files as backup
+PATH_BACKUP <- file.path(PATH_FILES, "backup")
+
+# month as character in case of monthly check
+MONTH_AS_CHARACTER <- createMonthAsCharacter()
+
+# path to shared folder
+# PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review - Revisión_datos", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
+# PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
+
+PATH_SHARE_ERRORS <- createPathSharedFiles(PATH_SHARED_FOLDER, MONTH, YEAR, suffix_multiple_months, FOLDER_SUFFIX)
+# if the shared errors directory does not exists, create it:
+ifelse(!dir.exists(PATH_SHARE_ERRORS), dir.create(PATH_SHARE_ERRORS), FALSE)
+
+# names to export
+PREFIX_TO_EXPORT <- "OAB"
+
+SUFFIX_TO_EXPORT <- createSuffixToExport(MONTH,YEAR,MONTH_AS_CHARACTER,suffix)
+
+# files to backup
+FILES_TO_BACKUP <- c("oab_post_dump.R",
+                     "oab_post_dump_auxiliar_functions.R",
+                     "oab_post_dump_functions.R",
+                     "oab_post_dump_haul_characteristics.R",
+                     "oab_post_dump_hauls_overlapped.R",
+                     "oab_post_dump_sexed_species_functions.R",
+                     "especies_a_medir_OAB.csv",
+                     "especies_objetivo_OAB.csv",
+                     "razon_descarte_OAB.csv",
+                     "metier_ieo_especie_objetivo_OAB.csv",
+                     "duracion_mareas.txt",
+                     "caracteristicas_lances.csv",
+                     "not_allowed_species_measured.csv",
+                     "origin_statistical_rectangle.csv",
+                     "cephalopods.csv")
+
+EMAIL_TEMPLATE <- "errors_email.Rmd"
 
 # LOAD DATASETS ----------------------------------------------------------------
 
@@ -123,51 +182,17 @@ SIRENO_FLEET$COD.BARCO <- apply(SIRENO_FLEET, 1, function(x){
   substr(x["COD.BARCO"], 2, nchar(x["COD.BARCO"]))
   })
 
+# Get the contacts data set. This data set contains the different roles and its
+# email, used in the distribution of error files. The roles are:
+# - GC, GS, GN and AC: the supervisors of the influence areas.
+# - sender: person responsible for sending the files.
+# - cc: related people to whom the email should also be sent.
+# This data set is obtained from the file contacts.csv stored in private folder
+# due to the confidential information contained in it. The contacts.csv file
+# must have a comma separated format with two fields: ROLE and EMAIL. The firs
+# line must contain the name of the variables.
+CONTACTS <- read.csv(file.path(PATH_PRIVATE_FILES, "contacts.csv"))
 
-# GLOBAL VARIABLES -------------------------------------------------------------
-
-# list with all errors found in dataframes:
-ERRORS <- list()
-
-# path to the work files
-PATH_FILES <- createPathFiles(MONTH, YEAR, suffix_multiple_months)
-
-# path to the generated errors file
-PATH_ERRORS <- file.path(PATH_FILES,"errors")
-# if the errors directory does not exists, create it:
-ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
-
-# path to store files as backup
-PATH_BACKUP <- file.path(PATH_FILES, "backup")
-
-# month as character in case of monthly check
-MONTH_AS_CHARACTER <- createMonthAsCharacter()
-
-# path to shared folder
-# PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review - Revisión_datos", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
-PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
-
-# names to export
-PREFIX_TO_EXPORT <- "OAB"
-
-SUFFIX_TO_EXPORT <- createSuffixToExport(MONTH,YEAR,MONTH_AS_CHARACTER,suffix)
-
-# files to backup
-FILES_TO_BACKUP <- c("oab_post_dump.R",
-                     "oab_post_dump_auxiliar_functions.R",
-                     "oab_post_dump_functions.R",
-                     "oab_post_dump_haul_characteristics.R",
-                     "oab_post_dump_hauls_overlapped.R",
-                     "oab_post_dump_sexed_species_functions.R",
-                     "especies_a_medir_OAB.csv",
-                     "especies_objetivo_OAB.csv",
-                     "razon_descarte_OAB.csv",
-                     "metier_ieo_especie_objetivo_OAB.csv",
-                     "duracion_mareas.txt",
-                     "caracteristicas_lances.csv",
-                     "not_allowed_species_measured.csv",
-                     "origin_statistical_rectangle.csv",
-                     "cephalopods.csv")
 
 # IMPORT DISCARDS FILES --------------------------------------------------------
 
@@ -282,6 +307,39 @@ rstudioapi::documentSaveAll()
 # and the backup the scripts and files:
 sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 
+
+# SEND EMAILS AUTOMATICALLY ----------------------------------------------------
+# The first time the errors will be sent by email, a credential file must be
+# generated with create_smtp_creds_file. The credentials file is generated in
+# the private folder:
+# blastula::create_smtp_creds_file(file = file.path(PRIVATE_FOLDER_NAME, "credentials"),
+#                        user = "",
+#                        host = "",
+#                        port = ,
+#                        use_ssl = )
+
+# The accessory_email_info data frame must have two variables:
+# - AREA_INF: influence area with the values DESIXA, DESSUR, DESSUR and ALL. All
+# is for the links related to all areas.
+# - INTERNAL_LINK: with the link to the error file in its AREA_INF. If there
+# aren't any error file of a certain AREA_INF, must be set to "".
+# - NOTES: any notes to add to the email. If there aren't, must be set to "".
+accessory_email_info <- data.frame(
+  AREA_INF = c("DESIXA", "DESNOR", "DESSUR", "ALL"),
+  LINK = c("https://saco.csic.es/index.php/f/172264129",
+           "",
+           "https://saco.csic.es/index.php/f/172264133",
+           "https://saco.csic.es/index.php/f/172264131"),
+  NOTES = c("",
+            "",
+            "",
+            "")
+)
+
+sendErrorsByEmail(accessory_email_info = accessory_email_info,
+                  contacts = CONTACTS,
+                  credentials_file = "credentials",
+                  identification_sampling = SUFFIX_TO_EXPORT)
 
 
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
