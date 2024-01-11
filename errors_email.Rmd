@@ -1,0 +1,19 @@
+---
+output: blastula::blastula_email 
+---
+
+Hola.
+
+Este es el enlace al fichero de errores del mes de **`r MONTH_AS_CHARACTER`/`r YEAR`**
+de **`r x[["AREA_INF"]]`**:
+
+`r x[["LINK"]]`
+
+Y este es el outlier de velocidades por estrato rim: 
+`r y`
+
+`r x[["NOTES"]]`
+
+Un saludo,
+
+Marco.

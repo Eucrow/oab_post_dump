@@ -521,19 +521,56 @@ printPdfGraphic <- function(filename, func, ...){
   dev.off()
 }
 
-#' Create path files from the MONTH, YEAR and suffix_multiple_months.
+#' Create path files where save the errors file.
 #' @param month month or months used.
 #' @param year year.
 #' @param suffix_multiple_month Suffix used when multiple months are used.
-createPathFiles <- function (month = MONTH, year = YEAR, suffix_multiple_months = suffix_multiple_months){
+#' @param folder_suffix suffix used to add at the end of the path, useful to
+#' create various folders of the same month. If it is not necessary, use NULL,
+#' NA or "".
+createPathFiles <- function (month = MONTH,
+                             year = YEAR,
+                             suffix_multiple_months = suffix_multiple_months,
+                             folder_suffix = FOLDER_SUFFIX){
 
   if(length(month) != 1){
-    path_text <- paste0("data/", year, "/", year, "_", suffix_multiple_months)
+    path_text <- paste0("data/", year, "/", year, "_", suffix_multiple_months, "_", folder_suffix)
   } else {
     path_text <- paste0("data/", year, "/", year, "_", sprintf("%02d", month))
   }
 
+  if(!is.null(folder_suffix) & !is.na(folder_suffix) & folder_suffix != ""){
+    path_text <- paste0(path_text, "_", folder_suffix)
+  }
+
   return(file.path(getwd(), path_text))
+
+}
+
+#' Create path files where save the errors file in a shared folder.
+#' @param month month or months used.
+#' @param year year.
+#' @param suffix_multiple_month Suffix used when multiple months are used.
+#' @param folder_suffix suffix used to add at the end of the path, useful to
+#' create various folders of the same month. If it is not necessary, use NULL,
+#' NA or "".
+createPathSharedFiles <- function (base_path,
+                                  month = MONTH,
+                             year = YEAR,
+                             suffix_multiple_months = suffix_multiple_months,
+                             folder_suffix = FOLDER_SUFFIX){
+
+  if(length(month) != 1){
+    path_text <- paste0(year, "/", year, "_", suffix_multiple_months, "_", folder_suffix)
+  } else {
+    path_text <- paste0(year, "/", year, "_", sprintf("%02d", month))
+  }
+
+  if(!is.null(folder_suffix) & !is.na(folder_suffix) & folder_suffix != ""){
+    path_text <- paste0(path_text, "_", folder_suffix)
+  }
+
+  return(file.path(base_path, path_text))
 
 }
 
@@ -688,4 +725,74 @@ OAB_export_list_google_sheet <- function(list, prefix = "", suffix = "", separat
     }
 
   })
+}
+
+#' Send errors files by email.
+#' @param accessory_email_info: df with two variables: AREA_INF (with the values GC,
+#' GS, GN and AC) and INTERNAL_LINK, with the link to the file.
+#' @param contacts: contacts data frame.
+#' @param credentials_file: file created with the function creds_file() from
+#' blastula package. Stored in private folder.
+#' @param identification_sampling character to identify the year and month sent
+#' in the email. Appear in the subject and in the the body. For example 2023_10.
+#' By default SUFFIX_TO_EXPORT variable (which include year, month and suffix to
+#' use when the data dump is made in parts, for example 2023_10_b).
+#' @details
+#' The internal_links data frame must have two variables:
+#' - AREA_INF: influence área with the values GC, GS, GN and AC, of the
+#' - LINK: with the link to the error file in its AREA_INF. If there
+#' aren't any error file of a certain AREA_INF, the LINK must be set
+#' to "" or NA.
+#'
+#' The contacts data frame contains the different roles of the personal and its
+#' email to send them the error files. The roles are:
+#' - GC, GS, GN and AC: the supervisors of the influence areas. In the email,
+#' correspond to "to" field.
+#' - sender: person responsible for sending the files. In the email correspond
+#' to "from" field.
+#' - cc: related people to whom the email should also be sent. In the email
+#' correspond to "cc" field.
+#' This data set is obtained from the file contacts.csv stored in private folder
+#' due to the confidential information contained in it. The contacts.csv file
+#' must have a comma separated format with two fields: ROLE and EMAIL. The first
+#' line must contain the name of the variables.
+sendErrorsByEmail <- function(accessory_email_info, contacts, credentials_file,
+                              identification_sampling = SUFFIX_TO_EXPORT){
+
+  # get only the accessory email info of the influence areas, which must be send
+  # to every:
+  influence_areas_info <- accessory_email_info[accessory_email_info[["AREA_INF"]] != "ALL", ]
+
+  links_to_all <- accessory_email_info[accessory_email_info[["AREA_INF"]] == "ALL", c("LINK") ]
+
+  links_to_all <- paste(links_to_all, collapse = "\n\n")
+
+  apply(influence_areas_info, 1, function(x, y){
+
+    if(x[["LINK"]] != ""){
+
+      to <- contacts[contacts[["ROLE"]] == x[["AREA_INF"]] | contacts[["ROLE"]] == "sender", "EMAIL"]
+      from <- contacts[contacts[["ROLE"]] == "sender", "EMAIL"]
+      cc <- contacts[contacts[["ROLE"]] == "cc", "EMAIL"]
+
+      subject = paste0(identification_sampling, " ",
+                       x[["AREA_INF"]],
+                       " -- errores muestreos OAB")
+
+      rmd_email <- blastula::render_email(EMAIL_TEMPLATE)
+
+      blastula::smtp_send(email = rmd_email,
+                to = to,
+                from = from,
+                cc = cc,
+                subject = subject,
+                credentials = blastula::creds_file(file.path(PRIVATE_FOLDER_NAME, credentials_file))
+      )
+
+    } else {
+      print(paste("The", x[["AREA_INF"]], "influence area hasn't any error"))
+    }
+
+  }, links_to_all)
+
 }

@@ -2,6 +2,7 @@
 .Rhistory
 .RData
 .Ruserdata
+.Rproj
 *.Rproj
 .tmp.drivedownload
 .httr-oauth
@@ -15,6 +16,7 @@ data/
 data-raw/
 reports/
 statistical_rectangles/
+private/
 
 # Visual Studio Code files to ignore
 *.code-workspace
