@@ -534,12 +534,12 @@ createPathFiles <- function (month = MONTH,
                              folder_suffix = FOLDER_SUFFIX){
 
   if(length(month) != 1){
-    path_text <- paste0("data/", year, "/", year, "_", suffix_multiple_months, "_", folder_suffix)
+    path_text <- paste0("data/", year, "/", year, "_", suffix_multiple_months)
   } else {
     path_text <- paste0("data/", year, "/", year, "_", sprintf("%02d", month))
   }
 
-  if(!is.null(folder_suffix) & !is.na(folder_suffix) & folder_suffix != ""){
+  if(folder_suffix != ""){
     path_text <- paste0(path_text, "_", folder_suffix)
   }
 
@@ -561,7 +561,7 @@ createPathSharedFiles <- function (base_path,
                              folder_suffix = FOLDER_SUFFIX){
 
   if(length(month) != 1){
-    path_text <- paste0(year, "/", year, "_", suffix_multiple_months, "_", folder_suffix)
+    path_text <- paste0(year, "/", year, "_", suffix_multiple_months)
   } else {
     path_text <- paste0(year, "/", year, "_", sprintf("%02d", month))
   }
@@ -578,12 +578,12 @@ createPathSharedFiles <- function (base_path,
 #' in the names of files.
 #' @param month month or months used.
 #' @param suffix_multiple_month Suffix used when multiple months are used.
-createMonthAsCharacter <- function(month = MONTH, suffix_multiple_months = suffix_multiple_months){
+createMonthAsCharacter <- function(month = MONTH, smm = suffix_multiple_months){
 
   if (length(month) == 1 && month %in% seq(1:12)){
     return(sprintf("%02d", month))
   } else if (length(month) > 1 & all(month %in% seq(1:12))) {
-    return(suffix_multiple_months)
+    return(smm)
   } else {
     stop("Is there any error in the MONTH variable?")
   }

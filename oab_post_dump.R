@@ -1,7 +1,7 @@
 #### Check discards from SIRENO
 #### Return xls files with errors detected by acronym type.
 ####
-#### author: Marco A. Amez Fernandez
+#### author: Marco A. Ámez Fernández
 #### email: ieo.marco.a.amez@gmail.com
 #### version: 1.1
 
@@ -38,25 +38,28 @@ litter_file <- "IEODESBASURASMARCO.TXT"
 accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
-# MONTH <- 12
-MONTH <- c(11)
+MONTH <- 1
+# MONTH <- c(1:12)
 
 # Suffix to path folder (useful when the data of the same month is received
-# in different files). If it is not necessary, use NULL, NA or "".
+# in different files). If it is not necessary, use "".
 # FOLDER_SUFFIX <- "b"
-FOLDER_SUFFIX <- NA
+FOLDER_SUFFIX <- ""
 
 # Suffix to add to path. Use only in case MONTH is a vector of months. This
 # suffix will be added to the end of the path with a "_" as separation.
-suffix_multiple_months <- ""
+# suffix_multiple_months <- "annual"
 
-YEAR <- 2023
+YEAR <- 2024
 
 PATH_SHARED_FOLDER <- "C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review"
 
 # cfpo to use in the script
 # cfpo_to_use <- "CFPO_2021.csv"
-cfpo_to_use <- "Consulta al RGFP a 21_09.xlsx"
+cfpo_to_use <- "CFPO2023 DEF.xlsx"
+
+# sireno fleet file to use in the script
+sireno_fleet_to_use <- "IEOPROBARMARCO_2024_03_12.TXT"
 
 # Only required if the file will be uploaded to google drive. It is the path
 # where in google drive will be saved.
@@ -74,6 +77,7 @@ library(devtools)
 library(sapmuebase)
 library(ggplot2) #to use in view_speed_outliers
 library(ggiraph) #to use in view_speed_outliers
+library(openxlsx)
 
 
 # FUNCTIONS --------------------------------------------------------------------
@@ -110,7 +114,7 @@ PATH_PRIVATE_FILES <- file.path(getwd(), PRIVATE_FOLDER_NAME)
 PATH_BACKUP <- file.path(PATH_FILES, "backup")
 
 # month as character in case of monthly check
-MONTH_AS_CHARACTER <- createMonthAsCharacter()
+MONTH_AS_CHARACTER <- createMonthAsCharacter(month = MONTH, smm = suffix_multiple_months)
 
 # path to shared folder
 # PATH_SHARE_ERRORS <- file.path("C:/Users/ieoma/SAP_MUE/SAP_OAB - OAB_data_review - Revisión_datos", YEAR, paste0(YEAR, "_", MONTH_AS_CHARACTER))
@@ -123,7 +127,7 @@ ifelse(!dir.exists(PATH_SHARE_ERRORS), dir.create(PATH_SHARE_ERRORS), FALSE)
 # names to export
 PREFIX_TO_EXPORT <- "OAB"
 
-SUFFIX_TO_EXPORT <- createSuffixToExport(MONTH,YEAR,MONTH_AS_CHARACTER,suffix)
+SUFFIX_TO_EXPORT <- createSuffixToExport(MONTH, YEAR, MONTH_AS_CHARACTER, suffix_multiple_months)
 
 # files to backup
 FILES_TO_BACKUP <- c("oab_post_dump.R",
@@ -169,18 +173,16 @@ origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_r
 cephalopods <- importCsvSAPMUE("cephalopods.csv")
 
 ### obtain and format the cfpo.
-library(openxlsx)
-CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), startRow = 4, detectDates=TRUE)
+# CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), startRow = 4, detectDates=TRUE)
+CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), detectDates=TRUE)
 CFPO <- CFPO[, c("CFR", "Nombre", "Matrícula", "Estado.actual")]
 colnames(CFPO) <- c("CFR", "NOMBRE", "MATRICULA", "ESTADO")
 
 #### obtain and format the SIRENO fleet file.
 # Required to check the ship in the CFPO
-SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", "barcos_2023_07_06.TXT"),
+SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", sireno_fleet_to_use),
                    fileEncoding = "windows-1252")
-SIRENO_FLEET$COD.BARCO <- apply(SIRENO_FLEET, 1, function(x){
-  substr(x["COD.BARCO"], 2, nchar(x["COD.BARCO"]))
-  })
+SIRENO_FLEET$COD.BARCO <- sub("'","", SIRENO_FLEET[["COD.BARCO"]])
 
 # Get the contacts data set. This data set contains the different roles and its
 # email, used in the distribution of error files. The roles are:
@@ -324,12 +326,16 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 # - INTERNAL_LINK: with the link to the error file in its AREA_INF. If there
 # aren't any error file of a certain AREA_INF, must be set to "".
 # - NOTES: any notes to add to the email. If there aren't, must be set to "".
+
+# TODO: the files send to ALL have the text: "Y este es el outlier de
+# velocidades por estrato rim:". The ALL should be changed to SPEED, and added
+# another info to any other file that can be sent.
 accessory_email_info <- data.frame(
   AREA_INF = c("DESIXA", "DESNOR", "DESSUR", "ALL"),
-  LINK = c("https://saco.csic.es/index.php/f/172264129",
-           "",
-           "https://saco.csic.es/index.php/f/172264133",
-           "https://saco.csic.es/index.php/f/172264131"),
+  LINK = c("https://saco.csic.es/index.php/f/190112709",
+           "https://saco.csic.es/index.php/f/190112712",
+           "https://saco.csic.es/index.php/f/190112714",
+           "https://saco.csic.es/index.php/f/190112717"),
   NOTES = c("",
             "",
             "",
