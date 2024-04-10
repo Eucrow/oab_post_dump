@@ -9,7 +9,7 @@ de **`r x[["AREA_INF"]]`**:
 
 `r x[["LINK"]]`
 
-Y este es el outlier de velocidades por estrato rim: 
+Y este es el gráfico de outliers de velocidades por estrato rim: 
 `r y`
 
 `r x[["NOTES"]]`

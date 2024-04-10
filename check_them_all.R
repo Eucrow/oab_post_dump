@@ -144,9 +144,6 @@ check_them_all <- function(){
 
   ERR$retained_weight_one_specimen_measured <- retained_weight_one_specimen_measured()#***
 
-  # Comprobar que esto no esta duplicado:
-  ERR$species_without_retained_and_discarded_weight <- species_without_retained_and_discarded_weight(OAB_catches)
-
 
   # LENGTHS
   ERR$lengths_empty_fields <- empty_fields_in_variables(OAB_lengths, "OAB_LENGTHS")
