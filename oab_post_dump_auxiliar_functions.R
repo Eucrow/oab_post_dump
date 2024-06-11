@@ -500,26 +500,10 @@ copyErrorsFilesToSharedFolder <- function (){
 
   files_list_from <- file.path(PATH_ERRORS, files_list_from)
 
-  file.copy(from=files_list_from, to=PATH_SHARE_ERRORS)
+  file.copy(from = files_list_from, to = PATH_SHARE_ERRORS)
 
 }
 
-#' Export to pdf the graphic returned by a function.
-#' @param filename name of the file to export (without extension).
-#' @param fun function which return a graphic.
-#' @param ... parameters of 'fun' function.
-printPdfGraphic <- function(filename, func, ...){
-
-  filename <- paste0(PATH_ERRORS, "/", filename, ".pdf")
-
-  pdf(filename)
-
-  g <- func(...)
-
-  print(g)
-
-  dev.off()
-}
 
 #' Create path files where save the errors file.
 #' @param month month or months used.

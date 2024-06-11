@@ -365,37 +365,6 @@ get_speed_outliers <- function(){
 
 }
 
-#' Speed boxplot graphic by ESTRATO_RIM.
-#' Sow boxplot graphic with speed to check the speed by ESTRATRO_RIM.
-#' @export
-view_speed_outliers <-function(){
-
-  library(ggplot2)
-  library(ggiraph)
-
-  hauls_speed <- OAB_hauls %>%
-    select(COD_MAREA, ESTRATO_RIM, ESP_OBJ, VELOCIDAD) %>%
-    filter(ESTRATO_RIM %in% c("BACA_CN", "BACA_GC", "JURELERA_CN", "PAREJA_CN", "RAPANTER_AC"))
-
-  hauls_speed$str <- as.character(hauls_speed$ESTRATO_RIM)
-  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ != "CABALLA", "str"] <- "PAREJA_CN.RESTO"
-  hauls_speed[hauls_speed$ESTRATO_RIM=="PAREJA_CN" & hauls_speed$ESP_OBJ == "CABALLA", "str"] <- "PAREJA_CN.CABALLA"
-
-  hauls_speed %>%
-    group_by(str)%>%
-    #in the next mutate line: if in the ifelse use COD_MAREA as the returned value
-    #when the condition is True, it doesnt't print the COD_MAREA but a weird number??????????
-    mutate(outlier = ifelse(is_outlier(VELOCIDAD), VELOCIDAD, as.numeric(NA)))%>%
-      ggplot(., aes(str, VELOCIDAD))+
-      # geom_boxplot_interactive()+
-      geom_boxplot()+
-      theme(axis.text.x = element_text(angle = 90, hjust = 1))+
-      geom_text(aes(label = outlier), na.rm=T, hjust=1.1)
-
-  # ggiraph(code = print(p))
-  # return (p)
-}
-
 #' Check code: 2016
 #' Sampled hauls without catches weight.
 #' @return dataframe with COD_MAREA with errors.
