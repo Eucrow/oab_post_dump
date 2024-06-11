@@ -30,15 +30,15 @@
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAMARCO.TXT"
-hauls_file <- "IEODESLANCEMARCO.TXT"
-catches_file <- "IEODESCAPTURAMARCO.TXT"
-lengths_file <- "IEODESTALLASMARCO.TXT"
-litter_file <- "IEODESBASURASMARCO.TXT"
-accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
+trips_file <- "IEODESMAREAACANDELARIO.TXT"
+hauls_file <- "IEODESLANCEACANDELARIO.TXT"
+catches_file <- "IEODESCAPTURAACANDELARIO.TXT"
+lengths_file <- "IEODESTALLASACANDELARIO.TXT"
+litter_file <- "IEODESBASURASACANDELARIO.TXT"
+accidentals_file <- "IEODESCAPTACCIDACANDELARIO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
-MONTH <- 1
+MONTH <- 2
 # MONTH <- c(1:12)
 
 # Suffix to path folder (useful when the data of the same month is received
@@ -61,23 +61,17 @@ cfpo_to_use <- "CFPO2023 DEF.xlsx"
 # sireno fleet file to use in the script
 sireno_fleet_to_use <- "IEOPROBARMARCO_2024_03_12.TXT"
 
-# Only required if the file will be uploaded to google drive. It is the path
-# where in google drive will be saved.
-# GOOGLE_DRIVE_PATH <- file.path("/equipo muestreos/review_oab/2020/errors/")
-
 # PACKAGES ---------------------------------------------------------------------
 
 library(plyr) # to use function join_all --> TO DO: change to reduce-merge functions
 library(dplyr)
 library(devtools)
-# remove.packages("sapmuebase")
-# .rs.restartR()
-# install("C:/Users/ieoma/Desktop/sap/sapmuebase")
 # install_github("Eucrow/sapmuebase")
 library(sapmuebase)
-library(ggplot2) #to use in view_speed_outliers
-library(ggiraph) #to use in view_speed_outliers
 library(openxlsx)
+library(ggplot2) # to use in speed_outliers_pdf
+library(plotly) #to use in speed_outliers_interactive
+library(htmlwidgets) #to use in speed_outliers_interactive
 
 
 # FUNCTIONS --------------------------------------------------------------------
@@ -181,8 +175,8 @@ colnames(CFPO) <- c("CFR", "NOMBRE", "MATRICULA", "ESTADO")
 #### obtain and format the SIRENO fleet file.
 # Required to check the ship in the CFPO
 SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", sireno_fleet_to_use),
-                   fileEncoding = "windows-1252")
-SIRENO_FLEET$COD.BARCO <- sub("'","", SIRENO_FLEET[["COD.BARCO"]])
+                  fileEncoding = "windows-1252")
+SIRENO_FLEET$COD.BARCO <- sub("'", "", SIRENO_FLEET[["COD.BARCO"]])
 
 # Get the contacts data set. This data set contains the different roles and its
 # email, used in the distribution of error files. The roles are:
@@ -295,10 +289,14 @@ exportErrorsListToXlsx2(errors, prefix = PREFIX_TO_EXPORT,
                  suffix = SUFFIX_TO_EXPORT,
                  separation = "_", path_export = PATH_ERRORS)
 
-# CHECK SPEED ------------------------------------------------------------------
-view_speed_outliers()
-filename <- paste("speed_outliers", YEAR,  MONTH_AS_CHARACTER, sep ="_")
-printPdfGraphic(filename, view_speed_outliers)
+# CREATE AND SAVE SPEED PLOT ---------------------------------------------------
+speed_plot_interactive <- speed_boxplot_interactive()
+filename <- paste("speed_outliers", YEAR, MONTH_AS_CHARACTER, sep = "_")
+htmlwidgets::saveWidget(speed_plot_interactive, file.path(PATH_ERRORS, paste0(filename, ".html")))
+
+# speed_plot_pdf <- speed_boxplot()
+# print_pdf_graphic(filename, speed_plot_pdf)
+
 
 # SAVE FILES TO SHARED FOLDER ----
 copyErrorsFilesToSharedFolder()
