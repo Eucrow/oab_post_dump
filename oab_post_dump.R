@@ -38,7 +38,7 @@ litter_file <- "IEODESBASURASACANDELARIO.TXT"
 accidentals_file <- "IEODESCAPTACCIDACANDELARIO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
-MONTH <- 2
+MONTH <- 4
 # MONTH <- c(1:12)
 
 # Suffix to path folder (useful when the data of the same month is received
@@ -52,7 +52,7 @@ FOLDER_SUFFIX <- ""
 
 YEAR <- 2024
 
-PATH_SHARED_FOLDER <- "C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review"
+PATH_SHARED_FOLDER <- "C:/Users/alberto.candelario/Desktop/nextCloud/SAP_OAB/OAB_data_review"
 
 # cfpo to use in the script
 # cfpo_to_use <- "CFPO_2021.csv"
@@ -84,6 +84,7 @@ source('oab_post_dump_haul_characteristics.R')
 source('create_elasmobranchii_file.R')
 source('check_them_all.R')
 source('check_them_all_annual.R')
+source('oab_post_dump_speed_plot_functions.R')
 
 # GLOBAL VARIABLES -------------------------------------------------------------
 
@@ -330,10 +331,10 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 # another info to any other file that can be sent.
 accessory_email_info <- data.frame(
   AREA_INF = c("DESIXA", "DESNOR", "DESSUR", "ALL"),
-  LINK = c("https://saco.csic.es/index.php/f/190112709",
-           "https://saco.csic.es/index.php/f/190112712",
-           "https://saco.csic.es/index.php/f/190112714",
-           "https://saco.csic.es/index.php/f/190112717"),
+  LINK = c("https://saco.csic.es/index.php/f/210259834",
+           "",
+           "https://saco.csic.es/index.php/f/210259837",
+           "https://saco.csic.es/index.php/f/210259839"),
   NOTES = c("",
             "",
             "",
