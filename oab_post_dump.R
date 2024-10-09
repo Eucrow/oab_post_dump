@@ -1,9 +1,7 @@
 #### Check discards from SIRENO
-#### Return xls files with errors detected by acronym type.
-####
+#### Return xls files with errors and warnings detected by acronym type.
 #### author: Marco A. Ámez Fernández
 #### email: ieo.marco.a.amez@gmail.com
-#### version: 1.4
 
 # INSTRUCTIONS -----------------------------------------------------------------
 
@@ -332,10 +330,10 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 # another info to any other file that can be sent.
 accessory_email_info <- data.frame(
   AREA_INF = c("DESIXA", "DESNOR", "DESSUR", "ALL"),
-  LINK = c("https://saco.csic.es/index.php/f/210259834",
+  LINK = c("",
            "",
-           "https://saco.csic.es/index.php/f/210259837",
-           "https://saco.csic.es/index.php/f/210259839"),
+           "",
+           ""),
   NOTES = c("",
             "",
             "",
