@@ -551,30 +551,33 @@ species_without_retained_and_discarded_weight <- function(df){
 
 
 #' Check code: 2023
-#' Coherence target species with metier ieo.
-#' @note Require the file metier_ieo_especie_objetivo_OAB.txt
-coherence_target_species_metier_ieo <- function(){
+#' Coherence target species with metier ieo according 
+#' estrato rim.
+#' @note Require the file metier_target_species.csv
+metier_ieo_coherence <- function(){
 
   # get dataset with relation between metier ieo and target species
-  ms <- metier_ieo_especie_objetivo_OAB
+  ms <- metier_target_species
   ms$OK <- "ok"
 
   # hauls cleaned
-  hc <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "METIER_IEO", "COD_ESP_OBJ")]
+  hc <- OAB_hauls[, c("COD_MAREA", "COD_LANCE", "ESTRATO_RIM", "METIER_IEO", "COD_ESP_OBJ")]
 
   # errors
   errors <- merge(hc, ms,
                   all.x = TRUE,
-                  by = c("METIER_IEO", "COD_ESP_OBJ"))
+                  by = c("ESTRATO_RIM", "METIER_IEO", "COD_ESP_OBJ"))
 
-  errors <- errors[is.na(errors[["OK"]]),]
+  errors <- errors[is.na(errors[["OK"]]), ]
 
   if (nrow(errors)>0){
 
-    errors <- addTypeOfError(errors, "ERROR: the target species is not coherent with metier ieo.")
+    errors <- addTypeOfError(errors, "ERROR: the target species is not coherent 
+                             with metier ieo and the estrato rim")
 
     # But, in special cases where the METIER_IEO is no filed:
-    errors[errors$METIER_IEO == "", "TIPO_ERROR"] <- "ERROR: the target species field can't be checked because the METIER_IEO is empty."
+    errors[is.na(errors$METIER_IEO), "TIPO_ERROR"] <- "ERROR: the target species 
+    field can't be checked because the METIER_IEO is empty."
 
     errors <- Filter(function(x) {!all(is.na(x))}, errors)
 
