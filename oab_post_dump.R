@@ -36,7 +36,7 @@ litter_file <- "IEODESBASURASACANDELARIO.TXT"
 accidentals_file <- "IEODESCAPTACCIDACANDELARIO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
-MONTH <- 4
+MONTH <- 7
 # MONTH <- c(1:12)
 
 # Suffix to path folder (useful when the data of the same month is received
@@ -133,7 +133,7 @@ FILES_TO_BACKUP <- c("oab_post_dump.R",
                      "especies_a_medir_OAB.csv",
                      "especies_objetivo_OAB.csv",
                      "razon_descarte_OAB.csv",
-                     "metier_ieo_especie_objetivo_OAB.csv",
+                     "metier_target_species.csv",
                      "duracion_mareas.txt",
                      "caracteristicas_lances.csv",
                      "not_allowed_species_measured.csv",
@@ -150,7 +150,7 @@ especies_objetivo_oab <- importCsvSAPMUE("especies_objetivo_OAB.csv")
 
 razon_descarte_OAB <- importCsvSAPMUE("razon_descarte_OAB.csv")
 
-metier_ieo_especie_objetivo_OAB <- importCsvSAPMUE("metier_ieo_especie_objetivo_OAB.csv")
+metier_target_species <- importCsvSAPMUE("metier_target_species.csv")
 
 duracion_mareas_OAB <- importCsvSAPMUE("duracion_mareas.txt")
 
@@ -330,10 +330,10 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 # another info to any other file that can be sent.
 accessory_email_info <- data.frame(
   AREA_INF = c("DESIXA", "DESNOR", "DESSUR", "ALL"),
-  LINK = c("",
+  LINK = c("https://saco.csic.es/index.php/f/295268052",
            "",
-           "",
-           ""),
+           "https://saco.csic.es/index.php/f/295268055",
+           "https://saco.csic.es/index.php/f/295268075"),
   NOTES = c("",
             "",
             "",

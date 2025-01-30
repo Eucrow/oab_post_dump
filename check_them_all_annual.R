@@ -79,7 +79,7 @@ check_them_all_annual <- function() {
   # Remove this check: maybe delete the master too?
   #ERR$hauls_target_sp_with_catch <- coherence_target_sp_with_catch()
 
-  ERR$hauls_coherence_target_species_metier_ieo <- coherence_target_species_metier_ieo()
+  ERR$hauls_metier_ieo_coherence <- metier_ieo_coherence()
 
   ERR$hauls_length_cable_1000 <- length_cable_1000()
 
