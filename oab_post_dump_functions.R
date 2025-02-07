@@ -549,6 +549,8 @@ species_without_retained_and_discarded_weight <- function(df){
   
   errors <- errors[condition, ]
   
+  errors <- unique(errors)
+  
   if(nrow(errors) > 0){
     errors <- addTypeOfError(errors,"ERROR: species without retained and discarded weights")
     return(errors)
