@@ -541,8 +541,16 @@ sampled_discard_less_subsample_discard <- function(df){
 #' @return dataframe with errors.
 species_without_retained_and_discarded_weight <- function(df){
   errors <- df[,c("YEAR","COD_MAREA","COD_LANCE","COD_ESP","ESP", "P_RET","P_DESCAR" )]
-  errors <- errors[errors$P_RET==0 & errors$P_DESCAR==0, ]
+  
+  #' Contidion to evaluate if P_RET and P_DESCAR have 
+  #' zero or NA value
+  condition <- (errors$P_RET==0 & errors$P_DESCAR==0) | 
+    (is.na(errors$P_RET) & is.na(errors$P_DESCAR))
+  
+  errors <- errors[condition, ]
+  
   errors <- unique(errors)
+  
   if(nrow(errors) > 0){
     errors <- addTypeOfError(errors,"ERROR: species without retained and discarded weights")
     return(errors)
