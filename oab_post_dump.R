@@ -54,7 +54,7 @@ PATH_SHARED_FOLDER <- "C:/Users/alberto.candelario/Desktop/nextCloud/SAP_OAB/OAB
 
 # cfpo to use in the script
 # cfpo_to_use <- "CFPO_2021.csv"
-cfpo_to_use <- "CFPO2023 DEF.xlsx"
+cfpo_to_use <- "CFPO2024 DEF.xlsx"
 
 # sireno fleet file to use in the script
 sireno_fleet_to_use <- "IEOPROBARMARCO_2024_03_12.TXT"
