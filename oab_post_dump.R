@@ -28,15 +28,15 @@
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAACANDELARIO.TXT"
-hauls_file <- "IEODESLANCEACANDELARIO.TXT"
-catches_file <- "IEODESCAPTURAACANDELARIO.TXT"
-lengths_file <- "IEODESTALLASACANDELARIO.TXT"
-litter_file <- "IEODESBASURASACANDELARIO.TXT"
-accidentals_file <- "IEODESCAPTACCIDACANDELARIO.TXT"
+trips_file <- "IEODESMAREAMARCO.TXT"
+hauls_file <- "IEODESLANCEMARCO.TXT"
+catches_file <- "IEODESCAPTURAMARCO.TXT"
+lengths_file <- "IEODESTALLASMARCO.TXT"
+litter_file <- "IEODESBASURASMARCO.TXT"
+accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
-MONTH <- 7
+MONTH <- 4
 # MONTH <- c(1:12)
 
 # Suffix to path folder (useful when the data of the same month is received
@@ -48,12 +48,11 @@ FOLDER_SUFFIX <- ""
 # suffix will be added to the end of the path with a "_" as separation.
 # suffix_multiple_months <- "annual"
 
-YEAR <- 2024
+YEAR <- 2025
 
-PATH_SHARED_FOLDER <- "C:/Users/alberto.candelario/Desktop/nextCloud/SAP_OAB/OAB_data_review"
+PATH_SHARED_FOLDER <- "C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review"
 
 # cfpo to use in the script
-# cfpo_to_use <- "CFPO_2021.csv"
 cfpo_to_use <- "CFPO2024 DEF.xlsx"
 
 # sireno fleet file to use in the script
@@ -68,21 +67,21 @@ library(devtools)
 library(sapmuebase)
 library(openxlsx)
 library(ggplot2) # to use in speed_outliers_pdf
-library(plotly) #to use in speed_outliers_interactive
-library(htmlwidgets) #to use in speed_outliers_interactive
+library(plotly) # to use in speed_outliers_interactive
+library(htmlwidgets) # to use in speed_outliers_interactive
 
 
 # FUNCTIONS --------------------------------------------------------------------
 
 # All the functions required in this script are located in the next files:
-source('oab_post_dump_auxiliar_functions.R')
-source('oab_post_dump_functions.R')
-source('oab_post_dump_hauls_overlapped.R')
-source('oab_post_dump_haul_characteristics.R')
-source('create_elasmobranchii_file.R')
-source('check_them_all.R')
-source('check_them_all_annual.R')
-source('oab_post_dump_speed_plot_functions.R')
+source("oab_post_dump_auxiliar_functions.R")
+source("oab_post_dump_functions.R")
+source("oab_post_dump_hauls_overlapped.R")
+source("oab_post_dump_haul_characteristics.R")
+source("create_elasmobranchii_file.R")
+source("check_them_all.R")
+source("check_them_all_annual.R")
+source("oab_post_dump_speed_plot_functions.R")
 
 # GLOBAL VARIABLES -------------------------------------------------------------
 
@@ -93,7 +92,7 @@ ERRORS <- list()
 PATH_FILES <- createPathFiles(MONTH, YEAR, suffix_multiple_months, FOLDER_SUFFIX)
 
 # path to the generated errors file
-PATH_ERRORS <- file.path(PATH_FILES,"errors")
+PATH_ERRORS <- file.path(PATH_FILES, "errors")
 # if the errors directory does not exists, create it:
 ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
 
@@ -123,22 +122,24 @@ PREFIX_TO_EXPORT <- "OAB"
 SUFFIX_TO_EXPORT <- createSuffixToExport(MONTH, YEAR, MONTH_AS_CHARACTER, suffix_multiple_months)
 
 # files to backup
-FILES_TO_BACKUP <- c("oab_post_dump.R",
-                     "oab_post_dump_auxiliar_functions.R",
-                     "oab_post_dump_functions.R",
-                     "oab_post_dump_hauls_overlapped.R",
-                     "oab_post_dump_haul_characteristics.R",
-                     "oab_post_dump_speed_plot_functions.R",
-                     "oab_post_dump_sexed_species_functions.R",
-                     "especies_a_medir_OAB.csv",
-                     "especies_objetivo_OAB.csv",
-                     "razon_descarte_OAB.csv",
-                     "metier_target_species.csv",
-                     "duracion_mareas.txt",
-                     "caracteristicas_lances.csv",
-                     "not_allowed_species_measured.csv",
-                     "origin_statistical_rectangle.csv",
-                     "cephalopods.csv")
+FILES_TO_BACKUP <- c(
+  "oab_post_dump.R",
+  "oab_post_dump_auxiliar_functions.R",
+  "oab_post_dump_functions.R",
+  "oab_post_dump_hauls_overlapped.R",
+  "oab_post_dump_haul_characteristics.R",
+  "oab_post_dump_speed_plot_functions.R",
+  "oab_post_dump_sexed_species_functions.R",
+  "especies_a_medir_OAB.csv",
+  "especies_objetivo_OAB.csv",
+  "razon_descarte_OAB.csv",
+  "metier_target_species.csv",
+  "duracion_mareas.txt",
+  "caracteristicas_lances.csv",
+  "not_allowed_species_measured.csv",
+  "origin_statistical_rectangle.csv",
+  "cephalopods.csv"
+)
 
 EMAIL_TEMPLATE <- "errors_email.Rmd"
 
@@ -159,7 +160,7 @@ caracteristicas_lances <- importCsvSAPMUE("caracteristicas_lances.csv")
 not_allowed_species_measured <- importCsvSAPMUE("not_allowed_species_measured.csv")
 
 origin_statistical_rectangle <- importCsvSAPMUE("origin_statistical_rectangle.csv")
-origin_statistical_rectangle$COD_ORIGEN <-  sprintf("%03d", origin_statistical_rectangle$COD_ORIGEN)
+origin_statistical_rectangle$COD_ORIGEN <- sprintf("%03d", origin_statistical_rectangle$COD_ORIGEN)
 
 # this cephalopods master has been created using the annual OAB_catches
 # dataframe of 2019. All the species has been checked via API with WORM webpage
@@ -168,14 +169,15 @@ cephalopods <- importCsvSAPMUE("cephalopods.csv")
 
 ### obtain and format the cfpo.
 # CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), startRow = 4, detectDates=TRUE)
-CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), detectDates=TRUE)
+CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), detectDates = TRUE)
 CFPO <- CFPO[, c("CFR", "Nombre", "Matrícula", "Estado.actual")]
 colnames(CFPO) <- c("CFR", "NOMBRE", "MATRICULA", "ESTADO")
 
 #### obtain and format the SIRENO fleet file.
 # Required to check the ship in the CFPO
 SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", sireno_fleet_to_use),
-                  fileEncoding = "windows-1252")
+  fileEncoding = "windows-1252"
+)
 SIRENO_FLEET$COD.BARCO <- sub("'", "", SIRENO_FLEET[["COD.BARCO"]])
 
 # Get the contacts data set. This data set contains the different roles and its
@@ -193,7 +195,7 @@ CONTACTS <- read.csv(file.path(PATH_PRIVATE_FILES, "contacts.csv"))
 # IMPORT DISCARDS FILES --------------------------------------------------------
 
 # discards_samples <- importOABFiles(trips_file, hauls_file, catches_file, lengths_file,
-                                   # litter_file, accidentals_file, path = PATH_FILES)
+# litter_file, accidentals_file, path = PATH_FILES)
 
 OAB_trips <- importOABTrips(trips_file, path = PATH_FILES)
 
@@ -211,26 +213,26 @@ OAB_accidentals <- importOABAccidentals(accidentals_file, path = PATH_FILES)
 # FILTER BY MONTH --------------------------------------------------------------
 # only when one month is used.
 
-if(length(MONTH) == 1 && MONTH %in% seq(1:12)){
+if (length(MONTH) == 1 && MONTH %in% seq(1:12)) {
   # WARNING!! DOES NOT WORK WITH JANUARY-DECEMBER!!!! :(
   OAB_trips <- OAB_trips[
-    as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon +1 == MONTH |
-      (as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon +1 == MONTH -1 & as.POSIXlt(OAB_trips$FECHA_FIN_MAREA)$mon +1 == MONTH)
-    ,]
-  OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
-  OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
-  OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+    as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon + 1 == MONTH |
+      (as.POSIXlt(OAB_trips$FECHA_INI_MAREA)$mon + 1 == MONTH - 1 & as.POSIXlt(OAB_trips$FECHA_FIN_MAREA)$mon + 1 == MONTH),
+  ]
+  OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA %in% OAB_trips$COD_MAREA, ]
+  OAB_catches <- OAB_catches[OAB_catches$COD_MAREA %in% OAB_trips$COD_MAREA, ]
+  OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA %in% OAB_trips$COD_MAREA, ]
 }
 
 # when multiple months are used
-if(all(length(MONTH) >=1 & MONTH %in% seq(1:12))){
+if (all(length(MONTH) >= 1 & MONTH %in% seq(1:12))) {
   # TODO: TEST USING OAB_trips$FECHA_FIN_MAREA instead OAB_trips$FECHA_INI_MAREA
   # I THINK THIS DOES NOT WORK:
-  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$mon +1 %in% MONTH &
-                         (as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$year +1900) == YEAR,]
-  OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA%in%OAB_trips$COD_MAREA,]
-  OAB_catches <- OAB_catches[OAB_catches$COD_MAREA%in%OAB_trips$COD_MAREA,]
-  OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA%in%OAB_trips$COD_MAREA,]
+  OAB_trips <- OAB_trips[as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$mon + 1 %in% MONTH &
+    (as.POSIXlt(OAB_trips$FECHA_FIN_MAREA, format = "%d/%m/%Y")$year + 1900) == YEAR, ]
+  OAB_hauls <- OAB_hauls[OAB_hauls$COD_MAREA %in% OAB_trips$COD_MAREA, ]
+  OAB_catches <- OAB_catches[OAB_catches$COD_MAREA %in% OAB_trips$COD_MAREA, ]
+  OAB_lengths <- OAB_lengths[OAB_lengths$COD_MAREA %in% OAB_trips$COD_MAREA, ]
 }
 
 
@@ -278,16 +280,20 @@ errors <- separate_df_by_acronym(combined_errors)
 # Remove columns with only NA values
 # Filter extracts the elements of a vector for which a predicate (logical)
 # function gives true
-errors <-  lapply(errors, function(x){
-  Filter(function(x){!all(is.na(x))}, x)
+errors <- lapply(errors, function(x) {
+  Filter(function(x) {
+    !all(is.na(x))
+  }, x)
 })
 
 # EXPORT ERRORS ----------------------------------------------------------------
 
 # Export to xls
-exportErrorsListToXlsx2(errors, prefix = PREFIX_TO_EXPORT,
-                 suffix = SUFFIX_TO_EXPORT,
-                 separation = "_", path_export = PATH_ERRORS)
+exportErrorsListToXlsx2(errors,
+  prefix = PREFIX_TO_EXPORT,
+  suffix = SUFFIX_TO_EXPORT,
+  separation = "_", path_export = PATH_ERRORS
+)
 
 # CREATE AND SAVE SPEED PLOT ---------------------------------------------------
 speed_plot_interactive <- speed_boxplot_interactive()
@@ -300,13 +306,6 @@ htmlwidgets::saveWidget(speed_plot_interactive, file.path(PATH_ERRORS, paste0(fi
 
 # SAVE FILES TO SHARED FOLDER ----
 copyErrorsFilesToSharedFolder()
-
-# BACKUP SCRIPTS AND RELATED FILES ----
-# first save all files opened
-rstudioapi::documentSaveAll()
-# and the backup the scripts and files:
-sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
-
 
 # SEND EMAILS AUTOMATICALLY ----------------------------------------------------
 # The first time the errors will be sent by email, a credential file must be
@@ -330,20 +329,34 @@ sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 # another info to any other file that can be sent.
 accessory_email_info <- data.frame(
   AREA_INF = c("DESIXA", "DESNOR", "DESSUR", "ALL"),
-  LINK = c("https://saco.csic.es/index.php/f/295268052",
-           "",
-           "https://saco.csic.es/index.php/f/295268055",
-           "https://saco.csic.es/index.php/f/295268075"),
-  NOTES = c("",
-            "",
-            "",
-            "")
+  LINK = c(
+    "https://saco.csic.es/index.php/f/481791242",
+    "",
+    "https://saco.csic.es/index.php/f/481791243",
+    "https://saco.csic.es/index.php/f/481791263"
+  ),
+  NOTES = c(
+    "",
+    "",
+    "",
+    ""
+  )
 )
 
-sendErrorsByEmail(accessory_email_info = accessory_email_info,
-                  contacts = CONTACTS,
-                  credentials_file = "credentials",
-                  identification_sampling = SUFFIX_TO_EXPORT)
+sendErrorsByEmail(
+  accessory_email_info = accessory_email_info,
+  contacts = CONTACTS,
+  credentials_file = "credentials",
+  identification_sampling = SUFFIX_TO_EXPORT
+)
+
+
+
+# BACKUP SCRIPTS AND RELATED FILES ----
+# first save all files opened
+rstudioapi::documentSaveAll()
+# and the backup the scripts and files:
+sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 
 
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
@@ -352,7 +365,7 @@ sendErrorsByEmail(accessory_email_info = accessory_email_info,
 
 
 
-# when this problem is fixed, detelte it:
+# when this problem is fixed, delete it:
 # sampled_discard_less_subsample_discard_FIXED <- function(df){
 #
 #   # usually the PESO_SUB_MUE_TOT is NA, so it is necessary detect it.
@@ -369,4 +382,3 @@ sendErrorsByEmail(accessory_email_info = accessory_email_info,
 # }
 # error_sampled_discard_less_subsample_discard_FIXED <- sampled_discard_less_subsample_discard_FIXED(OAB_catches)
 # error_sampled_discard_less_subsample_discard <- sampled_discard_less_subsample_discard(OAB_catches)
-
