@@ -28,13 +28,6 @@
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAMARCO.TXT"
-hauls_file <- "IEODESLANCEMARCO.TXT"
-catches_file <- "IEODESCAPTURAMARCO.TXT"
-lengths_file <- "IEODESTALLASMARCO.TXT"
-litter_file <- "IEODESBASURASMARCO.TXT"
-accidentals_file <- "IEODESCAPTACCIDMARCO.TXT"
-
 # MONTH: 1 to 12, or vector with month in numbers
 MONTH <- 4
 # MONTH <- c(1:12)
@@ -49,8 +42,6 @@ FOLDER_SUFFIX <- ""
 # suffix_multiple_months <- "annual"
 
 YEAR <- 2025
-
-PATH_SHARED_FOLDER <- "C:/Users/ieoma/Nextcloud/SAP_OAB/OAB_data_review"
 
 # cfpo to use in the script
 cfpo_to_use <- "CFPO2024 DEF.xlsx"
@@ -101,6 +92,9 @@ PRIVATE_FOLDER_NAME <- "private"
 
 # Path where private files are stored.
 PATH_PRIVATE_FILES <- file.path(getwd(), PRIVATE_FOLDER_NAME)
+
+# Import user settings: path share floder and use oab file's name
+source(file.path(PATH_PRIVATE_FILES, ("user_settings.R")))
 
 # path to store files as backup
 PATH_BACKUP <- file.path(PATH_FILES, "backup")

@@ -172,6 +172,8 @@ check_them_all <- function(){
   ERR$errors_date_hauls_in_date_interval_trips <- date_hauls_in_date_interval_trips(OAB_trips, OAB_hauls)#***
 
   ERR$final_date_one_day_before_hauling <- final_date_one_day_before_hauling()
+  
+  ERR$match_last_trip_haul_day <- match_last_trip_haul_day()
 
   return(ERR)
 }

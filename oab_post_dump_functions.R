@@ -655,7 +655,7 @@ trips_initial_date_before_final_date <- function(){
   errors <- OAB_trips[(start - end)>0,]
 
   if(nrow(errors)!=0) {
-    errors <- addTypeOfError(errors, "ERROR: la fEicha final de la marea es anterior a la fecha inicial")
+    errors <- addTypeOfError(errors, "ERROR: la fecha final de la marea es anterior a la fecha inicial")
     return(errors)
   }
 
@@ -1558,5 +1558,52 @@ hauls_unsampled_with_discard_weight <- function(df){
 }
 
 
+#' check code: 2082
+#' Check if the last date of the trip matches with the last date of hauling
+#' @return dataframe with errors.
+match_last_trip_haul_day <- function(){
+  
+  
+  # get the final date of every trips
+  final_date_trip <- OAB_trips[, c("COD_MAREA", "FECHA_FIN_MAREA")]
+  final_date_trip <- unique(final_date_trip)
+  
+  # get the final date of hauls 
+  final_date_haul <- OAB_hauls[, c("COD_MAREA", "FECHA_VIR")]
+  final_date_haul <- unique(final_date_haul)
+  
+  final_date_haul <- final_date_haul %>% 
+    group_by(COD_MAREA) %>%
+    summarise(FECHA_VIR_MAX = max(FECHA_VIR))
+
+  
+  # Check if not match the number of COD_MAREA
+  
+  errors <- final_date_trip[!(final_date_trip$COD_MAREA %in% 
+                                final_date_haul$COD_MAREA), ]
+  
+  if(nrow(errors) > 0){
+    
+    errors <- addTypeOfError(errors, "ERROR: COD_MAREA from Hauls and Trips does not match")
+    
+  } else {
+    
+    # test if trip days are similar to haul days
+    
+    errors <- final_date_trip[!(final_date_trip$FECHA_FIN_MAREA %in% 
+                                  final_date_haul$FECHA_VIR_MAX), ]
+    
+    if (nrow(errors) > 0){
+    
+      errors <- addTypeOfError(errors, "ERROR: Last day from Hauls and Trips does not match")
+      
+    }
+    
+  }
+    
+  }
+  
+
+  
 
 
