@@ -110,6 +110,7 @@ check_them_all <- function(){
 
   ERR$pinger_required <- pinger_required()
 
+  ERR$match_last_trip_haul_day <- match_last_trip_haul_day(OAB_trips, OAB_hauls)
 
   # CATCHES
   ERR$catches_empty_fields <- empty_fields_in_variables(OAB_catches, "OAB_CATCHES")

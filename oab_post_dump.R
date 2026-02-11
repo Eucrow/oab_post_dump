@@ -45,7 +45,7 @@ MONTH <- 1
 # Suffix to path folder (useful when the data of the same month is received
 # in different files). If it is not necessary, use "".
 # FOLDER_SUFFIX <- "b"
-FOLDER_SUFFIX <- "TEST"
+FOLDER_SUFFIX <- ""
 
 # Suffix to add to path. Use only in case MONTH is a vector of months. This
 # suffix will be added to the end of the path with a "_" as separation.
@@ -86,6 +86,7 @@ source("check_them_all.R")
 source("check_them_all_annual.R")
 source("oab_post_dump_speed_plot_functions.R")
 source("R/filter_by_months.R")
+source("R/2083_match_last_trip_haul_day.R")
 
 # GLOBAL VARIABLES -------------------------------------------------------------
 
