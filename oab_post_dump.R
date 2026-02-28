@@ -28,15 +28,28 @@
 # in /data/YYYY/YYYY_MM/backup.
 # - TODO: explain speed graphics
 
+# FOLDER STRUCTURE -------------------------------------------------------------
+# Name of the folder where will be stored the errors generated in this script.
+ERRORS_FOLDER_NAME <- "errors"
+# Name of the folder where will be stored the backup files generated in this
+BACKUP_FOLDER_NAME <- "backup"
+# Name of the folder where are stored private files with sensitive information.
+PRIVATE_FOLDER_NAME <- "private"
+# Name of the folder where are stored raw data files.
+DATA_RAW_FOLDER_NAME <- "data-raw"
+
+# USER SETTINGS -------------------------------------------------------------
+# This file contains the user settings:
+# - trips_file: name of the file with the trip information dataset.
+# - hauls_file: name of the file with the hauls information dataset.
+# - catches_file: name of the file with the catches information dataset. 
+# - lengths_file: name of the file with the lengths information dataset. 
+# - litter_file: name of the file with the litter information dataset. 
+# - accidentals_file: name of the file with the accidentals information dataset. 
+# - PATH_SHARE_FOLDER: path of cloud service where the files will be shared.
+source(file.path(PRIVATE_FOLDER_NAME, "user_settings.R"))
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
-
-trips_file <- "IEODESMAREAACANDELARIO.TXT"
-hauls_file <- "IEODESLANCEACANDELARIO.TXT"
-catches_file <- "IEODESCAPTURAACANDELARIO.TXT"
-lengths_file <- "IEODESTALLASACANDELARIO.TXT"
-litter_file <- "IEODESBASURASACANDELARIO.TXT"
-accidentals_file <- "IEODESCAPTACCIDACANDELARIO.TXT"
 
 # MONTH: 1 to 12, or vector with month in numbers
 MONTH <- 1
@@ -53,13 +66,11 @@ FOLDER_SUFFIX <- ""
 
 YEAR <- 2025
 
-PATH_SHARED_FOLDER <- "C:/Users/IEO_Marco/Nextcloud/SAP_OAB/OAB_data_review"
-
 # cfpo to use in the script
 cfpo_to_use <- "CFPO2024 DEF.xlsx"
 
 # sireno fleet file to use in the script
-sireno_fleet_to_use <- "IEOPROBARMARCO_2024_03_12.TXT"
+sireno_fleet_to_use <- "IEOPROBARACANDELARIO.TXT"
 
 # PACKAGES ---------------------------------------------------------------------
 
@@ -72,7 +83,6 @@ library(openxlsx)
 library(ggplot2) # to use in speed_outliers_pdf
 library(plotly) # to use in speed_outliers_interactive
 library(htmlwidgets) # to use in speed_outliers_interactive
-
 
 # FUNCTIONS --------------------------------------------------------------------
 
@@ -100,9 +110,6 @@ PATH_FILES <- createPathFiles(MONTH, YEAR, suffix_multiple_months, FOLDER_SUFFIX
 PATH_ERRORS <- file.path(PATH_FILES, "errors")
 # if the errors directory does not exists, create it:
 ifelse(!dir.exists(PATH_ERRORS), dir.create(PATH_ERRORS), FALSE)
-
-# Name of the folder where are stored private files with sensitive information.
-PRIVATE_FOLDER_NAME <- "private"
 
 # Path where private files are stored.
 PATH_PRIVATE_FILES <- file.path(getwd(), PRIVATE_FOLDER_NAME)
@@ -174,13 +181,14 @@ cephalopods <- importCsvSAPMUE("cephalopods.csv")
 
 ### obtain and format the cfpo.
 # CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), startRow = 4, detectDates=TRUE)
-CFPO <- read.xlsx(paste0(getwd(), "/data-raw/", cfpo_to_use), detectDates = TRUE)
+
+CFPO <- read.xlsx(file.path(getwd(), DATA_RAW_FOLDER_NAME, cfpo_to_use), detectDates = TRUE)
 CFPO <- CFPO[, c("CFR", "Nombre", "Matrícula", "Estado.actual")]
 colnames(CFPO) <- c("CFR", "NOMBRE", "MATRICULA", "ESTADO")
 
 #### obtain and format the SIRENO fleet file.
 # Required to check the ship in the CFPO
-SIRENO_FLEET <- read.csv2(paste0(getwd(), "/data-raw/", sireno_fleet_to_use),
+SIRENO_FLEET <- read.csv2(file.path(getwd(), DATA_RAW_FOLDER_NAME, sireno_fleet_to_use),
   fileEncoding = "windows-1252"
 )
 SIRENO_FLEET$COD.BARCO <- sub("'", "", SIRENO_FLEET[["COD.BARCO"]])
