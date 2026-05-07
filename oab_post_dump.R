@@ -31,15 +31,19 @@
 
 # YOU HAVE ONLY TO CHANGE THIS VARIABLES ---------------------------------------
 
-trips_file <- "IEODESMAREAACANDELARIO.TXT"
-hauls_file <- "IEODESLANCEACANDELARIO.TXT"
-catches_file <- "IEODESCAPTURAACANDELARIO.TXT"
-lengths_file <- "IEODESTALLASACANDELARIO.TXT"
-litter_file <- "IEODESBASURASACANDELARIO.TXT"
-accidentals_file <- "IEODESCAPTACCIDACANDELARIO.TXT"
+# USER SETTINGS -------------------------------------------------------------
+# This file contains the user settings:
+# - trips_file: name of the file with the trips data.
+# - hauls_file: name of the file with the hauls data.
+# - catches_file: name of the file with the catches data.
+# - lengths_file: name of the file with the lengths data.
+# - litter_file: name of the file with the litter data.
+# - accidentals_file: name of the file with the accidentals data.
+# - PATH_SHARE_FOLDER: path of cloud service where the files will be shared.
+source(file.path(PRIVATE_FOLDER_NAME, "user_settings.R"))
 
 # MONTH: 1 to 12, or vector with month in numbers
-MONTH <- 9
+MONTH <- 1
 # MONTH <- c(1:12)
 
 # Suffix to path folder (useful when the data of the same month is received
@@ -51,12 +55,12 @@ FOLDER_SUFFIX <- ""
 # suffix will be added to the end of the path with a "_" as separation.
 # suffix_multiple_months <- "annual"
 
-YEAR <- 2025
+YEAR <- 2026
 
 PATH_SHARED_FOLDER <- "C:/Users/IEO_Marco/Nextcloud/SAP_OAB/OAB_data_review"
 
 # cfpo to use in the script
-cfpo_to_use <- "CFPO2024 DEF.xlsx"
+cfpo_to_use <- "CFPO_2025.xlsx"
 
 # sireno fleet file to use in the script
 sireno_fleet_to_use <- "IEOPROBARACANDELARIO.TXT"
@@ -119,7 +123,7 @@ MONTH_AS_CHARACTER <- createMonthAsCharacter(month = MONTH, smm = suffix_multipl
 
 PATH_SHARE_ERRORS <- createPathSharedFiles(PATH_SHARED_FOLDER, MONTH, YEAR, suffix_multiple_months, FOLDER_SUFFIX)
 # if the shared errors directory does not exists, create it:
-ifelse(!dir.exists(PATH_SHARE_ERRORS), dir.create(PATH_SHARE_ERRORS), FALSE)
+ifelse(!dir.exists(PATH_SHARE_ERRORS), dir.create(PATH_SHARE_ERRORS, recursive = TRUE), FALSE)
 
 # names to export
 PREFIX_TO_EXPORT <- "OAB"
@@ -281,9 +285,14 @@ htmlwidgets::saveWidget(speed_plot_interactive, file.path(PATH_ERRORS, paste0(fi
 # speed_plot_pdf <- speed_boxplot()
 # print_pdf_graphic(filename, speed_plot_pdf)
 
+# BACKUP SCRIPTS AND RELATED FILES ----
+# first save all files opened
+rstudioapi::documentSaveAll()
+# and the backup the scripts and files:
+sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 
-# SAVE FILES TO SHARED FOLDER ----
-# copyErrorsFilesToSharedFolder()
+# SAVE FILES TO SHARED FOLDER --------------------------------------------------
+copy_files_to_folder(PATH_FILES, PATH_SHARE_ERRORS)
 
 # SEND EMAILS AUTOMATICALLY ----------------------------------------------------
 # The first time the errors will be sent by email, a credential file must be
@@ -308,10 +317,10 @@ htmlwidgets::saveWidget(speed_plot_interactive, file.path(PATH_ERRORS, paste0(fi
 accessory_email_info <- data.frame(
   AREA_INF = c("DESIXA", "DESNOR", "DESSUR", "ALL"),
   LINK = c(
-    "https://saco.csic.es/index.php/f/481791242",
     "",
-    "https://saco.csic.es/index.php/f/481791243",
-    "https://saco.csic.es/index.php/f/481791263"
+    "",
+    "",
+    ""
   ),
   NOTES = c(
     "",
@@ -327,12 +336,6 @@ sendErrorsByEmail(
   credentials_file = "credentials",
   identification_sampling = SUFFIX_TO_EXPORT
 )
-
-# BACKUP SCRIPTS AND RELATED FILES ----
-# first save all files opened
-rstudioapi::documentSaveAll()
-# and the backup the scripts and files:
-sapmuebase::backupScripts(FILES_TO_BACKUP, path_backup = PATH_BACKUP)
 
 
 # PRUEBAS CON SHINY: AL FINAL PARECE QUE NO SE PUEDEN MOSTRAR CON UN BOXPLOT
