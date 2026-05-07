@@ -472,36 +472,83 @@ check_spe_belongs_to_taxon <- function (specie, taxon_to_match){
 
 }
 
-#' Copy all the error files generated to a shared folder.
-#' If the folder doesn't exists, create it.
-copyErrorsFilesToSharedFolder <- function (){
 
-  # test if PATH_ERRORS exists
-  ifelse(!file.exists(PATH_ERRORS), stop(paste("Folder", PATH_ERRORS, "does not exists.")), FALSE)
+#' Copy all the error files generated to a shared folder
+#' @param path_errors_from Source path of error files
+#' @param path_errors_to Destination path for error files
+#' @return NULL (copies files from source to destination)
+#' @details Used to copy errors files generated to the shared folder. Tests if source path exists and has files, creates destination folder if needed, and prevents overwriting existing files
+copy_files_to_folder <- function(path_files_from, path_files_to) {
+  tryCatch(
+    {
+      # test if path_files_from exists
+      ifelse(!file.exists(path_files_from),
+        stop(paste(
+          "Folder",
+          path_files_from,
+          "does not exists."
+        )),
+        FALSE
+      )
 
-  # test if PATH_ERRORS have files
-  ifelse(length(list.files(PATH_ERRORS))==0, stop(paste("Folder", PATH_ERRORS, "doesn't have files.")), FALSE)
+      # test if path_errors_from have files
+      ifelse(length(list.files(path_files_from)) == 0,
+        stop(paste(
+          "Folder",
+          path_files_from,
+          "doesn't have files."
+        )),
+        FALSE
+      )
 
-  # if the share errors directory does not exists, create it:
-  ifelse(!dir.exists(PATH_SHARE_ERRORS), dir.create(PATH_SHARE_ERRORS), FALSE)
+      # if the share errors folder does not exists, create it, with its subfolders
+      folders <- list.dirs(path_files_from,
+        recursive = TRUE,
+        full.names = FALSE
+      )
 
-  # test if there are files with the same name in folder. In this case,
-  # nothing is saved.
-  files_list_to <- list.files(PATH_SHARE_ERRORS)
+      lapply(
+        folders,
+        function(x) {
+          ifelse(!dir.exists(file.path(path_files_to, x)),
+            dir.create(file.path(path_files_to, x),
+              recursive = TRUE
+            ),
+            FALSE
+          )
+        }
+      )
 
-  files_list_from <- list.files(PATH_ERRORS)
+      # test if there are files with the same name in folder. In this case,
+      # nothing is saved.
+      files_list_to <- list.files(path_files_to, recursive = TRUE)
 
-  if(any(files_list_from %in% files_list_to)){
-    ae <- which(files_list_from %in% files_list_to)
-    ae <- paste(files_list_from[ae], collapse = ", ")
-    stop(paste("The file(s)", ae, "already exist(s). Nothing has been saved" ))
+      files_list_from <- list.files(path_files_from, recursive = TRUE)
 
-  }
+      if (any(files_list_from %in% files_list_to)) {
+        ae <- which(files_list_from %in% files_list_to)
+        ae <- paste(files_list_from[ae], collapse = ", ")
+        stop(paste("The file(s)", ae, "already exist(s). Nothing has been saved"))
+      }
 
-  files_list_from <- file.path(PATH_ERRORS, files_list_from)
-
-  file.copy(from = files_list_from, to = PATH_SHARE_ERRORS)
-
+      # Copy all the files from path_files_from to path_files_to
+      lapply(
+        files_list_from,
+        function(x) {
+          file.copy(
+            from = file.path(path_files_from, x),
+            to = file.path(path_files_to, x)
+          )
+        }
+      )
+    },
+    error = function(e) {
+      cat("An error occurred:", conditionMessage(e), "\n")
+    },
+    warning = function(w) {
+      cat("A warning occurred:", conditionMessage(w), "\n")
+    }
+  )
 }
 
 
@@ -780,3 +827,4 @@ sendErrorsByEmail <- function(accessory_email_info, contacts, credentials_file,
   }, links_to_all)
 
 }
+
